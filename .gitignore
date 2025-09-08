@@ -1,6 +1,9 @@
 # Compiled class file
 *.class
 
+#old version
+oldversion/
+
 # Log file
 *.log
 
