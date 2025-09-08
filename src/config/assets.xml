@@ -2,16 +2,166 @@
 <assets>
     <sprites>
         <player>
-            <duelist>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/player/duelist/</duelist>
-            <wizard>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/player/wizard/</wizard>
+            <!-- Duelist -->
+            <sprite id="duelist_attack01" path="src/assets/players/Duelist-Attack01.png"/>
+            <sprite id="duelist_attack02" path="src/assets/players/Duelist-Attack02.png"/>
+            <sprite id="duelist_death" path="src/assets/players/Duelist-Death.png"/>
+            <sprite id="duelist_hurt" path="src/assets/players/Duelist-Hurt.png"/>
+            <sprite id="duelist_idle" path="src/assets/players/Duelist-Idle.png"/>
+            <sprite id="duelist_walk" path="src/assets/players/Duelist-Walk.png"/>
+
+            <!-- Wizard -->
+            <sprite id="wizard_attack01" path="src/assets/players/Wizard-Attack01.png"/>
+            <sprite id="wizard_attack02" path="src/assets/players/Wizard-Attack02.png"/>
+            <sprite id="wizard_death" path="src/assets/players/Wizard-Death.png"/>
+            <sprite id="wizard_hurt" path="src/assets/players/Wizard-Hurt.png"/>
+            <sprite id="wizard_idle" path="src/assets/players/Wizard-Idle.png"/>
+            <sprite id="wizard_walk" path="src/assets/players/Wizard-Walk.png"/>
         </player>
-        <enemies>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/enemies/</enemies>
-        <projectiles>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/projectiles/</projectiles>
-        <tiles>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/tiles/</tiles>
-        <items>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/items/</items>
+
+        <enemies>
+            <!-- Medusa of Chaos -->
+            <sprite id="medusa_of_chaos_attack01" path="src/assets/enemies/MedusaOfChaos/purple/Attack_1.png"/>
+            <sprite id="medusa_of_chaos_attack02" path="src/assets/enemies/MedusaOfChaos/purple/Attack_2.png"/>
+            <sprite id="medusa_of_chaos_attack03" path="src/assets/enemies/MedusaOfChaos/purple/Attack_3.png"/>
+            <sprite id="medusa_of_chaos_dead" path="src/assets/enemies/MedusaOfChaos/purple/Dead.png"/>
+            <sprite id="medusa_of_chaos_hurt" path="src/assets/enemies/MedusaOfChaos/purple/Hurt.png"/>
+            <!-- sprite id="medusa_of_chaos_idle02" path="src/assets/enemies/MedusaOfChaos/purple/Idle_2.png"/> -->
+            <sprite id="medusa_of_chaos_idle" path="src/assets/enemies/MedusaOfChaos/purple/Idle.png"/>
+            <!-- <sprite id="medusa_of_chaos_run" path="src/assets/enemies/MedusaOfChaos/purple/Run.png"/> -->
+            <!-- <sprite id="medusa_of_chaos_special" path="src/assets/enemies/MedusaOfChaos/purple/Special.png"/> -->
+            <sprite id="medusa_of_chaos_walk" path="src/assets/enemies/MedusaOfChaos/purple/Walk.png"/>
+
+            <!-- Armored Orc -->
+            <sprite id="armored_orc_attack01" path="src/assets/enemies/Armored Orc-Attack01.png"/>
+            <sprite id="armored_orc_attack02" path="src/assets/enemies/Armored Orc-Attack02.png"/>
+            <sprite id="armored_orc_attack03" path="src/assets/enemies/Armored Orc-Attack03.png"/>
+            <sprite id="armored_orc_death" path="src/assets/enemies/Armored Orc-Death.png"/>
+            <sprite id="armored_orc_hurt" path="src/assets/enemies/Armored Orc-Hurt.png"/>
+            <sprite id="armored_orc_idle" path="src/assets/enemies/Armored Orc-Idle.png"/>
+            <sprite id="armored_orc_walk" path="src/assets/enemies/Armored Orc-Walk.png"/>
+
+            <!-- Armored Skeleton -->
+            <sprite id="armored_skeleton_attack01" path="src/assets/enemies/Armored Skeleton-Attack01.png"/>
+            <sprite id="armored_skeleton_attack02" path="src/assets/enemies/Armored Skeleton-Attack02.png"/>
+            <sprite id="armored_skeleton_death" path="src/assets/enemies/Armored Skeleton-Death.png"/>
+            <sprite id="armored_skeleton_hurt" path="src/assets/enemies/Armored Skeleton-Hurt.png"/>
+            <sprite id="armored_skeleton_idle" path="src/assets/enemies/Armored Skeleton-Idle.png"/>
+            <sprite id="armored_skeleton_walk" path="src/assets/enemies/Armored Skeleton-Walk.png"/>
+
+            <!-- Elite Orc -->
+            <sprite id="elite_orc_attack01" path="src/assets/enemies/Elite Orc-Attack01.png"/>
+            <sprite id="elite_orc_attack02" path="src/assets/enemies/Elite Orc-Attack02.png"/>
+            <sprite id="elite_orc_attack03" path="src/assets/enemies/Elite Orc-Attack03.png"/>
+            <sprite id="elite_orc_death" path="src/assets/enemies/Elite Orc-Death.png"/>
+            <sprite id="elite_orc_hurt" path="src/assets/enemies/Elite Orc-Hurt.png"/>
+            <sprite id="elite_orc_idle" path="src/assets/enemies/Elite Orc-Idle.png"/>
+            <sprite id="elite_orc_walk" path="src/assets/enemies/Elite Orc-Walk.png"/>
+
+            <!-- Greatsword Skeleton -->
+            <sprite id="greatsword_skeleton_attack01" path="src/assets/enemies/Greatsword Skeleton-Attack01.png"/>
+            <sprite id="greatsword_skeleton_attack02" path="src/assets/enemies/Greatsword Skeleton-Attack02.png"/>
+            <sprite id="greatsword_skeleton_attack03" path="src/assets/enemies/Greatsword Skeleton-Attack03.png"/>
+            <sprite id="greatsword_skeleton_death" path="src/assets/enemies/Greatsword Skeleton-Death.png"/>
+            <sprite id="greatsword_skeleton_hurt" path="src/assets/enemies/Greatsword Skeleton-Hurt.png"/>
+            <sprite id="greatsword_skeleton_idle" path="src/assets/enemies/Greatsword Skeleton-Idle.png"/>
+            <sprite id="greatsword_skeleton_walk" path="src/assets/enemies/Greatsword Skeleton-Walk.png"/>
+
+            <!-- Orc Rider -->
+            <sprite id="orc_rider_attack01" path="src/assets/enemies/Orc rider-Attack01.png"/>
+            <sprite id="orc_rider_attack02" path="src/assets/enemies/Orc rider-Attack02.png"/>
+            <sprite id="orc_rider_attack03" path="src/assets/enemies/Orc rider-Attack03.png"/>
+            <sprite id="orc_rider_death" path="src/assets/enemies/Orc rider-Death.png"/>
+            <sprite id="orc_rider_hurt" path="src/assets/enemies/Orc rider-Hurt.png"/>
+            <sprite id="orc_rider_idle" path="src/assets/enemies/Orc rider-Idle.png"/>
+            <sprite id="orc_rider_walk" path="src/assets/enemies/Orc rider-Walk.png"/>
+
+            <!-- Orc -->
+            <sprite id="orc_attack01" path="src/assets/enemies/Orc-Attack01.png"/>
+            <sprite id="orc_attack02" path="src/assets/enemies/Orc-Attack02.png"/>
+            <sprite id="orc_death" path="src/assets/enemies/Orc-Death.png"/>
+            <sprite id="orc_hurt" path="src/assets/enemies/Orc-Hurt.png"/>
+            <sprite id="orc_idle" path="src/assets/enemies/Orc-Idle.png"/>
+            <sprite id="orc_walk" path="src/assets/enemies/Orc-Walk.png"/>
+
+            <!-- Skeleton -->
+            <sprite id="skeleton_attack01" path="src/assets/enemies/Skeleton-Attack01.png"/>
+            <sprite id="skeleton_attack02" path="src/assets/enemies/Skeleton-Attack02.png"/>
+            <sprite id="skeleton_death" path="src/assets/enemies/Skeleton-Death.png"/>
+            <sprite id="skeleton_hurt" path="src/assets/enemies/Skeleton-Hurt.png"/>
+            <sprite id="skeleton_idle" path="src/assets/enemies/Skeleton-Idle.png"/>
+            <sprite id="skeleton_walk" path="src/assets/enemies/Skeleton-Walk.png"/>
+
+            <!-- Slime -->
+            <sprite id="slime_attack01" path="src/assets/enemies/Slime-Attack01.png"/>
+            <sprite id="slime_attack02" path="src/assets/enemies/Slime-Attack02.png"/>
+            <sprite id="slime_death" path="src/assets/enemies/Slime-Death.png"/>
+            <sprite id="slime_hurt" path="src/assets/enemies/Slime-Hurt.png"/>
+            <sprite id="slime_idle" path="src/assets/enemies/Slime-Idle.png"/>
+            <sprite id="slime_walk" path="src/assets/enemies/Slime-Walk.png"/>
+
+            <!-- Werebear -->
+            <sprite id="werebear_attack01" path="src/assets/enemies/Werebear-Attack01.png"/>
+            <sprite id="werebear_attack02" path="src/assets/enemies/Werebear-Attack02.png"/>
+            <sprite id="werebear_attack03" path="src/assets/enemies/Werebear-Attack03.png"/>
+            <sprite id="werebear_death" path="src/assets/enemies/Werebear-Death.png"/>
+            <sprite id="werebear_hurt" path="src/assets/enemies/Werebear-Hurt.png"/>
+            <sprite id="werebear_idle" path="src/assets/enemies/Werebear-Idle.png"/>
+            <sprite id="werebear_walk" path="src/assets/enemies/Werebear-Walk.png"/>
+
+            <!-- Werewolf -->
+            <sprite id="werewolf_attack01" path="src/assets/enemies/Werewolf-Attack01.png"/>
+            <sprite id="werewolf_attack02" path="src/assets/enemies/Werewolf-Attack02.png"/>
+            <sprite id="werewolf_death" path="src/assets/enemies/Werewolf-Death.png"/>
+            <sprite id="werewolf_hurt" path="src/assets/enemies/Werewolf-Hurt.png"/>
+            <sprite id="werewolf_idle" path="src/assets/enemies/Werewolf-Idle.png"/>
+            <sprite id="werewolf_walk" path="src/assets/enemies/Werewolf-Walk.png"/>
+        </enemies>
+
+        <tiles>
+            <sprite id="floor" path="assets/tiles/floor.png"/>
+            <sprite id="floor_with_item" path="assets/tiles/floor_with_item.png"/>
+            <sprite id="wall" path="assets/tiles/wall.png"/>
+            <sprite id="stairs_up" path="assets/tiles/stairs.png"/>
+            <sprite id="stairs_down" path="assets/tiles/entrance.png"/>
+            <sprite id="spawn_point" path="assets/tiles/start.png"/>
+        </tiles>
+
+        <items>
+            <consumables>
+                <sprite id="health_potion" path="src/assets/items/consumables/HealthPotion.png"/>
+                <sprite id="health_potion_effect" path="src/assets/items/consumables/HealthPotion_Effect.png"/>
+                <sprite id="mana_potion" path="src/assets/items/consumables/ManaPotion.png"/>
+                <sprite id="mana_potion_effect" path="src/assets/items/consumables/ManaPotion_Effect.png"/>
+            </consumables>
+            <projectiles>
+                <sprite id="fire_spell" path="src/assets/items/projectiles/FireSpell.png"/>
+                <sprite id="ice_spell" path="src/assets/items/projectiles/IceSpell.png"/>
+            </projectiles>
+            <!-- <sprite id="sword" path="assets/items/sword.png"/>
+            <sprite id="staff" path="assets/items/staff.png"/>
+            <sprite id="shield" path="assets/items/shield.png"/>
+            <sprite id="helmet" path="assets/items/helmet.png"/>
+            <sprite id="armor" path="assets/items/armor.png"/>
+            <sprite id="boots" path="assets/items/boots.png"/>
+            <sprite id="ring" path="assets/items/ring.png"/>
+            <sprite id="amulet" path="assets/items/amulet.png"/> -->
+        </items>
+
+        <music>
+            <track id="goblins_dance_battle" path="src/assets/music/Goblins_Dance_(Battle).wav"/>
+            <track id="goblins_den_regular" path="src/assets/music/Goblins_Den_(Regular).wav"/>
+        </music>
+        <!-- <sounds>
+            <sound id="player_attack" path="src/assets/sounds/Player_Attack.wav"/>
+            <sound id="player_hurt" path="src/assets/sounds/Player_Hurt.wav"/>
+            <sound id="player_death" path="src/assets/sounds/Player_Death.wav"/>
+            <sound id="enemy_attack" path="src/assets/sounds/Enemy_Attack.wav"/>
+            <sound id="enemy_hurt" path="src/assets/sounds/Enemy_Hurt.wav"/>
+            <sound id="enemy_death" path="src/assets/sounds/Enemy_Death.wav"/>
+            <sound id="item_pickup" path="src/assets/sounds/Item_Pickup.wav"/>
+            <sound id="item_use" path="src/assets/sounds/Item_Use.wav"/>
+            <sound id="level_up" path="src/assets/sounds/Level_Up.wav"/>
+        </sounds> -->
     </sprites>
-    <music>
-        <background>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/music/background.mp3</background>
-        <battle>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/music/battle.mp3</battle>
-    </music>
 </assets>
