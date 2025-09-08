@@ -1,21 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <settings>
-    <animationFrameDurations>
-        <IDLE>120</IDLE>
-        <WALK>80</WALK>
-        <ATTACK01>100</ATTACK01>
-        <ATTACK02>100</ATTACK02>
-        <HURT>100</HURT>
-        <DEATH>150</DEATH>
-    </animationFrameDurations>
-    <fps>60</fps>
-    <tileSize>32</tileSize>
-    <cameraDeadZone>4</cameraDeadZone>
-    <defaultMapView width="20" height="15"/>
-    <maxInventoryItems>9</maxInventoryItems>
-    <ui>
-        <font>default</font>
-        <statusPanelWidth>240</statusPanelWidth>
-        <logPanelHeight>120</logPanelHeight>
-    </ui>
+    <setting name="gamePanelWidth">800</setting>
+    <setting name="gamePanelHeight">600</setting>
+    <setting name="defaultMapView" width="20" height="15"/>
+    <setting name="visionRadius">5</setting>
+    <setting name="mapSize" width="40" height="40"/>
 </settings>
