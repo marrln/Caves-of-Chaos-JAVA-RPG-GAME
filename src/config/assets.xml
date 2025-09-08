@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assets>
+    <sprites>
+        <player>
+            <duelist>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/player/duelist/</duelist>
+            <wizard>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/player/wizard/</wizard>
+        </player>
+        <enemies>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/enemies/</enemies>
+        <projectiles>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/projectiles/</projectiles>
+        <tiles>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/tiles/</tiles>
+        <items>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/items/</items>
+    </sprites>
+    <music>
+        <background>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/music/background.mp3</background>
+        <battle>oldversion/Caves of Chaos/CavesOfChaos/CavesOfChaos/src/assets/music/battle.mp3</battle>
+    </music>
+</assets>
