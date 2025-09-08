@@ -85,18 +85,15 @@ public class CavesOfChaos {
         
         AbstractPlayer player;
         switch (playerClass) {
-            case "wizard":
-                player = new Wizard(0, 0); // Starting position
-                break;
-            case "duelist":
-                player = new Duelist(0, 0); // Starting position
-                break;
-            default:
+            case "wizard" -> player = new Wizard(0, 0); // Starting position
+            case "duelist" -> player = new Duelist(0, 0); // Starting position
+            default -> {
                 GameDebugger.logError("Invalid player class: " + playerClass, null, false);
                 System.out.println("Invalid player class: " + playerClass);
                 System.out.println("Valid options: 'wizard' or 'duelist'");
                 System.exit(0);
                 return;
+            }
         }
 
         // Set player name

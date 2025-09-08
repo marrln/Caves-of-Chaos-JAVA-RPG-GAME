@@ -1,7 +1,6 @@
 package ui;
 
 import core.Config;
-import core.FogOfWar;
 import core.GameController;
 import core.GameMap;
 import core.GameState;
@@ -23,7 +22,6 @@ public class GamePanel extends JPanel {
     private int viewWidth;
     private int viewHeight;
     private int visionRadius;
-    private FogOfWar fogOfWar;
     // Keep track of visible game area in tiles
     private int visibleMapWidth;
     private int visibleMapHeight;
@@ -55,7 +53,7 @@ public class GamePanel extends JPanel {
             String hStr = Config.getSetting("gamePanelHeight");
             if (wStr != null) panelW = Integer.parseInt(wStr.trim());
             if (hStr != null) panelH = Integer.parseInt(hStr.trim());
-        } catch (Exception e) {
+        } catch (NumberFormatException | NullPointerException e) {
             // Ignore errors and use default panel size
         }
         if (panelW > 0 && panelH > 0) {

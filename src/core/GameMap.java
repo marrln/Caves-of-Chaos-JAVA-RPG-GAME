@@ -42,22 +42,26 @@ public class GameMap {
         // Place exit far from entrance
         int exitQuadrant = random.nextInt(4);
         switch (exitQuadrant) {
-            case 0: // Top left
+            case 0 -> {
+                // Top left
                 this.exitX = random.nextInt(width / 2 - 2) + 2;
                 this.exitY = random.nextInt(height / 2 - 2) + 2;
-                break;
-            case 1: // Top right
+            }
+            case 1 -> {
+                // Top right
                 this.exitX = random.nextInt(width / 2 - 2) + width / 2;
                 this.exitY = random.nextInt(height / 2 - 2) + 2;
-                break;
-            case 2: // Bottom left
+            }
+            case 2 -> {
+                // Bottom left
                 this.exitX = random.nextInt(width / 2 - 2) + 2;
                 this.exitY = random.nextInt(height / 2 - 2) + height / 2;
-                break;
-            default: // Bottom right
+            }
+            default -> {
+                // Bottom right
                 this.exitX = random.nextInt(width / 2 - 2) + width / 2;
                 this.exitY = random.nextInt(height / 2 - 2) + height / 2;
-                break;
+            }
         }
         
         // Set entrance and exit tiles
@@ -256,9 +260,7 @@ public class GameMap {
         
         // Update the map
         for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                tiles[x][y] = newTiles[x][y];
-            }
+            System.arraycopy(newTiles[x], 0, tiles[x], 0, height);
         }
     }
 }

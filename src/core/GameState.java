@@ -118,19 +118,23 @@ public class GameState {
             // Check for stairs
             Tile destinationTile = currentMap.getTile(newX, newY);
             
-            if (destinationTile.getType() == Tile.STAIRS_DOWN) {
-                // Go to next level
-                goToNextLevel();
-                return true;
-            } else if (destinationTile.getType() == Tile.STAIRS_UP) {
-                // Go to previous level
-                goToPreviousLevel();
-                return true;
-            } else {
-                // Regular move
-                player.setPosition(newX, newY);
-                updateFogOfWar();
-                return true;
+            switch (destinationTile.getType()) {
+                case Tile.STAIRS_DOWN -> {
+                    // Go to next level
+                    goToNextLevel();
+                    return true;
+                }
+                case Tile.STAIRS_UP -> {
+                    // Go to previous level
+                    goToPreviousLevel();
+                    return true;
+                }
+                default -> {
+                    // Regular move
+                    player.setPosition(newX, newY);
+                    updateFogOfWar();
+                    return true;
+                }
             }
         }
         

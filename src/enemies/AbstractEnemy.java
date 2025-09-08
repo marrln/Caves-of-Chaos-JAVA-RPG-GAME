@@ -109,18 +109,10 @@ public abstract class AbstractEnemy implements Enemy {
             // Random movement if player is out of range
             int randomDirection = random.nextInt(4);
             switch (randomDirection) {
-                case 0:
-                    setPosition(x, y - 1); // Up
-                    break;
-                case 1:
-                    setPosition(x + 1, y); // Right
-                    break;
-                case 2:
-                    setPosition(x, y + 1); // Down
-                    break;
-                case 3:
-                    setPosition(x - 1, y); // Left
-                    break;
+                case 0 -> setPosition(x, y - 1); // Up
+                case 1 -> setPosition(x + 1, y); // Right
+                case 2 -> setPosition(x, y + 1); // Down
+                case 3 -> setPosition(x - 1, y); // Left
             }
         }
     }

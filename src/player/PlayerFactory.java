@@ -21,12 +21,13 @@ public class PlayerFactory {
      */
     public static AbstractPlayer createPlayer(String playerClass, int x, int y) {
         switch (playerClass.toLowerCase()) {
-            case CLASS_WIZARD:
+            case CLASS_WIZARD -> {
                 return new Wizard(x, y);
-            case CLASS_DUELIST:
+            }
+            case CLASS_DUELIST -> {
                 return new Duelist(x, y);
-            default:
-                throw new IllegalArgumentException("Invalid player class: " + playerClass);
+            }
+            default -> throw new IllegalArgumentException("Invalid player class: " + playerClass);
         }
     }
 }

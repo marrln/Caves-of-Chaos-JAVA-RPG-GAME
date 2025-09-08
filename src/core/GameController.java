@@ -60,26 +60,30 @@ public class GameController {
         }
         
         switch (tile.getType()) {
-            case Tile.FLOOR:
+            case Tile.FLOOR -> {
                 player.setPosition(newX, newY);
                 gameState.updateFogOfWar();
                 return true;
-            case Tile.STAIRS_DOWN:
+            }
+            case Tile.STAIRS_DOWN -> {
                 // Move to next level if possible
                 if (gameState.getCurrentLevel() < 9) {
                     gameState.goToNextLevel();
                     return true;
                 }
                 return false;
-            case Tile.STAIRS_UP:
+            }
+            case Tile.STAIRS_UP -> {
                 // Move to previous level if possible
                 if (gameState.getCurrentLevel() > 0) {
                     gameState.goToPreviousLevel();
                     return true;
                 }
                 return false;
-            default:
+            }
+            default -> {
                 return false;
+            }
         }
     }
     
