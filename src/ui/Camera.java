@@ -108,6 +108,15 @@ public class Camera {
     }
     
     /**
+     * Gets the current smoothing factor.
+     * 
+     * @return The current smoothing factor
+     */
+    public float getSmoothing() {
+        return smoothing;
+    }
+    
+    /**
      * Gets the camera's current x position.
      * 
      * @return The camera x position (in tiles)
