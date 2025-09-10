@@ -6,15 +6,9 @@ import player.AbstractPlayer;
 import player.PlayerFactory;
 
 /**
- * Holds the complete state of the game.
+ * Manages the overall game state including player, maps, and level progression.
  */
 public class GameState {
-    
-    // Constants
-    private static final int DEFAULT_MAP_WIDTH = 80;
-    private static final int DEFAULT_MAP_HEIGHT = 60;
-    private static final double DEFAULT_FILL_PERCENTAGE = 0.45;
-    private static final int DEFAULT_ITERATIONS = 5;
     
     // Game state
     private final List<GameMap> maps = new ArrayList<>();
@@ -29,20 +23,40 @@ public class GameState {
      * @param playerClass The class of player to create
      */
     public GameState(String playerClass) {
-        // Generate the first level
-        generateLevel(DEFAULT_MAP_WIDTH, DEFAULT_MAP_HEIGHT, DEFAULT_FILL_PERCENTAGE, DEFAULT_ITERATIONS);
+        // Read map dimensions from config
+        int[] mapDimensions = getMapDimensionsFromConfig();
+        int mapWidth = mapDimensions[0];
+        int mapHeight = mapDimensions[1];
         
-        // Create the player
-        GameMap firstMap = maps.get(0);
-        player = PlayerFactory.createPlayer(playerClass, firstMap.getEntranceX(), firstMap.getEntranceY());
+        this.fogOfWar = new FogOfWar(mapWidth, mapHeight);
+        this.currentLevel = 0;
+        this.gameOver = false;
         
-        // Initialize fog of war
-        fogOfWar = new FogOfWar(DEFAULT_MAP_WIDTH, DEFAULT_MAP_HEIGHT);
-        updateFogOfWar();
+        // Generate the first level using config values
+        double fillPercentage = getMapFillPercentageFromConfig();
+        int iterations = getMapIterationsFromConfig();
         
-        // Set initial game state
-        currentLevel = 0;
-        gameOver = false;
+        GameMap map = new GameMap(mapWidth, mapHeight);
+        map.generateCaves(fillPercentage, iterations, false); // First level is never final
+        maps.add(map);
+        
+        System.out.println("=== MAP GENERATION DEBUG ===");
+        System.out.println("Generated map size: " + map.getWidth() + "x" + map.getHeight());
+        System.out.println("Expected map size: " + mapWidth + "x" + mapHeight);
+        System.out.println("========================");
+        
+        // Spawn player at the entrance (stairs up) - much more logical!
+        player = PlayerFactory.createPlayer(playerClass, map.getEntranceX(), map.getEntranceY());
+        
+        System.out.println("=== PLAYER SPAWNED AT ENTRANCE ===");
+        System.out.println("Player spawned at entrance: (" + player.getX() + ", " + player.getY() + ")");
+        System.out.println("Exit located at: (" + map.getExitX() + ", " + map.getExitY() + ")");
+        System.out.println("Player is on: " + (map.isBlocked(player.getX(), player.getY()) ? "WALL" : "FLOOR"));
+        System.out.println("===========================");
+        
+        // Initialize fog of war with direct reference
+        int viewRadius = getVisionRadiusFromConfig();
+        fogOfWar.updateVisibility(map, player.getX(), player.getY(), viewRadius);
     }
     
     /**
@@ -55,21 +69,26 @@ public class GameState {
      */
     public GameState(AbstractPlayer player, int mapWidth, int mapHeight, double fillPercentage) {
         this.player = player;
+        this.fogOfWar = new FogOfWar(mapWidth, mapHeight);
+        this.currentLevel = 0;
+        this.gameOver = false;
         
         // Generate the first level with custom dimensions
-        generateLevel(mapWidth, mapHeight, fillPercentage, DEFAULT_ITERATIONS);
+        GameMap map = new GameMap(mapWidth, mapHeight);
+        map.generateCaves(fillPercentage, getMapIterationsFromConfig(), false); // First level is never final
+        maps.add(map);
         
-        // Move player to the entrance
-        GameMap firstMap = maps.get(0);
-        player.setPosition(firstMap.getEntranceX(), firstMap.getEntranceY());
+        // Move player to the entrance position
+        player.setPosition(map.getEntranceX(), map.getEntranceY());
         
-        // Initialize fog of war
-        fogOfWar = new FogOfWar(mapWidth, mapHeight);
-        updateFogOfWar();
+        System.out.println("=== PLAYER MOVED TO ENTRANCE ===");
+        System.out.println("Player moved to entrance: (" + player.getX() + ", " + player.getY() + ")");
+        System.out.println("Exit located at: (" + map.getExitX() + ", " + map.getExitY() + ")");
+        System.out.println("===========================");
         
-        // Set initial game state
-        currentLevel = 0;
-        gameOver = false;
+        // Initialize fog of war with direct reference
+        int viewRadius = getVisionRadiusFromConfig();
+        fogOfWar.updateVisibility(map, player.getX(), player.getY(), viewRadius);
     }
     
     /**
@@ -82,7 +101,12 @@ public class GameState {
      */
     public void generateLevel(int mapWidth, int mapHeight, double fillPercentage, int iterations) {
         GameMap map = new GameMap(mapWidth, mapHeight);
-        map.generateCaves(fillPercentage, iterations);
+        
+        // Check if this will be the final level
+        int maxLevels = getMaxCaveLevelsFromConfig();
+        boolean isFinalLevel = (maps.size() + 1) >= maxLevels; // +1 because we're about to add this level
+        
+        map.generateCaves(fillPercentage, iterations, isFinalLevel);
         maps.add(map);
     }
     
@@ -91,7 +115,7 @@ public class GameState {
      */
     public void updateFogOfWar() {
         if (fogOfWar != null && player != null) {
-            int viewRadius = 8; // Player's view radius
+            int viewRadius = getVisionRadiusFromConfig(); // Use config value instead of hardcoded
             fogOfWar.updateVisibility(getCurrentMap(), player.getX(), player.getY(), viewRadius);
         }
     }
@@ -149,7 +173,11 @@ public class GameState {
         
         // Check if we need to generate a new level
         if (nextLevel >= maps.size()) {
-            generateLevel(DEFAULT_MAP_WIDTH, DEFAULT_MAP_HEIGHT, DEFAULT_FILL_PERCENTAGE, DEFAULT_ITERATIONS);
+            // Use config values for new level generation
+            int[] mapDimensions = getMapDimensionsFromConfig();
+            double fillPercentage = getMapFillPercentageFromConfig();
+            int iterations = getMapIterationsFromConfig();
+            generateLevel(mapDimensions[0], mapDimensions[1], fillPercentage, iterations);
         }
         
         // Change level
@@ -162,6 +190,12 @@ public class GameState {
         // Create new fog of war for this level
         fogOfWar = new FogOfWar(newMap.getWidth(), newMap.getHeight());
         updateFogOfWar();
+        
+        System.out.println("=== LEVEL CHANGE: NEXT ===");
+        System.out.println("Now on level: " + (currentLevel + 1) + " of " + getMaxCaveLevelsFromConfig());
+        System.out.println("New map size: " + newMap.getWidth() + "x" + newMap.getHeight());
+        System.out.println("Player moved to entrance: (" + player.getX() + ", " + player.getY() + ")");
+        System.out.println("========================");
     }
     
     /**
@@ -178,6 +212,12 @@ public class GameState {
             // Create new fog of war for this level
             fogOfWar = new FogOfWar(newMap.getWidth(), newMap.getHeight());
             updateFogOfWar();
+            
+            System.out.println("=== LEVEL CHANGE: PREVIOUS ===");
+            System.out.println("Now on level: " + (currentLevel + 1) + " of " + getMaxCaveLevelsFromConfig());
+            System.out.println("New map size: " + newMap.getWidth() + "x" + newMap.getHeight());
+            System.out.println("Player moved to exit: (" + player.getX() + ", " + player.getY() + ")");
+            System.out.println("===========================");
         }
     }
     
@@ -209,6 +249,26 @@ public class GameState {
     }
     
     /**
+     * Checks if the player can advance to the next level.
+     * 
+     * @return true if there are more levels available, false if at max level
+     */
+    public boolean canGoToNextLevel() {
+        int maxLevels = getMaxCaveLevelsFromConfig();
+        return currentLevel < (maxLevels - 1); // -1 because levels are 0-indexed
+    }
+    
+    /**
+     * Gets a formatted string showing current level and max levels.
+     * 
+     * @return String like "Cave Floor: 3 of 5"
+     */
+    public String getLevelDisplayString() {
+        int maxLevels = getMaxCaveLevelsFromConfig();
+        return "Cave Floor: " + (currentLevel + 1) + " of " + maxLevels;
+    }
+    
+    /**
      * Gets the current dungeon level.
      * 
      * @return The current level
@@ -233,5 +293,68 @@ public class GameState {
      */
     public void setGameOver(boolean gameOver) {
         this.gameOver = gameOver;
+    }
+    
+    /**
+     * Finds a safe spawn position for the player, preferring the entrance but
+     * falling back to any floor tile if the entrance is blocked.
+     * 
+     * @param map The game map to search
+     * @return An array containing [x, y] coordinates of a safe spawn position
+     */
+    /**
+     * Reads map dimensions from config file.
+     * 
+     * @return Array containing [width, height] from config
+     */
+    private int[] getMapDimensionsFromConfig() {
+        String mapSizeStr = Config.getSetting("mapSize");
+        int wIdx = mapSizeStr.indexOf("width=\"");
+        int hIdx = mapSizeStr.indexOf("height=\"");
+        int wEnd = mapSizeStr.indexOf('"', wIdx + 7);
+        int hEnd = mapSizeStr.indexOf('"', hIdx + 8);
+        int width = Integer.parseInt(mapSizeStr.substring(wIdx + 7, wEnd));
+        int height = Integer.parseInt(mapSizeStr.substring(hIdx + 8, hEnd));
+        return new int[]{width, height};
+    }
+    
+    /**
+     * Reads map fill percentage from config file.
+     * 
+     * @return Fill percentage from config
+     */
+    private double getMapFillPercentageFromConfig() {
+        String fillStr = Config.getSetting("mapFillPercentage");
+        return Double.parseDouble(fillStr.trim());
+    }
+    
+    /**
+     * Reads map iterations from config file.
+     * 
+     * @return Iterations from config
+     */
+    private int getMapIterationsFromConfig() {
+        String iterStr = Config.getSetting("mapIterations");
+        return Integer.parseInt(iterStr.trim());
+    }
+    
+    /**
+     * Reads vision radius from config file.
+     * 
+     * @return Vision radius from config
+     */
+    private int getVisionRadiusFromConfig() {
+        String radiusStr = Config.getSetting("visionRadius");
+        return Integer.parseInt(radiusStr.trim());
+    }
+    
+    /**
+     * Reads the maximum number of cave levels from config file.
+     * 
+     * @return Maximum number of cave levels from config
+     */
+    private int getMaxCaveLevelsFromConfig() {
+        String levelsStr = Config.getSetting("caveLevelNumber");
+        return Integer.parseInt(levelsStr.trim());
     }
 }
