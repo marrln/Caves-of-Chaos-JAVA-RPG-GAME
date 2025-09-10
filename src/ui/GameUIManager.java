@@ -32,6 +32,9 @@ public class GameUIManager {
         // Apply the visible area to the game panel
         gamePanel.setVisibleArea(visibleMapWidth, visibleMapHeight);
         
+        // Force initial camera centering on player
+        gamePanel.centerCameraOnPlayer();
+        
         // Listen for component resize events
         setupResizeListeners();
     }
@@ -43,22 +46,11 @@ public class GameUIManager {
     private void calculateVisibleArea() {
         // Get the current dimensions of the game panel
         Dimension gamePanelSize = gamePanel.getSize();
-        if (gamePanelSize.width == 0 || gamePanelSize.height == 0) {
-            // Not yet visible, use preferred size
-            gamePanelSize = gamePanel.getPreferredSize();
-        }
-        
-        // Get the dimensions of the log and status panels
-        Dimension logPanelSize = logPanel.getPreferredSize();
-        Dimension statusPanelSize = statusPanel.getPreferredSize();
         
         // Calculate visible area in tiles
-        visibleMapWidth = (gamePanelSize.width - statusPanelSize.width) / TILE_SIZE;
-        visibleMapHeight = (gamePanelSize.height - logPanelSize.height) / TILE_SIZE;
+        visibleMapWidth = (gamePanelSize.width) / TILE_SIZE + 1;
+        visibleMapHeight = (gamePanelSize.height) / TILE_SIZE + 1;
         
-        // Ensure we have at least some visible area
-        visibleMapWidth = Math.max(5, visibleMapWidth);
-        visibleMapHeight = Math.max(5, visibleMapHeight);
     }
     
     /**
@@ -70,7 +62,9 @@ public class GameUIManager {
             public void componentResized(ComponentEvent e) {
                 calculateVisibleArea();
                 gamePanel.setVisibleArea(visibleMapWidth, visibleMapHeight);
-                gamePanel.repaint();
+                
+                // Force camera to recenter on player with new dimensions
+                gamePanel.centerCameraOnPlayer();
             }
         };
         
@@ -85,14 +79,30 @@ public class GameUIManager {
     }
     
     /**
+     * Refreshes the status panel to update dynamic information like level display.
+     */
+    public void refreshStatusPanel() {
+        statusPanel.repaint();
+    }
+    
+    /**
      * Validates if a position is within the visible game area.
+     * This checks if the position is within the camera's current view.
      * 
      * @param x The x coordinate to check
      * @param y The y coordinate to check
-     * @return true if the position is within the visible area
+     * @return true if the position is within the camera's current view
      */
     public boolean isPositionVisible(int x, int y) {
-        return x >= 0 && x < visibleMapWidth && y >= 0 && y < visibleMapHeight;
+    // Get camera position from game panel
+        int cameraX = gamePanel.getCamera().getX();
+        int cameraY = gamePanel.getCamera().getY();
+        int viewWidth = gamePanel.getCamera().getViewWidth();
+        int viewHeight = gamePanel.getCamera().getViewHeight();
+        
+        // Check if position is within camera view
+        return x >= cameraX && x < cameraX + viewWidth && 
+                y >= cameraY && y < cameraY + viewHeight;
     }
     
     /**
@@ -107,5 +117,13 @@ public class GameUIManager {
      */
     public int getVisibleMapHeight() {
         return visibleMapHeight;
+    }
+    
+    /**
+     * Forces the game panel to recenter the camera on the player.
+     * This should be called after game initialization or level changes.
+     */
+    public void centerCameraOnPlayer() {
+        gamePanel.centerCameraOnPlayer();
     }
 }

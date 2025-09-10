@@ -66,8 +66,8 @@ public class GameController {
                 return true;
             }
             case Tile.STAIRS_DOWN -> {
-                // Move to next level if possible
-                if (gameState.getCurrentLevel() < 9) {
+                // Move to next level if possible (using config-defined max levels)
+                if (gameState.canGoToNextLevel()) {
                     gameState.goToNextLevel();
                     return true;
                 }

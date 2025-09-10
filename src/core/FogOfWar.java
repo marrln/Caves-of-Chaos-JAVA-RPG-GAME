@@ -1,12 +1,13 @@
 package core;
 
 /**
- * Manages fog of war for the game map.
+ * Manages fog of war for the game map with smooth gradient effects.
  */
 public class FogOfWar {
     
     private final boolean[][] visible;
     private final boolean[][] discovered;
+    private final float[][] visibilityStrength; // New: stores visibility gradient (0.0 to 1.0)
     private final int width;
     private final int height;
     
@@ -21,6 +22,21 @@ public class FogOfWar {
         this.height = height;
         this.visible = new boolean[width][height];
         this.discovered = new boolean[width][height];
+        this.visibilityStrength = new float[width][height]; // Initialize gradient array
+    }
+    
+    /**
+     * Gets the visibility strength at the specified position for gradient effects.
+     * 
+     * @param x The x coordinate
+     * @param y The y coordinate
+     * @return Visibility strength from 0.0 (not visible) to 1.0 (fully visible)
+     */
+    public float getVisibilityStrength(int x, int y) {
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+            return visibilityStrength[x][y];
+        }
+        return 0.0f;
     }
     
     /**
@@ -89,12 +105,13 @@ public class FogOfWar {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 visible[x][y] = false;
+                visibilityStrength[x][y] = 0.0f; // Reset gradient as well
             }
         }
     }
     
     /**
-     * Updates the visibility around a player using a simple line-of-sight algorithm.
+     * Updates the visibility around a player using a smooth gradient-based line-of-sight algorithm.
      * 
      * @param map The game map
      * @param playerX The player's x coordinate
@@ -115,19 +132,31 @@ public class FogOfWar {
             }
         }
         
-        // Mark the tiles around the player as visible
-        for (int x = Math.max(0, playerX - viewRadius); x <= Math.min(width - 1, playerX + viewRadius); x++) {
-            for (int y = Math.max(0, playerY - viewRadius); y <= Math.min(height - 1, playerY + viewRadius); y++) {
+        // Create smooth gradient visibility around the player
+        for (int x = Math.max(0, playerX - viewRadius - 1); x <= Math.min(width - 1, playerX + viewRadius + 1); x++) {
+            for (int y = Math.max(0, playerY - viewRadius - 1); y <= Math.min(height - 1, playerY + viewRadius + 1); y++) {
                 // Calculate distance to player
                 double distance = Math.sqrt(Math.pow(playerX - x, 2) + Math.pow(playerY - y, 2));
                 
-                // Check if within view radius
-                if (distance <= viewRadius) {
+                // Check if within extended view radius for gradient effect
+                if (distance <= viewRadius + 1.0) {
                     // Check line of sight
                     if (hasLineOfSight(map, playerX, playerY, x, y)) {
-                        setVisible(x, y, true);
+                        // Calculate visibility strength based on distance
+                        float strength = 1.0f;
+                        if (distance > viewRadius) {
+                            // Fade out beyond core radius
+                            strength = Math.max(0.0f, 1.0f - (float)(distance - viewRadius));
+                        } else if (distance > viewRadius - 1.0) {
+                            // Slight fade at edge of core radius
+                            strength = 0.8f + 0.2f * (float)(viewRadius - distance);
+                        }
                         
-                        // Update the tile's fog state
+                        // Set visibility
+                        visibilityStrength[x][y] = strength;
+                        setVisible(x, y, strength > 0.1f); // Consider visible if strength > 10%
+                        
+                        // Update the tile's fog state based on strength
                         Tile tile = map.getTile(x, y);
                         if (tile != null) {
                             tile.setFogState(Tile.FogState.VISIBLE);
@@ -139,7 +168,7 @@ public class FogOfWar {
     }
     
     /**
-     * Checks if there's a clear line of sight between two points.
+     * Checks if there's a clear line of sight between two points using improved algorithm.
      * 
      * @param map The game map
      * @param x1 The starting x coordinate
@@ -149,7 +178,12 @@ public class FogOfWar {
      * @return true if there's a clear line of sight, false otherwise
      */
     private boolean hasLineOfSight(GameMap map, int x1, int y1, int x2, int y2) {
-        // Bresenham's line algorithm
+        // Always visible to self
+        if (x1 == x2 && y1 == y2) {
+            return true;
+        }
+        
+        // Bresenham's line algorithm with improved wall detection
         int dx = Math.abs(x2 - x1);
         int dy = Math.abs(y2 - y1);
         int sx = x1 < x2 ? 1 : -1;
@@ -159,14 +193,6 @@ public class FogOfWar {
         int y = y1;
         
         while (x != x2 || y != y2) {
-            // Check if current position blocks vision (except start and end points)
-            if ((x != x1 || y != y1) && (x != x2 || y != y2)) {
-                Tile tile = map.getTile(x, y);
-                if (tile != null && tile.getType() == Tile.WALL) {
-                    return false;
-                }
-            }
-            
             int e2 = 2 * err;
             if (e2 > -dy) {
                 err -= dy;
@@ -175,6 +201,14 @@ public class FogOfWar {
             if (e2 < dx) {
                 err += dx;
                 y += sy;
+            }
+            
+            // Check if current position blocks vision (except the destination)
+            if (x != x2 || y != y2) {
+                Tile tile = map.getTile(x, y);
+                if (tile != null && tile.getType() == Tile.WALL) {
+                    return false;
+                }
             }
         }
         
