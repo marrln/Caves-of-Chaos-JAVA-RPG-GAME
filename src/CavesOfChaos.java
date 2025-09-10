@@ -143,6 +143,7 @@ public class CavesOfChaos {
             
             // Status panel (right)
             StatusPanel statusPanel = new StatusPanel();
+            statusPanel.setGameState(gameState); // Connect status panel to game state
             frame.add(statusPanel, BorderLayout.EAST);
             
             // Log panel (bottom)
