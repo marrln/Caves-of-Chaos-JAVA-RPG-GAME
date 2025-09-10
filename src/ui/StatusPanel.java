@@ -1,5 +1,6 @@
 package ui;
 
+import core.GameState;
 import java.awt.*;
 import javax.swing.*;
 
@@ -9,11 +10,22 @@ import javax.swing.*;
 public class StatusPanel extends JPanel {
     private final Font titleFont = new Font("SansSerif", Font.BOLD, 16);
     private final Font normalFont = new Font("SansSerif", Font.PLAIN, 14);
+    private GameState gameState;
     
     public StatusPanel() {
         setBackground(Color.BLACK);
         setPreferredSize(new Dimension(200, 600));
         setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
+    }
+    
+    /**
+     * Sets the game state for dynamic information display.
+     * 
+     * @param gameState The current game state
+     */
+    public void setGameState(GameState gameState) {
+        this.gameState = gameState;
+        repaint(); // Refresh display when game state changes
     }
     
     @Override
@@ -28,18 +40,30 @@ public class StatusPanel extends JPanel {
         
         // Status
         g.setFont(normalFont);
-        g.drawString("Level: 1", 15, 50);
-        g.drawString("HP: 100/100", 15, 70);
-        g.drawString("MP: 50/50", 15, 90);
+        if (gameState != null) {
+            String levelDisplay = gameState.getLevelDisplayString();
+            g.drawString(levelDisplay, 15, 50);
+            
+            // Add indicator if on final level
+            if (!gameState.canGoToNextLevel()) {
+                g.setColor(Color.YELLOW);
+                g.drawString("FINAL LEVEL!", 15, 65);
+                g.setColor(Color.WHITE);
+            }
+        } else {
+            g.drawString("Cave Floor: ? of ?", 15, 50);
+        }
+        g.drawString("HP: 100/100", 15, 85);
+        g.drawString("MP: 50/50", 15, 105);
         
         // Inventory section
         g.setFont(titleFont);
-        g.drawString("INVENTORY", 10, 125);
+        g.drawString("INVENTORY", 10, 140);
         
         g.setFont(normalFont);
-        g.drawString("1) Health Potion", 15, 150);
-        g.drawString("2) Mana Potion", 15, 170);
-        g.drawString("3) --", 15, 190);
+        g.drawString("1) Health Potion", 15, 165);
+        g.drawString("2) Mana Potion", 15, 185);
+        g.drawString("3) --", 15, 205);
         
         // Equipment section
         g.setFont(titleFont);
