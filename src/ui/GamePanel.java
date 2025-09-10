@@ -1,11 +1,13 @@
 package ui;
 
-import core.FogOfWar;
+import config.StyleConfig;
 import core.GameController;
-import core.GameMap;
 import core.GameState;
-import core.Tile;
 import input.GameInputHandler;
+import map.FogOfWar;
+import map.GameMap;
+import map.Tile;
+
 import java.awt.*;
 import javax.swing.JPanel;
 import player.AbstractPlayer;
@@ -29,7 +31,7 @@ public class GamePanel extends JPanel {
     public GamePanel(GameState gameState, GameController controller) {
         this.gameState = gameState;
         this.controller = controller;
-        setBackground(Color.BLACK);
+        setBackground(StyleConfig.getColor("gameBackground", Color.BLACK));
         setFocusable(true);
         
         // Default visible area - will be updated by the GameUIManager
@@ -39,7 +41,7 @@ public class GamePanel extends JPanel {
         // Initialize camera with default size - GameUIManager will set proper size via setVisibleArea()
         GameMap map = gameState.getCurrentMap();
         AbstractPlayer player = gameState.getPlayer();
-        
+
         camera = new Camera(visibleMapWidth, visibleMapHeight);
         camera.setMapSize(map.getWidth(), map.getHeight());
         
@@ -92,13 +94,6 @@ public class GamePanel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         
-        // Don't render if game state is not initialized
-        if (gameState == null) {
-            g.setColor(Color.RED);
-            g.drawString("Game state is null", 50, 50);
-            return;
-        }
-        
         AbstractPlayer player = gameState.getPlayer();
         GameMap map = gameState.getCurrentMap();
         
@@ -120,17 +115,15 @@ public class GamePanel extends JPanel {
                 
                 Tile tile = map.getTile(mapX, mapY);
                 
-                // FOR DEBUGGING: Always show tiles regardless of fog state initially
-                // This will help us see if the issue is fog-related
                 if (mapX == map.getEntranceX() && mapY == map.getEntranceY()) {
-                    g.setColor(Color.PINK);
+                    g.setColor(StyleConfig.getColor("tileEntrance", Color.PINK));
                 } else {
                     switch (tile.getType()) {
-                        case Tile.WALL -> g.setColor(Color.DARK_GRAY);
-                        case Tile.FLOOR -> g.setColor(Color.LIGHT_GRAY);
-                        case Tile.STAIRS_DOWN -> g.setColor(Color.YELLOW);
-                        case Tile.STAIRS_UP -> g.setColor(Color.ORANGE);
-                        default -> g.setColor(Color.MAGENTA); // Unknown tile type
+                        case Tile.WALL -> g.setColor(StyleConfig.getColor("tileWall", Color.DARK_GRAY));
+                        case Tile.FLOOR -> g.setColor(StyleConfig.getColor("tileFloor", Color.LIGHT_GRAY));
+                        case Tile.STAIRS_DOWN -> g.setColor(StyleConfig.getColor("tileStairsDown", Color.YELLOW));
+                        case Tile.STAIRS_UP -> g.setColor(StyleConfig.getColor("tileStairsUp", Color.ORANGE));
+                        default -> g.setColor(StyleConfig.getColor("tileUnknown", Color.MAGENTA)); // Unknown tile type
                     }
                 }
                 g.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
@@ -143,14 +136,14 @@ public class GamePanel extends JPanel {
                     switch (tile.getFogState()) {
                         case UNDISCOVERED -> {
                             // Completely dark for undiscovered tiles
-                            g2.setColor(new Color(0, 0, 0, 240));
+                            g2.setColor(StyleConfig.getColor("fogUndiscovered", new Color(0, 0, 0, 240)));
                             g2.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
                         }
                         case DISCOVERED -> {
                             // Nice blue-grey fog for discovered but not visible tiles
                             Composite oldComp = g2.getComposite();
                             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
-                            g2.setColor(new Color(30, 40, 60));
+                            g2.setColor(StyleConfig.getColor("fogDiscovered", new Color(30, 40, 60)));
                             g2.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
                             g2.setComposite(oldComp);
                         }
@@ -160,11 +153,11 @@ public class GamePanel extends JPanel {
                                 float strength = fogOfWar.getVisibilityStrength(mapX, mapY);
                                 if (strength < 1.0f) {
                                     // Create subtle gradient at edges of vision
-                                    float fogAlpha = (1.0f - strength) * 0.3f; // Max 30% fog at edges
+                                    float fogAlpha = (1.0f - strength) * 0.3f;
                                     if (fogAlpha > 0.05f) { // Only apply if noticeable
                                         Composite oldComp = g2.getComposite();
                                         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fogAlpha));
-                                        g2.setColor(new Color(20, 30, 50));
+                                        g2.setColor(StyleConfig.getColor("fogEdge", new Color(20, 30, 50)));
                                         g2.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
                                         g2.setComposite(oldComp);
                                     }
@@ -181,10 +174,10 @@ public class GamePanel extends JPanel {
         int playerScreenY = (player.getY() - camera.getY()) * TILE_SIZE;
         
         // Normal player drawing
-        g.setColor(Color.CYAN);
+        g.setColor(StyleConfig.getColor("playerBody", Color.CYAN));
         g.fillOval(playerScreenX, playerScreenY, TILE_SIZE, TILE_SIZE);
         // Add a border to make it more visible
-        g.setColor(Color.WHITE);
+        g.setColor(StyleConfig.getColor("playerBorder", Color.WHITE));
         g.drawOval(playerScreenX, playerScreenY, TILE_SIZE, TILE_SIZE);
 
     }
