@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Styling configuration for Caves of Chaos RPG.
+    Define font and color settings here for easy maintenance and consistency.
+-->
+<styling>
+    <!-- Font settings -->
+    <font>
+        <name>Consolas</name>
+        <size>16</size>
+        <weight>normal</weight>
+        <style>plain</style>
+    </font>
+
+    <!-- Color palette -->
+    <colors>
+        <color name="primary">#22223B</color>       <!-- Main background: dark blue-gray -->
+        <color name="secondary">#4A4E69</color>     <!-- Secondary background: muted indigo -->
+        <color name="accent">#9A8C98</color>        <!-- Accent color for highlights: soft mauve -->
+        <color name="text">#F2E9E4</color>          <!-- Main text color: off-white -->
+        <color name="danger">#C9ADA7</color>        <!-- For warnings/errors: pale rose -->
+        <color name="success">#A3C9A8</color>       <!-- For success messages: light green -->
+    </colors>
+</styling>
