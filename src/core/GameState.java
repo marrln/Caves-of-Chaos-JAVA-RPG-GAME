@@ -1,7 +1,11 @@
 package core;
 
+import config.Config;
 import java.util.ArrayList;
 import java.util.List;
+import map.FogOfWar;
+import map.GameMap;
+import map.Tile;
 import player.AbstractPlayer;
 import player.PlayerFactory;
 

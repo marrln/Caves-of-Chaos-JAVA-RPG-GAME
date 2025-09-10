@@ -1,8 +1,9 @@
 package input;
 
 import core.GameController;
-import core.GameMap;
 import core.GameState;
+import map.GameMap;
+
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import player.AbstractPlayer;

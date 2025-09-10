@@ -1,5 +1,7 @@
 package core;
 
+import map.GameMap;
+import map.Tile;
 import player.AbstractPlayer;
 import ui.GameUIManager;
 

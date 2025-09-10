@@ -1,4 +1,5 @@
-import core.Config;
+import config.Config;
+import config.StyleConfig;
 import core.GameController;
 import core.GameDebugger;
 import core.GameState;
@@ -25,6 +26,7 @@ public class CavesOfChaos {
     private static final int WINDOW_HEIGHT = 768;
     private static final String CONFIG_PATH = "bin/config/settings.xml";
     private static final String ASSETS_PATH = "bin/config/assets.xml";
+    private static final String STYLING_PATH = "bin/config/styling.xml";
     
     /**
      * Main method, entry point for the game.
@@ -45,6 +47,7 @@ public class CavesOfChaos {
             
             if (settingsExist && assetsExist) {
                 Config.loadConfigs(CONFIG_PATH, ASSETS_PATH);
+                StyleConfig.loadStyling(STYLING_PATH);
                 GameDebugger.log("CONFIG", "Configuration files loaded successfully");
             } else {
                 // Try alternate paths
@@ -58,6 +61,7 @@ public class CavesOfChaos {
                 
                 if (settingsExist && assetsExist) {
                     Config.loadConfigs(altSettingsPath, altAssetsPath);
+                    StyleConfig.loadStyling("src/config/styling.xml");
                     GameDebugger.log("CONFIG", "Configuration files loaded from alternate paths");
                 } else {
                     GameDebugger.logError("Could not find configuration files", null, false);

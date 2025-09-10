@@ -1,5 +1,6 @@
 package ui;
 
+import config.StyleConfig;
 import core.GameState;
 import java.awt.*;
 import javax.swing.*;
@@ -8,14 +9,12 @@ import javax.swing.*;
  * Panel for displaying player status, inventory and game information.
  */
 public class StatusPanel extends JPanel {
-    private final Font titleFont = new Font("SansSerif", Font.BOLD, 16);
-    private final Font normalFont = new Font("SansSerif", Font.PLAIN, 14);
     private GameState gameState;
     
     public StatusPanel() {
-        setBackground(Color.BLACK);
+        setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
         setPreferredSize(new Dimension(200, 600));
-        setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
+        setBorder(BorderFactory.createLineBorder(StyleConfig.getColor("panelBorder", Color.DARK_GRAY), 1));
     }
     
     /**
@@ -32,55 +31,120 @@ public class StatusPanel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         
-        g.setColor(Color.WHITE);
+        g.setColor(StyleConfig.getColor("panelText", Color.WHITE));
+        
+        // Dynamic layout constants
+        final int LINE_HEIGHT = 20;
+        final int SECTION_SPACING = 10;
+        final int LEFT_MARGIN = 15;
+        final int TITLE_LEFT_MARGIN = 10;
+        
+        int currentY = 25;
         
         // Title
-        g.setFont(titleFont);
-        g.drawString("CHARACTER", 10, 25);
+        g.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
+        g.drawString("CHARACTER", TITLE_LEFT_MARGIN, currentY);
+        currentY += LINE_HEIGHT + 5; // Extra space after title
         
-        // Status
-        g.setFont(normalFont);
-        if (gameState != null) {
+        // Status section
+        g.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
+        
+        if (gameState != null && gameState.getPlayer() != null) {
+            // Player name and class
+            String playerName = gameState.getPlayer().getName();
+            String playerClass = gameState.getPlayer().getClass().getSimpleName();
+            g.drawString("Name: " + (playerName != null ? playerName : "Unknown"), LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
+            g.drawString("Class: " + playerClass, LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
+            
+            // Player stats
+            g.drawString("HP: " + gameState.getPlayer().getHp() + "/" + gameState.getPlayer().getMaxHp(), LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
+            
+            // Only display mana for classes that use it (max MP > 0)
+            if (gameState.getPlayer().getMaxMp() > 0) {
+                g.drawString("MP: " + gameState.getPlayer().getMp() + "/" + gameState.getPlayer().getMaxMp(), LEFT_MARGIN, currentY);
+                currentY += LINE_HEIGHT;
+            }
+            
             String levelDisplay = gameState.getLevelDisplayString();
-            g.drawString(levelDisplay, 15, 50);
+            g.drawString(levelDisplay, LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
             
             // Add indicator if on final level
             if (!gameState.canGoToNextLevel()) {
-                g.setColor(Color.YELLOW);
-                g.drawString("FINAL LEVEL!", 15, 65);
-                g.setColor(Color.WHITE);
+                g.setColor(StyleConfig.getColor("panelHighlight", Color.YELLOW));
+                g.drawString("FINAL LEVEL!", LEFT_MARGIN, currentY);
+                g.setColor(StyleConfig.getColor("panelText", Color.WHITE));
+                currentY += LINE_HEIGHT;
             }
         } else {
-            g.drawString("Cave Floor: ? of ?", 15, 50);
+            g.drawString("Name: Unknown", LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
+            g.drawString("Class: Unknown", LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
+            g.drawString("HP: ?/?", LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
+            g.drawString("MP: ?/?", LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
+            g.drawString("Cave Floor: ? of ?", LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
         }
-        g.drawString("HP: 100/100", 15, 85);
-        g.drawString("MP: 50/50", 15, 105);
+        
+        currentY += SECTION_SPACING;
         
         // Inventory section
-        g.setFont(titleFont);
-        g.drawString("INVENTORY", 10, 140);
+        g.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
+        g.drawString("INVENTORY", TITLE_LEFT_MARGIN, currentY);
+        currentY += LINE_HEIGHT + 5;
         
-        g.setFont(normalFont);
-        g.drawString("1) Health Potion", 15, 165);
-        g.drawString("2) Mana Potion", 15, 185);
-        g.drawString("3) --", 15, 205);
+        g.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
+        // Display all 9 inventory slots with new format [num] ItemName: x/x
+        String[] inventoryItems = {
+            "[1] Health Potion: 3/3",
+            "[2] Mana Potion: 2/5", 
+            "[3] --",
+            "[4] --",
+            "[5] --",
+            "[6] --",
+            "[7] --",
+            "[8] --",
+            "[9] --"
+        };
+        
+        for (String item : inventoryItems) {
+            g.drawString(item, LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
+        }
+        
+        currentY += SECTION_SPACING;
         
         // Equipment section
-        g.setFont(titleFont);
-        g.drawString("EQUIPMENT", 10, 225);
+        g.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
+        g.drawString("EQUIPMENT", TITLE_LEFT_MARGIN, currentY);
+        currentY += LINE_HEIGHT + 5;
         
-        g.setFont(normalFont);
-        g.drawString("Weapon: Sword", 15, 250);
-        g.drawString("Armor: Leather", 15, 270);
+        g.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
+        g.drawString("Weapon: Sword", LEFT_MARGIN, currentY);
+        currentY += LINE_HEIGHT;
+        g.drawString("Armor: Leather", LEFT_MARGIN, currentY);
+        currentY += LINE_HEIGHT;
+        
+        currentY += SECTION_SPACING;
         
         // Controls Help
-        g.setFont(titleFont);
-        g.drawString("CONTROLS", 10, 305);
+        g.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
+        g.drawString("CONTROLS", TITLE_LEFT_MARGIN, currentY);
+        currentY += LINE_HEIGHT + 5;
         
-        g.setFont(normalFont);
-        g.drawString("WASD: Move", 15, 330);
-        g.drawString("E: Attack", 15, 350);
-        g.drawString("R: Rest", 15, 370);
-        g.drawString("1-9: Use Item", 15, 390);
+        g.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
+        g.drawString("WASD: Move", LEFT_MARGIN, currentY);
+        currentY += LINE_HEIGHT;
+        g.drawString("E: Attack", LEFT_MARGIN, currentY);
+        currentY += LINE_HEIGHT;
+        g.drawString("R: Rest", LEFT_MARGIN, currentY);
+        currentY += LINE_HEIGHT;
+        g.drawString("1-9: Use Item", LEFT_MARGIN, currentY);
     }
 }
