@@ -17,7 +17,7 @@ public class LogPanel extends JPanel {
     public LogPanel() {
         setLayout(new BorderLayout());
         setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
-        setPreferredSize(new Dimension(800, 100));
+        setPreferredSize(new Dimension(800, 160)); 
         setBorder(BorderFactory.createLineBorder(StyleConfig.getColor("panelBorder", Color.DARK_GRAY), 1));
         
         // Create the text area for log messages
@@ -70,23 +70,13 @@ public class LogPanel extends JPanel {
         // Initialize with some test messages (using direct text setting to avoid overridable method call)
         String initialText = """
                 Welcome to Caves of Chaos!
-                Use WASD or arrow keys to move.
-                Press E to attack, R to rest.
-                Press 1-9 to use inventory items.
-                Explore the caves and find the exit!
-                Beware of dangerous monsters lurking in the darkness.
-                Collect potions and equipment to aid your journey.
-                Good luck, adventurer!
+                Use WASD or arrow keys to move. Press E to attack, R to rest. Press 1-9 to use inventory items.
+                Explore the caves and find the Medusa of Chaos at the deepest part!
+                Slaying the monster and aquiring the Shard of Judgement will end your quest.
                 """;
         
         logTextArea.setText(initialText);
         messageCount = initialText.split("\n").length - 1; // Count initial messages (subtract 1 for empty string at end)
-        
-        // Scroll to bottom initially
-        SwingUtilities.invokeLater(() -> {
-            JScrollBar verticalScrollBar2 = scrollPane.getVerticalScrollBar();
-            verticalScrollBar2.setValue(verticalScrollBar2.getMaximum());
-        });
     }
     
     /**
@@ -130,19 +120,11 @@ public class LogPanel extends JPanel {
         });
     }
     
-    /**
-     * Clears all messages from the log.
-     */
     public void clearLog() {
         logTextArea.setText("");
         messageCount = 0;
     }
-    
-    /**
-     * Gets the current log text.
-     * 
-     * @return The current log content
-     */
+
     public String getLogText() {
         return logTextArea.getText();
     }
