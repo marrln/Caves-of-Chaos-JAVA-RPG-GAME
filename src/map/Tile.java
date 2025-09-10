@@ -1,4 +1,4 @@
-package core;
+package map;
 
 /**
  * Represents a single tile in the game map.

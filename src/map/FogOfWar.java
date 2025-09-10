@@ -1,4 +1,4 @@
-package core;
+package map;
 
 /**
  * Manages fog of war for the game map with smooth gradient effects.
