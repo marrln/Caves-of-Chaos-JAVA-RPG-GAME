@@ -1,6 +1,8 @@
 package core;
 
 import config.Config;
+import enemies.Enemy;
+import enemies.EnemySpawner;
 import java.util.ArrayList;
 import java.util.List;
 import map.FogOfWar;
@@ -8,6 +10,7 @@ import map.GameMap;
 import map.Tile;
 import player.AbstractPlayer;
 import player.PlayerFactory;
+import ui.GameUIManager;
 
 /**
  * Manages the overall game state including player, maps, and level progression.
@@ -15,11 +18,66 @@ import player.PlayerFactory;
 public class GameState {
     
     // Game state
-    private final List<GameMap> maps = new ArrayList<>();
-    private AbstractPlayer player;
+    private final List<GameMap> maps;
     private int currentLevel;
-    private FogOfWar fogOfWar;
+    private final int maxLevel;
+    private GameMap map;
+    private final AbstractPlayer player;
+    private FogOfWar fogOfWar; // Not final - needs reassignment on level change
+    private List<Enemy> currentEnemies; // Not final - needs reassignment during spawning
     private boolean gameOver;
+    
+    // UI system reference for logging
+    private GameUIManager uiManager;
+    
+    // Collision management system
+    private utils.CollisionManager collisionManager;
+    
+    /**
+     * Sets up collision checking for enemy movement using the new CollisionManager.
+     */
+    private void setupEnemyCollisionChecking() {
+        // Create collision manager with the current map
+        collisionManager = new utils.CollisionManager(map);
+        
+        // Update entities list for collision checking
+        updateCollisionEntities();
+        
+        // Set collision manager for all enemies and players
+        enemies.AbstractEnemy.setCollisionManager(collisionManager);
+        AbstractPlayer.setCollisionManager(collisionManager);
+        
+        // Set combat logger for all enemies
+        enemies.AbstractEnemy.setCombatLogger(this::logCombatMessage);
+    }
+    
+    /**
+     * Updates the collision manager with current entities.
+     * Call this when entities are added/removed/killed.
+     */
+    private void updateCollisionEntities() {
+        if (collisionManager == null) return;
+        
+        // Create list of all collidable entities
+        List<utils.CollisionManager.Positionable> entities = new ArrayList<>();
+        
+        // Add player (now implements Positionable interface)
+        if (player != null) {
+            entities.add(player);
+        }
+        
+        // Add all alive enemies
+        if (currentEnemies != null) {
+            for (Enemy enemy : currentEnemies) {
+                if (enemy instanceof utils.CollisionManager.Positionable && !enemy.isDead()) {
+                    entities.add((utils.CollisionManager.Positionable) enemy);
+                }
+            }
+        }
+        
+        // Update collision manager
+        collisionManager.updateEntities(entities);
+    }
     
     /**
      * Creates a new game state.
@@ -27,22 +85,27 @@ public class GameState {
      * @param playerClass The class of player to create
      */
     public GameState(String playerClass) {
+        // Initialize collections and basic state
+        this.maps = new ArrayList<>();
+        this.currentEnemies = new ArrayList<>();
+        this.maxLevel = getMaxCaveLevelsFromConfigImpl();
+        this.currentLevel = 0;
+        this.gameOver = false;
+        
         // Read map dimensions from config
         int[] mapDimensions = getMapDimensionsFromConfig();
         int mapWidth = mapDimensions[0];
         int mapHeight = mapDimensions[1];
         
         this.fogOfWar = new FogOfWar(mapWidth, mapHeight);
-        this.currentLevel = 0;
-        this.gameOver = false;
         
         // Generate the first level using config values
         double fillPercentage = getMapFillPercentageFromConfig();
         int iterations = getMapIterationsFromConfig();
         
-        GameMap map = new GameMap(mapWidth, mapHeight);
-        map.generateCaves(fillPercentage, iterations, false); // First level is never final
-        maps.add(map);
+        this.map = new GameMap(mapWidth, mapHeight);
+        this.map.generateCaves(fillPercentage, iterations, false); // First level is never final
+        maps.add(this.map);
         
         System.out.println("=== MAP GENERATION DEBUG ===");
         System.out.println("Generated map size: " + map.getWidth() + "x" + map.getHeight());
@@ -50,17 +113,25 @@ public class GameState {
         System.out.println("========================");
         
         // Spawn player at the entrance (stairs up) - much more logical!
-        player = PlayerFactory.createPlayer(playerClass, map.getEntranceX(), map.getEntranceY());
+        this.player = PlayerFactory.createPlayer(playerClass, this.map.getEntranceX(), this.map.getEntranceY());
         
         System.out.println("=== PLAYER SPAWNED AT ENTRANCE ===");
         System.out.println("Player spawned at entrance: (" + player.getX() + ", " + player.getY() + ")");
-        System.out.println("Exit located at: (" + map.getExitX() + ", " + map.getExitY() + ")");
-        System.out.println("Player is on: " + (map.isBlocked(player.getX(), player.getY()) ? "WALL" : "FLOOR"));
+        System.out.println("Exit located at: (" + this.map.getExitX() + ", " + this.map.getExitY() + ")");
+        System.out.println("Player is on: " + (this.map.isBlocked(player.getX(), player.getY()) ? "WALL" : "FLOOR"));
         System.out.println("===========================");
         
         // Initialize fog of war with direct reference
         int viewRadius = getVisionRadiusFromConfig();
-        fogOfWar.updateVisibility(map, player.getX(), player.getY(), viewRadius);
+        fogOfWar.updateVisibility(this.map, player.getX(), player.getY(), viewRadius);
+        
+        // Setup collision checking for enemy movement
+        setupEnemyCollisionChecking();
+        
+        System.out.println("[INIT] About to spawn enemies for initial level...");
+        // Spawn enemies for the initial level
+        initializeEnemiesForLevel();
+        System.out.println("[INIT] Enemy spawning completed.");
     }
     
     /**
@@ -72,27 +143,40 @@ public class GameState {
      * @param fillPercentage The initial fill percentage for cave generation
      */
     public GameState(AbstractPlayer player, int mapWidth, int mapHeight, double fillPercentage) {
-        this.player = player;
-        this.fogOfWar = new FogOfWar(mapWidth, mapHeight);
+        // Initialize collections and basic state
+        this.maps = new ArrayList<>();
+        this.currentEnemies = new ArrayList<>();
+        this.maxLevel = getMaxCaveLevelsFromConfigImpl();
         this.currentLevel = 0;
         this.gameOver = false;
         
+        this.player = player;
+        this.fogOfWar = new FogOfWar(mapWidth, mapHeight);
+        
         // Generate the first level with custom dimensions
-        GameMap map = new GameMap(mapWidth, mapHeight);
-        map.generateCaves(fillPercentage, getMapIterationsFromConfig(), false); // First level is never final
-        maps.add(map);
+        this.map = new GameMap(mapWidth, mapHeight);
+        this.map.generateCaves(fillPercentage, getMapIterationsFromConfig(), false); // First level is never final
+        maps.add(this.map);
         
         // Move player to the entrance position
-        player.setPosition(map.getEntranceX(), map.getEntranceY());
+        player.setPosition(this.map.getEntranceX(), this.map.getEntranceY());
         
         System.out.println("=== PLAYER MOVED TO ENTRANCE ===");
         System.out.println("Player moved to entrance: (" + player.getX() + ", " + player.getY() + ")");
-        System.out.println("Exit located at: (" + map.getExitX() + ", " + map.getExitY() + ")");
+        System.out.println("Exit located at: (" + this.map.getExitX() + ", " + this.map.getExitY() + ")");
         System.out.println("===========================");
         
         // Initialize fog of war with direct reference
         int viewRadius = getVisionRadiusFromConfig();
-        fogOfWar.updateVisibility(map, player.getX(), player.getY(), viewRadius);
+        fogOfWar.updateVisibility(this.map, player.getX(), player.getY(), viewRadius);
+        
+        // Setup collision checking for enemy movement
+        setupEnemyCollisionChecking();
+        
+        System.out.println("[INIT] About to spawn enemies for initial level...");
+        // Spawn enemies for the initial level
+        initializeEnemiesForLevel();
+        System.out.println("[INIT] Enemy spawning completed.");
     }
     
     /**
@@ -107,7 +191,7 @@ public class GameState {
         GameMap map = new GameMap(mapWidth, mapHeight);
         
         // Check if this will be the final level
-        int maxLevels = getMaxCaveLevelsFromConfig();
+        int maxLevels = getMaxCaveLevelsFromConfigImpl();
         boolean isFinalLevel = (maps.size() + 1) >= maxLevels; // +1 because we're about to add this level
         
         map.generateCaves(fillPercentage, iterations, isFinalLevel);
@@ -195,8 +279,11 @@ public class GameState {
         fogOfWar = new FogOfWar(newMap.getWidth(), newMap.getHeight());
         updateFogOfWar();
         
+        // Spawn enemies for the new level (enemies respawn on each entry)
+        spawnEnemiesForCurrentLevel();
+        
         System.out.println("=== LEVEL CHANGE: NEXT ===");
-        System.out.println("Now on level: " + (currentLevel + 1) + " of " + getMaxCaveLevelsFromConfig());
+        System.out.println("Now on level: " + (currentLevel + 1) + " of " + getMaxCaveLevelsFromConfigImpl());
         System.out.println("New map size: " + newMap.getWidth() + "x" + newMap.getHeight());
         System.out.println("Player moved to entrance: (" + player.getX() + ", " + player.getY() + ")");
         System.out.println("========================");
@@ -217,8 +304,11 @@ public class GameState {
             fogOfWar = new FogOfWar(newMap.getWidth(), newMap.getHeight());
             updateFogOfWar();
             
+            // Spawn enemies for this level (enemies respawn on each entry)
+            spawnEnemiesForCurrentLevel();
+            
             System.out.println("=== LEVEL CHANGE: PREVIOUS ===");
-            System.out.println("Now on level: " + (currentLevel + 1) + " of " + getMaxCaveLevelsFromConfig());
+            System.out.println("Now on level: " + (currentLevel + 1) + " of " + getMaxCaveLevelsFromConfigImpl());
             System.out.println("New map size: " + newMap.getWidth() + "x" + newMap.getHeight());
             System.out.println("Player moved to exit: (" + player.getX() + ", " + player.getY() + ")");
             System.out.println("===========================");
@@ -258,7 +348,7 @@ public class GameState {
      * @return true if there are more levels available, false if at max level
      */
     public boolean canGoToNextLevel() {
-        int maxLevels = getMaxCaveLevelsFromConfig();
+        int maxLevels = getMaxCaveLevelsFromConfigImpl();
         return currentLevel < (maxLevels - 1); // -1 because levels are 0-indexed
     }
     
@@ -268,7 +358,7 @@ public class GameState {
      * @return String like "Cave Floor: 3 of 5"
      */
     public String getLevelDisplayString() {
-        int maxLevels = getMaxCaveLevelsFromConfig();
+        int maxLevels = getMaxCaveLevelsFromConfigImpl();
         return "Cave Floor: " + (currentLevel + 1) + " of " + maxLevels;
     }
     
@@ -297,6 +387,108 @@ public class GameState {
      */
     public void setGameOver(boolean gameOver) {
         this.gameOver = gameOver;
+    }
+    
+    /**
+     * Sets the UI manager for combat logging.
+     * 
+     * @param uiManager The UI manager to use for logging
+     */
+    public void setUIManager(GameUIManager uiManager) {
+        this.uiManager = uiManager;
+    }
+    
+    /**
+     * Logs a combat message to the UI with proper formatting.
+     * 
+     * @param message The combat message to log
+     */
+    public void logCombatMessage(String message) {
+        if (uiManager != null) {
+            uiManager.addLogMessage(message);
+        } else {
+            // Fallback to console if UI not available
+            System.out.println(message);
+        }
+    }
+    
+    /**
+     * Gets the list of enemies on the current level.
+     * 
+     * @return List of enemies
+     */
+    public List<Enemy> getCurrentEnemies() {
+        return currentEnemies;
+    }
+    
+    /**
+     * Initializes enemies for the current level (safe for constructor use).
+     */
+    private void initializeEnemiesForLevel() {
+        System.out.println("[ENEMY SPAWN] Starting enemy spawn for level " + (currentLevel + 1));
+        currentEnemies.clear();
+        int levelNumber = currentLevel + 1; // Convert to 1-based
+        System.out.println("[ENEMY SPAWN] Calling EnemySpawner.spawnEnemiesForLevel with level " + levelNumber);
+        currentEnemies.addAll(EnemySpawner.spawnEnemiesForLevel(getCurrentMap(), levelNumber));
+        System.out.println("[ENEMY SPAWN] Spawned " + currentEnemies.size() + " enemies for level " + levelNumber);
+    }
+    
+    /**
+     * Spawns enemies for the current level.
+     */
+    public void spawnEnemiesForCurrentLevel() {
+        System.out.println("[ENEMY SPAWN] Starting enemy spawn for level " + (currentLevel + 1));
+        currentEnemies.clear();
+        int levelNumber = currentLevel + 1; // Convert to 1-based
+        System.out.println("[ENEMY SPAWN] Calling EnemySpawner.spawnEnemiesForLevel with level " + levelNumber);
+        List<Enemy> newEnemies = EnemySpawner.spawnEnemiesForLevel(getCurrentMap(), levelNumber);
+        currentEnemies.addAll(newEnemies);
+        System.out.println("[ENEMY SPAWN] Spawned " + currentEnemies.size() + " enemies for level " + levelNumber);
+    }
+    
+    /**
+     * Updates all enemies on the current level.
+     */
+    public void updateEnemies() {
+        if (player == null) return;
+        
+        for (Enemy enemy : currentEnemies) {
+            if (!enemy.isDead()) {
+                enemy.update(player.getX(), player.getY());
+                
+                // Check if enemy has pending damage to deal to player
+                if (enemy instanceof enemies.AbstractEnemy abstractEnemy) {
+                    if (abstractEnemy.hasPendingPlayerDamage()) {
+                        int damage = abstractEnemy.getPendingPlayerDamage();
+                        logCombatMessage(player.getName() + " takes " + damage + " damage!");
+                        
+                        // Apply damage to player using the proper method
+                        boolean playerDied = player.takeDamage(damage);
+                        
+                        // Check if player died
+                        if (playerDied) {
+                            logCombatMessage(player.getName() + " has been defeated!");
+                            // TODO: Handle player death (game over, respawn, etc.)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Remove dead enemies and update collision system
+        boolean enemiesRemoved = currentEnemies.removeIf(Enemy::isDead);
+        if (enemiesRemoved) {
+            updateCollisionEntities(); // Update collision system when enemies are removed
+        }
+    }
+    
+    /**
+     * Checks if all enemies on the current level are defeated.
+     * 
+     * @return true if no living enemies remain
+     */
+    public boolean areAllEnemiesDefeated() {
+        return currentEnemies.stream().allMatch(Enemy::isDead);
     }
     
     /**
@@ -357,7 +549,7 @@ public class GameState {
      * 
      * @return Maximum number of cave levels from config
      */
-    private int getMaxCaveLevelsFromConfig() {
+    private int getMaxCaveLevelsFromConfigImpl() {
         String levelsStr = Config.getSetting("caveLevelNumber");
         return Integer.parseInt(levelsStr.trim());
     }
