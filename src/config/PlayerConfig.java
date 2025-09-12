@@ -1,4 +1,4 @@
-package player;
+package config;
 
 /**
  * Configuration class for player progression and combat statistics.

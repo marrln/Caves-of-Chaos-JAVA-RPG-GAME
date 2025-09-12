@@ -1,6 +1,7 @@
 package player;
 
 import config.AnimationConfig;
+import config.PlayerConfig;
 import core.Projectile;
 import enemies.Enemy;
 import java.util.List;

@@ -2,7 +2,6 @@ package core;
 
 import config.Config;
 import enemies.Enemy;
-import enemies.EnemySpawner;
 import java.util.ArrayList;
 import java.util.List;
 import map.FogOfWar;

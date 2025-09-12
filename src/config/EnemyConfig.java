@@ -1,4 +1,6 @@
-package enemies;
+package config;
+
+import enemies.EnemyType;
 
 /**
  * Configuration class containing all enemy statistics and combat parameters.

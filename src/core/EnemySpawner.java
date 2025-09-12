@@ -1,5 +1,10 @@
-package enemies;
+package core;
 
+import config.EnemySpawnConfig;
+import enemies.Enemy;
+import enemies.EnemyFactory;
+import enemies.EnemyType;
+import enemies.MedusaOfChaos;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,24 +29,24 @@ public class EnemySpawner {
      * @return List of spawned enemies
      */
     public static List<Enemy> spawnEnemiesForLevel(GameMap gameMap, int level) {
-        System.out.println("[ENEMY SPAWNER] Starting spawn process for level " + level);
+        // System.out.println("[ENEMY SPAWNER] Starting spawn process for level " + level);
         List<Enemy> spawnedEnemies = new ArrayList<>();
         
         EnemySpawnConfig.LevelSpawnConfig spawnConfig = EnemySpawnConfig.getSpawnConfig(level);
         if (spawnConfig == null) {
-            System.err.println("[ENEMY SPAWNER] No spawn configuration found for level " + level);
+            // System.err.println("[ENEMY SPAWNER] No spawn configuration found for level " + level);
             return spawnedEnemies;
         }
         
-        System.out.println("[ENEMY SPAWNER] Found spawn config for level " + level + 
-                          " with " + spawnConfig.totalEnemies + " total enemies");
+        // System.out.println("[ENEMY SPAWNER] Found spawn config for level " + level + 
+        //                   " with " + spawnConfig.totalEnemies + " total enemies");
         
         // Get all available floor tiles for spawning
         List<int[]> floorTiles = getFloorTiles(gameMap);
-        System.out.println("[ENEMY SPAWNER] Found " + floorTiles.size() + " floor tiles for spawning");
+        // System.out.println("[ENEMY SPAWNER] Found " + floorTiles.size() + " floor tiles for spawning");
         
         if (floorTiles.isEmpty()) {
-            System.err.println("[ENEMY SPAWNER] No floor tiles available for enemy spawning on level " + level);
+            // System.err.println("[ENEMY SPAWNER] No floor tiles available for enemy spawning on level " + level);
             return spawnedEnemies;
         }
         
@@ -56,15 +61,16 @@ public class EnemySpawner {
                     Enemy enemy = EnemyFactory.createEnemy(enemyType, spawnPosition[0], spawnPosition[1]);
                     spawnedEnemies.add(enemy);
                     
-                    System.out.println("[ENEMY SPAWNER] Spawned " + enemyType.getDisplayName() + 
-                                     " at (" + spawnPosition[0] + ", " + spawnPosition[1] + ")");
-                } else {
-                    System.err.println("[ENEMY SPAWNER] Could not find valid spawn position for " + enemyType.getDisplayName());
-                }
+                    // System.out.println("[ENEMY SPAWNER] Spawned " + enemyType.getDisplayName() + 
+                    //                  " at (" + spawnPosition[0] + ", " + spawnPosition[1] + ")");
+                } 
+                // else {
+                    // System.err.println("[ENEMY SPAWNER] Could not find valid spawn position for " + enemyType.getDisplayName());
+                // }
             }
         }
         
-        System.out.println("[ENEMY SPAWNER] Completed spawning " + spawnedEnemies.size() + " enemies on level " + level);
+        // System.out.println("[ENEMY SPAWNER] Completed spawning " + spawnedEnemies.size() + " enemies on level " + level);
         return spawnedEnemies;
     }
     

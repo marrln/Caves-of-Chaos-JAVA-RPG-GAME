@@ -3,7 +3,7 @@ package ui;
 import config.StyleConfig;
 import core.GameController;
 import core.GameState;
-import enemies.EnemyRenderer;
+import graphics.EnemyRenderer;
 import input.GameInputHandler;
 import java.awt.*;
 import javax.swing.JPanel;

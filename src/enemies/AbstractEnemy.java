@@ -1,6 +1,7 @@
 package enemies;
 
 import config.AnimationConfig;
+import config.EnemyConfig;
 import core.CombatState;
 import java.util.Random;
 import java.util.function.Consumer;

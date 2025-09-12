@@ -2,6 +2,7 @@ package player;
 
 import config.AnimationConfig;
 import config.Config;
+import config.PlayerConfig;
 import core.CombatState;
 import utils.CollisionManager;
 

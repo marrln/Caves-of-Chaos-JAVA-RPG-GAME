@@ -1,9 +1,11 @@
-package enemies;
+package config;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import enemies.EnemyType;
 
 /**
  * Configuration for enemy spawning across different cave levels.

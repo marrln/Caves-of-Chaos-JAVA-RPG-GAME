@@ -1,5 +1,8 @@
-package enemies;
+package graphics;
 
+import enemies.AbstractEnemy;
+import enemies.Enemy;
+import enemies.EnemyType;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.util.List;
@@ -143,13 +146,6 @@ public class EnemyRenderer {
         // Restore original composite
         g2d.setComposite(originalComposite);
     }
-
-    /**
-     * Legacy method for backward compatibility.
-     */
-    private static void renderEnemyCircle(Graphics2D g2d, int x, int y, Color color, Enemy enemy) {
-        renderEnemyCircle(g2d, x, y, color, enemy, 1.0f);
-    }
     
     /**
      * Renders a visual indicator for the enemy's combat state with fog visibility.
@@ -183,13 +179,6 @@ public class EnemyRenderer {
         }
     }
 
-    /**
-     * Legacy method for backward compatibility.
-     */
-    private static void renderCombatStateIndicator(Graphics2D g2d, int x, int y, AbstractEnemy enemy) {
-        renderCombatStateIndicator(g2d, x, y, enemy, 1.0f);
-    }
-    
     /**
      * Renders the health bar above the enemy with fog visibility.
      */
@@ -314,15 +303,15 @@ public class EnemyRenderer {
                 int screenX = (enemy.getX() * tileSize) - cameraX;
                 int screenY = (enemy.getY() * tileSize) - cameraY;
                 
-                // Show notice radius
-                if (ae.hasNoticedPlayer) {
-                    g2d.drawOval(
-                        screenX - ae.stats.noticeRadius * tileSize,
-                        screenY - ae.stats.noticeRadius * tileSize,
-                        ae.stats.noticeRadius * tileSize * 2,
-                        ae.stats.noticeRadius * tileSize * 2
-                    );
-                }
+                // // Show notice radius
+                // if (ae.hasNoticedPlayer) {
+                //     g2d.drawOval(
+                //         screenX - ae.stats.noticeRadius * tileSize,
+                //         screenY - ae.stats.noticeRadius * tileSize,
+                //         ae.stats.noticeRadius * tileSize * 2,
+                //         ae.stats.noticeRadius * tileSize * 2
+                //     );
+                // }
                 
                 // Show combat state
                 String stateText = ae.getCombatState().getCurrentState().toString();
