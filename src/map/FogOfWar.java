@@ -183,35 +183,10 @@ public class FogOfWar {
             return true;
         }
         
-        // Bresenham's line algorithm with improved wall detection
-        int dx = Math.abs(x2 - x1);
-        int dy = Math.abs(y2 - y1);
-        int sx = x1 < x2 ? 1 : -1;
-        int sy = y1 < y2 ? 1 : -1;
-        int err = dx - dy;
-        int x = x1;
-        int y = y1;
-        
-        while (x != x2 || y != y2) {
-            int e2 = 2 * err;
-            if (e2 > -dy) {
-                err -= dy;
-                x += sx;
-            }
-            if (e2 < dx) {
-                err += dx;
-                y += sy;
-            }
-            
-            // Check if current position blocks vision (except the destination)
-            if (x != x2 || y != y2) {
-                Tile tile = map.getTile(x, y);
-                if (tile != null && tile.getType() == Tile.WALL) {
-                    return false;
-                }
-            }
-        }
-        
-        return true;
+        // Use centralized line-of-sight algorithm from LineUtils
+        return utils.LineUtils.hasLineOfSight(x1, y1, x2, y2, (x, y) -> {
+            Tile tile = map.getTile(x, y);
+            return tile != null && tile.getType() == Tile.WALL;
+        });
     }
 }
