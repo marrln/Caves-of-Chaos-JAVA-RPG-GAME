@@ -158,6 +158,7 @@ public class CavesOfChaos {
             GameUIManager uiManager = new GameUIManager(gamePanel, statusPanel, logPanel);
             gamePanel.setUIManager(uiManager);
             controller.setUIManager(uiManager);
+            gameState.setUIManager(uiManager); // Enable combat logging
             
             frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
             frame.setLocationRelativeTo(null);
