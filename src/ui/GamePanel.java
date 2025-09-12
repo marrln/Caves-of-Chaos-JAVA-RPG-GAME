@@ -3,13 +3,14 @@ package ui;
 import config.StyleConfig;
 import core.GameController;
 import core.GameState;
+import enemies.EnemyRenderer;
 import input.GameInputHandler;
+import java.awt.*;
+import javax.swing.JPanel;
+import javax.swing.Timer;
 import map.FogOfWar;
 import map.GameMap;
 import map.Tile;
-
-import java.awt.*;
-import javax.swing.JPanel;
 import player.AbstractPlayer;
 
 public class GamePanel extends JPanel {
@@ -27,6 +28,10 @@ public class GamePanel extends JPanel {
     
     private boolean debugNoFog = false; // Debug flag to disable fog of war
     private int lastKnownLevel = -1;
+    
+    // Real-time game loop
+    private Timer gameTimer;
+    private static final int GAME_UPDATE_DELAY = 100; // Update every 100ms (10 FPS for game logic)
 
     public GamePanel(GameState gameState, GameController controller) {
         this.gameState = gameState;
@@ -49,6 +54,7 @@ public class GamePanel extends JPanel {
         camera.snapToTarget(player.getX(), player.getY());
 
         setupInputHandler();
+        setupGameLoop();
     }
     
     
@@ -169,6 +175,11 @@ public class GamePanel extends JPanel {
             }
         }
 
+        // Render enemies (after tiles, before player) - only visible ones through fog of war
+        Graphics2D g2d = (Graphics2D) g;
+        EnemyRenderer.renderEnemies(g2d, gameState.getCurrentEnemies(), TILE_SIZE, 
+                                   camera.getX() * TILE_SIZE, camera.getY() * TILE_SIZE, gameState.getFogOfWar());
+
         // Draw player
         int playerScreenX = (player.getX() - camera.getX()) * TILE_SIZE;
         int playerScreenY = (player.getY() - camera.getY()) * TILE_SIZE;
@@ -225,5 +236,46 @@ public class GamePanel extends JPanel {
     
     public int getVisibleMapHeight() {
         return visibleMapHeight;
+    }
+    
+    /**
+     * Sets up the real-time game loop timer that continuously updates enemies.
+     * This replaces the old turn-based system with smooth real-time gameplay.
+     */
+    private void setupGameLoop() {
+        gameTimer = new Timer(GAME_UPDATE_DELAY, ignored -> updateGameLogic());
+        gameTimer.start();
+    }
+    
+    /**
+     * Updates the game logic in real-time.
+     * Called periodically by the game timer to update enemies, animations, etc.
+     */
+    private void updateGameLogic() {
+        if (gameState != null) {
+            // Update enemies continuously in real-time
+            gameState.updateEnemies();
+            
+            // Update camera (smooth following)
+            AbstractPlayer player = gameState.getPlayer();
+            if (player != null) {
+                camera.centerOn(player.getX(), player.getY());
+            }
+            
+            // Refresh status panel to show real-time HP/MP changes
+            uiManager.refreshStatusPanel();
+            
+            // Trigger repaint to show updates
+            repaint();
+        }
+    }
+    
+    /**
+     * Stops the game loop timer. Should be called when disposing the panel.
+     */
+    public void stopGameLoop() {
+        if (gameTimer != null) {
+            gameTimer.stop();
+        }
     }
 }

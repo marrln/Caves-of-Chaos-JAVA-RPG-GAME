@@ -126,4 +126,22 @@ public class GameUIManager {
     public void centerCameraOnPlayer() {
         gamePanel.centerCameraOnPlayer();
     }
+    
+    /**
+     * Adds a message to the log panel.
+     * 
+     * @param message The message to display
+     */
+    public void addLogMessage(String message) {
+        logPanel.addMessage(message);
+    }
+    
+    /**
+     * Gets the log panel for direct access.
+     * 
+     * @return The log panel
+     */
+    public LogPanel getLogPanel() {
+        return logPanel;
+    }
 }

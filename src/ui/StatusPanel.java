@@ -58,9 +58,25 @@ public class StatusPanel extends JPanel {
             g.drawString("Class: " + playerClass, LEFT_MARGIN, currentY);
             currentY += LINE_HEIGHT;
             
-            // Player stats
-            g.drawString("HP: " + gameState.getPlayer().getHp() + "/" + gameState.getPlayer().getMaxHp(), LEFT_MARGIN, currentY);
+            // Player stats with color coding for health
+            int currentHp = gameState.getPlayer().getHp();
+            int maxHp = gameState.getPlayer().getMaxHp();
+            double hpPercentage = (double) currentHp / maxHp;
+            
+            // Change color based on health percentage
+            if (hpPercentage < 0.25) {
+                g.setColor(Color.RED); // Critical health
+            } else if (hpPercentage < 0.5) {
+                g.setColor(Color.ORANGE); // Low health
+            } else {
+                g.setColor(StyleConfig.getColor("panelText", Color.WHITE)); // Normal
+            }
+            
+            g.drawString("HP: " + currentHp + "/" + maxHp, LEFT_MARGIN, currentY);
             currentY += LINE_HEIGHT;
+            
+            // Reset color for MP
+            g.setColor(StyleConfig.getColor("panelText", Color.WHITE));
             
             // Only display mana for classes that use it (max MP > 0)
             if (gameState.getPlayer().getMaxMp() > 0) {
@@ -70,6 +86,11 @@ public class StatusPanel extends JPanel {
             
             String levelDisplay = gameState.getLevelDisplayString();
             g.drawString(levelDisplay, LEFT_MARGIN, currentY);
+            currentY += LINE_HEIGHT;
+            
+            // Show enemy count to track combat
+            int enemyCount = gameState.getCurrentEnemies().size();
+            g.drawString("Enemies: " + enemyCount, LEFT_MARGIN, currentY);
             currentY += LINE_HEIGHT;
             
             // Add indicator if on final level
@@ -141,7 +162,7 @@ public class StatusPanel extends JPanel {
         g.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
         g.drawString("WASD: Move", LEFT_MARGIN, currentY);
         currentY += LINE_HEIGHT;
-        g.drawString("E: Attack", LEFT_MARGIN, currentY);
+        g.drawString("Q/E: Attack", LEFT_MARGIN, currentY);
         currentY += LINE_HEIGHT;
         g.drawString("R: Rest", LEFT_MARGIN, currentY);
         currentY += LINE_HEIGHT;
