@@ -70,12 +70,12 @@ public interface Enemy {
     boolean isDead();
     
     /**
-     * Makes the enemy take its turn in the game loop.
+     * Updates the enemy's AI and behavior in real-time.
      * 
      * @param playerX The player's x position
      * @param playerY The player's y position
      */
-    void takeTurn(int playerX, int playerY);
+    void update(int playerX, int playerY);
     
     /**
      * Makes the enemy take damage.

@@ -1,147 +1,175 @@
 package enemies;
 
+import config.AnimationConfig;
+import core.CombatState;
 import java.util.Random;
+import java.util.function.Consumer;
+import utils.CollisionManager;
+import utils.Dice;
+import utils.LineUtils;
 
-/**
- * Abstract base class for all enemies.
- */
-public abstract class AbstractEnemy implements Enemy {
+public abstract class AbstractEnemy implements Enemy, CollisionManager.Positionable {
     
-    protected int x, y;           // Position
-    protected int hp, maxHp;      // Health
-    protected String name;        // Enemy name
-    protected int expReward;      // Experience reward
-    protected int attackDamage;   // Base attack damage
-    protected Random random;      // For random behavior
+    // ====== CORE STATS ======
+    protected int x, y;                     // Position
+    protected EnemyType type;               // Enemy classification
+    protected String name;                  // Display name
+    protected int hp, maxHp;                // Health
+    protected int attackDamage;             // Base attack damage
+    protected int expReward;                // Experience reward
+    protected EnemyConfig.EnemyStats stats; // Config stats
     
-    /**
-     * Creates a new enemy at the specified position.
-     * 
-     * @param x The initial x position
-     * @param y The initial y position
-     * @param name The enemy's name
-     * @param maxHp The maximum health
-     * @param attackDamage The attack damage
-     * @param expReward The experience reward
-     */
-    public AbstractEnemy(int x, int y, String name, int maxHp, int attackDamage, int expReward) {
+    // ====== COMBAT ======
+    protected CombatState combatState = new CombatState();
+
+    // ====== TIMING & AI ======
+    protected long lastMoveTime = 0, lastAttackTime = 0;
+    protected boolean hasNoticedPlayer = false;
+    protected Random random = new Random();
+
+    // ====== DAMAGE TRACKING ======
+    private int pendingPlayerDamage = 0;
+
+    // ====== GLOBAL SYSTEM HOOKS ======
+    private static CollisionManager collisionManager;
+    private static Consumer<String> combatLogger;
+
+    // ====== CONSTRUCTOR ======
+    public AbstractEnemy(int x, int y, EnemyType type) {
         this.x = x;
         this.y = y;
-        this.name = name;
-        this.maxHp = maxHp;
-        this.hp = maxHp;
-        this.attackDamage = attackDamage;
-        this.expReward = expReward;
-        this.random = new Random();
+        this.type = type;
+
+        stats = EnemyConfig.getStats(type);
+        name = type.getDisplayName();
+        maxHp = stats.baseHp;
+        hp = maxHp;
+        attackDamage = stats.baseDamage;
+        expReward = stats.expReward;
     }
-    
-    @Override
-    public int getX() {
-        return x;
-    }
-    
-    @Override
-    public int getY() {
-        return y;
-    }
-    
-    @Override
-    public void setPosition(int x, int y) {
-        this.x = x;
-        this.y = y;
-    }
-    
-    @Override
-    public int getHp() {
-        return hp;
-    }
-    
-    @Override
-    public int getMaxHp() {
-        return maxHp;
-    }
-    
-    @Override
-    public void setHp(int hp) {
-        this.hp = Math.max(0, Math.min(hp, maxHp));
-    }
-    
-    @Override
-    public String getName() {
-        return name;
-    }
-    
-    @Override
-    public int getExpReward() {
-        return expReward;
-    }
-    
-    @Override
-    public boolean isDead() {
-        return hp <= 0;
-    }
-    
+
+    // ====== BASIC GETTERS/SETTERS ======
+    @Override public int getX() { return x; }
+    @Override public int getY() { return y; }
+    @Override public void setPosition(int x, int y) { this.x = x; this.y = y; }
+    @Override public int getHp() { return hp; }
+    @Override public int getMaxHp() { return maxHp; }
+    @Override public void setHp(int hp) { this.hp = Math.max(0, Math.min(hp, maxHp)); }
+    @Override public String getName() { return name; }
+    @Override public boolean isDead() { return hp <= 0; }
+    @Override public int getExpReward() { return expReward; }
+
+    public EnemyType getType() { return type; }
+    public CombatState getCombatState() { return combatState; }
+    public boolean hasNoticedPlayer() { return hasNoticedPlayer; }
+    public int getAttackType() { return combatState.getAttackType(); }
+
+    // ====== COMBAT ======
     @Override
     public boolean takeDamage(int damage) {
-        hp -= damage;
-        if (hp < 0) hp = 0;
-        return isDead();
+        if (isDead()) return false;
+        hp = Math.max(0, hp - damage);
+
+        if (hp == 0) {
+            combatState.setState(CombatState.State.DYING, AnimationConfig.getEnemyAnimationDuration("death"));
+            return true;
+        } 
+        combatState.setState(CombatState.State.HURT, AnimationConfig.getEnemyAnimationDuration("hurt"));
+        return false;
     }
-    
+
     @Override
     public int getAttackDamage() {
-        // Apply some randomness to damage
-        int variation = Math.max(1, attackDamage / 5);
-        return attackDamage - variation + random.nextInt(variation * 2 + 1);
+        int type = combatState.getAttackType();
+        if (type < 0 || type >= stats.attackDamageMultipliers.length) type = 0;
+        int base = (stats.baseDamage * stats.attackDamageMultipliers[type]) / 100;
+        return Dice.calculateDamage(base, stats.diceSides, stats.variationPercent);
     }
-    
+
+    private boolean isAdjacent(int px, int py) {
+        return LineUtils.isCardinallyAdjacent(x, y, px, py);
+    }
+
+    private boolean canMove() {
+        long now = System.currentTimeMillis();
+        return combatState.canPerformAction(CombatState.ActionType.MOVE) && now - lastMoveTime >= (EnemyConfig.getBaseMovementCooldown() / stats.movementSpeed);
+    }
+
+    private boolean canAttack() {
+        long now = System.currentTimeMillis();
+        return combatState.canPerformAction(CombatState.ActionType.ATTACK) && now - lastAttackTime >= stats.attackCooldown;
+    }
+
+    private void attemptAttack() {
+        if (!canAttack()) return;
+        int atkType = selectAttackType();
+        combatState.startAttack(atkType, AnimationConfig.getEnemyAnimationDuration("attack"));
+        lastAttackTime = System.currentTimeMillis();
+    }
+
+    private int selectAttackType() {
+        int roll = random.nextInt(100), cumulative = 0;
+        for (int i = 0; i < stats.attackChances.length; i++) {
+            cumulative += stats.attackChances[i];
+            if (roll < cumulative) return i;
+        }
+        return 0; // Fallback
+    }
+
+    // ====== MOVEMENT ======
+    private boolean executeMovement(CollisionManager.Position pos) {
+        if (!canMove() || collisionManager == null || pos == null) return false;
+        x = pos.x; y = pos.y; lastMoveTime = System.currentTimeMillis();
+        return true;
+    }
+
+    private void performBrownianMovement() {
+        executeMovement(collisionManager != null ? collisionManager.findRandomMove(this, EnemyConfig.getMaxRandomMoveAttempts(), random) : null);
+    }
+
+    protected void moveToward(int px, int py) {
+        executeMovement(collisionManager != null ? collisionManager.findSmartMoveToward(this, px, py) : null);
+    }
+
+    // ====== AI LOOP ======
     @Override
-    public void takeTurn(int playerX, int playerY) {
-        // Calculate distance to player
-        int dx = playerX - x;
-        int dy = playerY - y;
-        int distanceSquared = dx * dx + dy * dy;
-        
-        // Default behavior: Move toward player if within range
-        if (distanceSquared <= 100) { // 10 tiles range
-            moveToward(playerX, playerY);
-        } else {
-            // Random movement if player is out of range
-            int randomDirection = random.nextInt(4);
-            switch (randomDirection) {
-                case 0 -> setPosition(x, y - 1); // Up
-                case 1 -> setPosition(x + 1, y); // Right
-                case 2 -> setPosition(x, y + 1); // Down
-                case 3 -> setPosition(x - 1, y); // Left
-            }
+    public void update(int px, int py) {
+        combatState.update();
+        if (isDead()) return;
+
+        if (combatState.getCurrentState() == CombatState.State.ATTACKING) {
+            if (combatState.shouldDealDamage(AnimationConfig.getDamageTimingPercent())) dealDamageToPlayer(px, py);
+            return;
         }
+
+        if (!combatState.canPerformAction(CombatState.ActionType.MOVE)) return;
+
+        double dist = Math.hypot(px - x, py - y);
+        if (dist <= stats.noticeRadius) hasNoticedPlayer = true;
+
+        if (hasNoticedPlayer) {
+            if (isAdjacent(px, py)) attemptAttack();
+            else moveToward(px, py);
+        } else performBrownianMovement();
     }
-    
-    /**
-     * Attempts to move the enemy toward the player.
-     * 
-     * @param playerX The player's x position
-     * @param playerY The player's y position
-     */
-    protected void moveToward(int playerX, int playerY) {
-        // Determine which direction to move
-        int newX = x;
-        int newY = y;
-        
-        // Move on the axis with the greater distance
-        int dx = playerX - x;
-        int dy = playerY - y;
-        
-        if (Math.abs(dx) > Math.abs(dy)) {
-            // Move horizontally
-            newX += (dx > 0) ? 1 : -1;
-        } else {
-            // Move vertically
-            newY += (dy > 0) ? 1 : -1;
-        }
-        
-        // TODO: Check if the new position is valid (not blocked by wall, etc.)
-        // For now, just update the position
-        setPosition(newX, newY);
+
+    // ====== DAMAGE TO PLAYER ======
+    private void dealDamageToPlayer(int px, int py) {
+        if (!isAdjacent(px, py)) return;
+        int dmg = getAttackDamage();
+        if (combatLogger != null) combatLogger.accept(getName() + " attacks for " + dmg + " damage!");
+        pendingPlayerDamage = dmg;
     }
+
+    public int getPendingPlayerDamage() {
+        int dmg = pendingPlayerDamage;
+        pendingPlayerDamage = 0;
+        return dmg;
+    }
+
+    public boolean hasPendingPlayerDamage() { return pendingPlayerDamage > 0; }
+
+    // ====== STATIC SETTERS ======
+    public static void setCollisionManager(CollisionManager manager) { collisionManager = manager; }
+    public static void setCombatLogger(Consumer<String> logger) { combatLogger = logger; }
 }
