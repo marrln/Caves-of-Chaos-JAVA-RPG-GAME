@@ -1,5 +1,6 @@
 package core;
 
+import enemies.Enemy;
 import map.GameMap;
 import map.Tile;
 import player.AbstractPlayer;
@@ -63,9 +64,13 @@ public class GameController {
         
         switch (tile.getType()) {
             case Tile.FLOOR -> {
-                player.setPosition(newX, newY);
-                gameState.updateFogOfWar();
-                return true;
+                // Use collision-aware movement from AbstractPlayer
+                if (player.tryMoveTo(newX, newY)) {
+                    gameState.updateFogOfWar();
+                    return true;
+                } else {
+                    return false; // Movement blocked by collision system
+                }
             }
             case Tile.STAIRS_DOWN -> {
                 // Move to next level if possible (using config-defined max levels)
@@ -106,8 +111,59 @@ public class GameController {
      */
     public void attack(int attackType) {
         AbstractPlayer player = gameState.getPlayer();
+        
+        // Start the player's attack animation/state
         player.attack(attackType);
-        // TODO: Add logic for enemy response, damage, etc.
+        
+        // Find enemies in cardinal directions (N, S, E, W) and attack them
+        int playerX = player.getX();
+        int playerY = player.getY();
+        
+        // Check all four cardinal directions for enemies
+        int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}; // N, E, S, W
+        
+        for (int[] dir : directions) {
+            int targetX = playerX + dir[0];
+            int targetY = playerY + dir[1];
+            
+            // Find enemy at this position
+            Enemy targetEnemy = findEnemyAt(targetX, targetY);
+            if (targetEnemy != null) {
+                // Calculate player's attack damage
+                int damage = player.getAttackDamage();
+                
+                gameState.logCombatMessage(player.getName() + " attacks " + targetEnemy.getName() + 
+                                         " for " + damage + " damage!");
+                
+                // Deal damage to the enemy
+                boolean enemyDied = targetEnemy.takeDamage(damage);
+                
+                if (enemyDied) {
+                    gameState.logCombatMessage(targetEnemy.getName() + " has been defeated!");
+                    // Player gains experience
+                    int exp = targetEnemy.getExpReward();
+                    player.addExperience(exp);
+                    gameState.logCombatMessage(player.getName() + " gains " + exp + " experience!");
+                }
+                
+                // Only attack one enemy per attack action
+                return;
+            }
+        }
+        
+        gameState.logCombatMessage(player.getName() + " swings at empty air!");
+    }
+    
+    /**
+     * Finds an enemy at the specified position.
+     */
+    private Enemy findEnemyAt(int x, int y) {
+        for (Enemy enemy : gameState.getCurrentEnemies()) {
+            if (!enemy.isDead() && enemy.getX() == x && enemy.getY() == y) {
+                return enemy;
+            }
+        }
+        return null;
     }
 
     /**
