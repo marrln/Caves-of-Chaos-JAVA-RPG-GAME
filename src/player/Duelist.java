@@ -1,5 +1,8 @@
 package player;
 
+import config.AnimationConfig;
+import utils.Dice;
+
 /**
  * Duelist player class. Specializes in physical attacks and agility.
  */
@@ -7,25 +10,73 @@ public class Duelist extends AbstractPlayer {
 
     public Duelist(int x, int y) {
         super(x, y);
-        
-        // Base stats for Duelist
-        this.maxHp = 100;
-        this.hp = maxHp;
-
-        // Duelists do not use mana
-        this.maxMp = 0;
-        this.mp = maxMp;
-
         this.name = "Duelist";
     }
     
     @Override
+    protected void updateStatsForLevel() {
+        PlayerConfig.PlayerLevelStats stats = PlayerConfig.getDuelistStats(level);
+        
+        // Update stats while preserving current HP/MP percentages
+        double hpPercent = maxHp > 0 ? (double) hp / maxHp : 1.0;
+        double mpPercent = maxMp > 0 ? (double) mp / maxMp : 1.0;
+        
+        this.maxHp = stats.baseHp;
+        this.maxMp = stats.baseMp;
+        this.baseDamage = stats.baseDamage;
+        this.expToNext = stats.expToNextLevel;
+        
+        // Restore HP/MP based on previous percentages (level up healing)
+        this.hp = (int) (maxHp * hpPercent);
+        this.mp = (int) (maxMp * mpPercent);
+    }
+    
+    @Override
+    protected PlayerConfig.AttackConfig getAttackConfig(int attackType) {
+        return PlayerConfig.getDuelistAttackConfig(attackType);
+    }
+    
+    @Override
     public void attack(int attackType) {
-        if (attackType == 1) {
-            // TODO: Implement primary attack logic
-        } else if (attackType == 2) {
-            // TODO: Implement secondary attack logic
+        if (!canAttack(attackType)) {
+            return;
         }
+        
+        PlayerConfig.AttackConfig attackConfig = getAttackConfig(attackType);
+        
+        // Consume mana (0 for Duelist attacks)
+        mp -= attackConfig.mpCost;
+        
+        // Start attack animation (use proper animation duration, not cooldown)
+        combatState.startAttack(attackType, AnimationConfig.getPlayerAnimationDuration("attack"));
+        lastAttackTime = System.currentTimeMillis();
+    }
+    
+    /**
+     * Gets the attack damage using the default attack (type 1).
+     * 
+     * @return The calculated attack damage
+     */
+    @Override
+    public int getAttackDamage() {
+        return calculateDamage(1); // Use basic attack (type 1)
+    }
+    
+    /**
+     * Calculates damage for a Duelist attack.
+     * 
+     * @param attackType The attack type
+     * @return The calculated damage
+     */
+    public int calculateDamage(int attackType) {
+        PlayerConfig.AttackConfig attackConfig = getAttackConfig(attackType);
+        PlayerConfig.PlayerLevelStats stats = PlayerConfig.getDuelistStats(level);
+        
+        // Check for critical hit
+        int totalCritChance = stats.criticalChance + attackConfig.criticalBonus;
+        boolean isCritical = Dice.checkChance(totalCritChance);
+        
+        return PlayerConfig.calculatePlayerDamage(baseDamage, attackConfig, isCritical, stats.criticalMultiplier);
     }
 
     @Override
