@@ -312,7 +312,8 @@ public class GameMap {
     }
     
     /**
-     * Creates a guaranteed path between two points using a simple line algorithm.
+     * Creates a guaranteed path between two points using LineUtils for consistent algorithms.
+     * Uses Bresenham's line algorithm for optimal pathfinding.
      * 
      * @param x1 Start x coordinate
      * @param y1 Start y coordinate
@@ -320,39 +321,50 @@ public class GameMap {
      * @param y2 End y coordinate
      */
     private void createPath(int x1, int y1, int x2, int y2) {
-        // Create an L-shaped path (horizontal then vertical)
-        int currentX = x1;
-        int currentY = y1;
+        // Use LineUtils for consistent line-based path creation
+        java.util.List<utils.LineUtils.Point> pathPoints = utils.LineUtils.getLinePoints(x1, y1, x2, y2);
         
-        // Move horizontally first
-        while (currentX != x2) {
-            if (isInBounds(currentX, currentY) && !(currentX == 0 || currentX == width - 1 || currentY == 0 || currentY == height - 1)) {
-                tiles[currentX][currentY] = new Tile(Tile.FLOOR);
-                // Clear adjacent tiles to make corridor wider
-                if (isInBounds(currentX, currentY - 1) && currentY - 1 > 0) {
-                    tiles[currentX][currentY - 1] = new Tile(Tile.FLOOR);
-                }
-                if (isInBounds(currentX, currentY + 1) && currentY + 1 < height - 1) {
-                    tiles[currentX][currentY + 1] = new Tile(Tile.FLOOR);
-                }
+        for (utils.LineUtils.Point point : pathPoints) {
+            // Create floor tiles along the path
+            if (isInBounds(point.x, point.y) && !isEdgeTile(point.x, point.y)) {
+                tiles[point.x][point.y] = new Tile(Tile.FLOOR);
+                
+                // Create wider corridors by clearing adjacent tiles
+                createCorridorWidth(point.x, point.y);
             }
-            currentX += (x2 > x1) ? 1 : -1;
         }
+    }
+    
+    /**
+     * Creates wider corridors by clearing tiles adjacent to the main path.
+     * 
+     * @param centerX Center x coordinate of the corridor
+     * @param centerY Center y coordinate of the corridor
+     */
+    private void createCorridorWidth(int centerX, int centerY) {
+        // Clear adjacent tiles in cardinal directions for wider corridors
+        int[] dx = {-1, 1, 0, 0};
+        int[] dy = {0, 0, -1, 1};
         
-        // Move vertically
-        while (currentY != y2) {
-            if (isInBounds(currentX, currentY) && !(currentX == 0 || currentX == width - 1 || currentY == 0 || currentY == height - 1)) {
-                tiles[currentX][currentY] = new Tile(Tile.FLOOR);
-                // Clear adjacent tiles to make corridor wider
-                if (isInBounds(currentX - 1, currentY) && currentX - 1 > 0) {
-                    tiles[currentX - 1][currentY] = new Tile(Tile.FLOOR);
-                }
-                if (isInBounds(currentX + 1, currentY) && currentX + 1 < width - 1) {
-                    tiles[currentX + 1][currentY] = new Tile(Tile.FLOOR);
-                }
+        for (int i = 0; i < 4; i++) {
+            int adjX = centerX + dx[i];
+            int adjY = centerY + dy[i];
+            
+            if (isInBounds(adjX, adjY) && !isEdgeTile(adjX, adjY)) {
+                tiles[adjX][adjY] = new Tile(Tile.FLOOR);
             }
-            currentY += (y2 > y1) ? 1 : -1;
         }
+    }
+    
+    /**
+     * Checks if a position is on the map edge (should remain as walls for boundaries).
+     * 
+     * @param x X coordinate to check
+     * @param y Y coordinate to check
+     * @return true if position is on the edge
+     */
+    private boolean isEdgeTile(int x, int y) {
+        return x == 0 || x == width - 1 || y == 0 || y == height - 1;
     }
     
     /**
