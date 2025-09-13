@@ -14,10 +14,10 @@ import map.GameMap;
 import player.AbstractPlayer;
 
 public class GamePanel extends JPanel {
-    private GameState gameState;
+    private final GameState gameState;
     private final GameController controller;
     private TileRenderer tileRenderer;
-    private Camera camera;
+    private final Camera camera;
 
     private int visibleMapWidth = 20;
     private int visibleMapHeight = 15;

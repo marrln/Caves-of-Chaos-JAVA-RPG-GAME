@@ -39,15 +39,15 @@ public class TileRenderer {
     }
 
     // ====== TILE RENDERING ======
-    public void renderTile(Graphics g, Tile tile, int screenX, int screenY, int mapX, int mapY, boolean isEntrance) {
+    public void renderTile(Graphics g, Tile tile, int screenX, int screenY, boolean isEntrance) {
         Color fallback = getFallbackColor(tile, isEntrance);
-        if (!useGraphics || !renderWithGraphics(g, tile, screenX, screenY, mapX, mapY, isEntrance)) {
+        if (!useGraphics || !renderWithGraphics(g, tile, screenX, screenY, isEntrance)) {
             g.setColor(fallback);
             g.fillRect(screenX, screenY, tileSize, tileSize);
         }
     }
 
-    private boolean renderWithGraphics(Graphics g, Tile tile, int x, int y, int mapX, int mapY, boolean isEntrance) {
+    private boolean renderWithGraphics(Graphics g, Tile tile, int x, int y, boolean isEntrance) {
         String assetId = getTileAssetId(tile, isEntrance);
         if (assetId == null) return false;
 
@@ -137,7 +137,7 @@ public class TileRenderer {
 
     public void renderTileWithFog(Graphics g, Tile tile, int screenX, int screenY, int mapX, int mapY,
                                   boolean isEntrance, FogOfWar fogOfWar, boolean debugNoFog) {
-        renderTile(g, tile, screenX, screenY, mapX, mapY, isEntrance);
+        renderTile(g, tile, screenX, screenY, isEntrance);
         renderFogOverlay(g, tile, screenX, screenY, fogOfWar, mapX, mapY, debugNoFog);
     }
 
