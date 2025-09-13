@@ -4,19 +4,19 @@ import config.StyleConfig;
 import core.GameController;
 import core.GameState;
 import graphics.EnemyRenderer;
+import graphics.TileRenderer;
 import input.GameInputHandler;
 import java.awt.*;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 import map.FogOfWar;
 import map.GameMap;
-import map.Tile;
 import player.AbstractPlayer;
 
 public class GamePanel extends JPanel {
     private GameState gameState;
     private final GameController controller;
-    private static final int TILE_SIZE = 32; // ERROR THIS SHOULD BE LOADED FROM CONFIG
+    private TileRenderer tileRenderer; // Remove final to allow lazy initialization
     private Camera camera;
 
     // Keep track of visible game area in tiles
@@ -36,6 +36,7 @@ public class GamePanel extends JPanel {
     public GamePanel(GameState gameState, GameController controller) {
         this.gameState = gameState;
         this.controller = controller;
+        // Don't initialize TileRenderer here - wait for map to be fully generated
         setBackground(StyleConfig.getColor("gameBackground", Color.BLACK));
         setFocusable(true);
         
@@ -103,6 +104,9 @@ public class GamePanel extends JPanel {
         AbstractPlayer player = gameState.getPlayer();
         GameMap map = gameState.getCurrentMap();
         
+        // Ensure TileRenderer is initialized after map generation
+        ensureTileRendererInitialized();
+        
         // Check if level has changed and reinitialize camera if needed
         int currentLevel = gameState.getCurrentLevel();
         if (currentLevel != lastKnownLevel) {
@@ -111,85 +115,33 @@ public class GamePanel extends JPanel {
             lastKnownLevel = currentLevel;
         }
         
-        // Render tiles in the viewport
-        for (int vx = 0; vx < camera.getViewWidth(); vx++) {
-            for (int vy = 0; vy < camera.getViewHeight(); vy++) {
-                int mapX = vx + camera.getX();
-                int mapY = vy + camera.getY();
-                int screenX = vx * TILE_SIZE;
-                int screenY = vy * TILE_SIZE;
-                
-                Tile tile = map.getTile(mapX, mapY);
-                
-                if (mapX == map.getEntranceX() && mapY == map.getEntranceY()) {
-                    g.setColor(StyleConfig.getColor("tileEntrance", Color.PINK));
-                } else {
-                    switch (tile.getType()) {
-                        case Tile.WALL -> g.setColor(StyleConfig.getColor("tileWall", Color.DARK_GRAY));
-                        case Tile.FLOOR -> g.setColor(StyleConfig.getColor("tileFloor", Color.LIGHT_GRAY));
-                        case Tile.STAIRS_DOWN -> g.setColor(StyleConfig.getColor("tileStairsDown", Color.YELLOW));
-                        case Tile.STAIRS_UP -> g.setColor(StyleConfig.getColor("tileStairsUp", Color.ORANGE));
-                        default -> g.setColor(StyleConfig.getColor("tileUnknown", Color.MAGENTA)); // Unknown tile type
-                    }
-                }
-                g.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
-                
-                // Apply fog effects with smooth gradient only if debug mode is off
-                if (!debugNoFog) {
-                    FogOfWar fogOfWar = gameState.getFogOfWar();
-                    Graphics2D g2 = (Graphics2D) g;
-                    
-                    switch (tile.getFogState()) {
-                        case UNDISCOVERED -> {
-                            // Completely dark for undiscovered tiles
-                            g2.setColor(StyleConfig.getColor("fogUndiscovered", new Color(0, 0, 0, 240)));
-                            g2.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
-                        }
-                        case DISCOVERED -> {
-                            // Nice blue-grey fog for discovered but not visible tiles
-                            Composite oldComp = g2.getComposite();
-                            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
-                            g2.setColor(StyleConfig.getColor("fogDiscovered", new Color(30, 40, 60)));
-                            g2.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
-                            g2.setComposite(oldComp);
-                        }
-                        case VISIBLE -> {
-                            // Apply gradient overlay based on distance for smooth edges
-                            if (fogOfWar != null) {
-                                float strength = fogOfWar.getVisibilityStrength(mapX, mapY);
-                                if (strength < 1.0f) {
-                                    // Create subtle gradient at edges of vision
-                                    float fogAlpha = (1.0f - strength) * 0.3f;
-                                    if (fogAlpha > 0.05f) { // Only apply if noticeable
-                                        Composite oldComp = g2.getComposite();
-                                        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fogAlpha));
-                                        g2.setColor(StyleConfig.getColor("fogEdge", new Color(20, 30, 50)));
-                                        g2.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
-                                        g2.setComposite(oldComp);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        // Efficient batch rendering of all visible tiles and fog in one pass
+        FogOfWar fogOfWar = gameState.getFogOfWar();
+        
+        // Initialize TileRenderer if needed
+        if (tileRenderer == null) {
+            tileRenderer = new TileRenderer();
         }
+        
+        // Use optimized batch rendering - handles both graphics and fallback internally
+        tileRenderer.renderVisibleArea(g, map, camera, fogOfWar, debugNoFog, getWidth(), getHeight());
 
         // Render enemies (after tiles, before player) - only visible ones through fog of war
         Graphics2D g2d = (Graphics2D) g;
-        EnemyRenderer.renderEnemies(g2d, gameState.getCurrentEnemies(), TILE_SIZE, 
-                                   camera.getX() * TILE_SIZE, camera.getY() * TILE_SIZE, gameState.getFogOfWar());
+        int tileSize = getTileSize(); // Get tile size for enemy and player rendering
+        EnemyRenderer.renderEnemies(g2d, gameState.getCurrentEnemies(), tileSize, 
+                                   camera.getX() * tileSize, camera.getY() * tileSize, gameState.getFogOfWar());
 
         // Draw player
-        int playerScreenX = (player.getX() - camera.getX()) * TILE_SIZE;
-        int playerScreenY = (player.getY() - camera.getY()) * TILE_SIZE;
+        int playerScreenX = (player.getX() - camera.getX()) * tileSize;
+        int playerScreenY = (player.getY() - camera.getY()) * tileSize;
         
         // Normal player drawing
         g.setColor(StyleConfig.getColor("playerBody", Color.CYAN));
-        g.fillOval(playerScreenX, playerScreenY, TILE_SIZE, TILE_SIZE);
+        g.fillOval(playerScreenX, playerScreenY, tileSize, tileSize);
         // Add a border to make it more visible
         g.setColor(StyleConfig.getColor("playerBorder", Color.WHITE));
-        g.drawOval(playerScreenX, playerScreenY, TILE_SIZE, TILE_SIZE);
+        g.drawOval(playerScreenX, playerScreenY, tileSize, tileSize);
 
     }
     
@@ -222,8 +174,33 @@ public class GamePanel extends JPanel {
         camera.snapToTarget(player.getX(), player.getY());
     }
     
+    /**
+     * Ensures TileRenderer is initialized only when map generation is complete.
+     * This prevents rendering issues during multi-pass map generation.
+     */
+    private void ensureTileRendererInitialized() {
+        if (tileRenderer == null) {
+            GameMap currentMap = gameState.getCurrentMap();
+            
+            // Only initialize if map is fully generated (has valid entrance/exit)
+            if (currentMap != null && 
+                currentMap.getEntranceX() >= 0 && currentMap.getEntranceY() >= 0 && 
+                currentMap.getExitX() >= 0 && currentMap.getExitY() >= 0) {
+                
+                tileRenderer = new TileRenderer();
+                System.out.println("TileRenderer initialized after map generation completed");
+            }
+        }
+    }
+    
+
+    
     public int getTileSize() {
-        return TILE_SIZE;
+        // Return default tile size if TileRenderer isn't ready yet (during map generation)
+        if (tileRenderer == null) {
+            return 32; // Default fallback tile size
+        }
+        return tileRenderer.getTileSize();
     }
     
     public Camera getCamera() {
@@ -243,7 +220,7 @@ public class GamePanel extends JPanel {
      * This replaces the old turn-based system with smooth real-time gameplay.
      */
     private void setupGameLoop() {
-        gameTimer = new Timer(GAME_UPDATE_DELAY, ignored -> updateGameLogic());
+        gameTimer = new Timer(GAME_UPDATE_DELAY, _ -> updateGameLogic());
         gameTimer.start();
     }
     
