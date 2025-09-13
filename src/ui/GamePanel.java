@@ -29,7 +29,7 @@ public class GamePanel extends JPanel {
     private int lastKnownLevel = -1;
 
     private Timer gameTimer;
-    private static final int GAME_UPDATE_DELAY = 100; // 10 FPS for game logic
+    private static final int GAME_UPDATE_DELAY = 100; 
 
     public GamePanel(GameState gameState, GameController controller) {
         this.gameState = gameState;

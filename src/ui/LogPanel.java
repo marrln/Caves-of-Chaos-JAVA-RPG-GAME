@@ -15,7 +15,7 @@ public class LogPanel extends JPanel {
     private static final int PANEL_HEIGHT      = 160;
     private static final int SCROLLBAR_WIDTH   = 12;
     private static final int MARGIN_SIZE       = 8;
-    private static final int TYPEWRITER_DELAY  = 22; // ms per character
+    private static final int TYPEWRITER_DELAY  = 30; // ms per character
 
     // ====== UI COMPONENTS ======
     private final JTextArea logTextArea;
