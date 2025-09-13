@@ -137,4 +137,23 @@ public class Config {
         }
         return Boolean.parseBoolean(value);
     }
+    
+    /**
+     * Gets a setting as a double.
+     * 
+     * @param name The setting name
+     * @param defaultValue The default value to return if the setting is not found or not a valid double
+     * @return The setting value as a double
+     */
+    public static double getDoubleSetting(String name, double defaultValue) {
+        String value = settings.get(name);
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
 }

@@ -149,8 +149,8 @@
         </items>
 
         <music>
-            <track id="regular_music" path="src/assets/music/Goblins_Dance_(Battle).wav"/>
-            <track id="battle_music" path="src/assets/music/Goblins_Den_(Regular).wav"/>
+            <track id="regular_music" path="assets/music/Goblins_Den_(Regular).wav"/>
+            <track id="battle_music" path="assets/music/Goblins_Dance_(Battle).wav"/>
         </music>
         <!-- <sounds>
             <sound id="player_attack" path="src/assets/sounds/Player_Attack.wav"/>

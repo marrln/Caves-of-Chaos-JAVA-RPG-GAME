@@ -18,7 +18,9 @@ echo Compilation successful!
 
 REM Copy configuration and asset files to bin directory to ensure they're accessible
 if not exist bin\assets mkdir bin\assets
+if not exist bin\config mkdir bin\config
 xcopy /Y /Q /E src\assets bin\assets\
+xcopy /Y /Q src\config\*.xml bin\config\
 
 echo Running the game...
 REM Run the game with wizard class by default or use command-line arguments

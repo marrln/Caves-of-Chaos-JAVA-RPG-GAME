@@ -3,7 +3,8 @@
     <setting name="gamePanelWidth">800</setting>
     <setting name="gamePanelHeight">600</setting>
     <setting name="visionRadius">4</setting>
-    <setting name="mapSize" width="80" height="60"/>
+    <setting name="mapWidth">80</setting>
+    <setting name="mapHeight">60</setting>
     <setting name="mapFillPercentage">0.32</setting>
     <setting name="mapIterations">3</setting>
     <setting name="caveLevelNumber">5</setting>

@@ -48,11 +48,14 @@ public class AssetManager {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             
-            // Try to load from src/config/assets.xml
-            File assetsFile = new File("src/config/assets.xml");
+            // Try to load from bin/config/assets.xml first, then fallback to src
+            File assetsFile = new File("bin/config/assets.xml");
             if (!assetsFile.exists()) {
-                System.err.println("Assets file not found: " + assetsFile.getAbsolutePath());
-                return;
+                assetsFile = new File("src/config/assets.xml");
+                if (!assetsFile.exists()) {
+                    System.err.println("Assets file not found: " + assetsFile.getAbsolutePath());
+                    return;
+                }
             }
             
             Document doc = builder.parse(assetsFile);
@@ -64,6 +67,7 @@ public class AssetManager {
             loadEnemyAssets(doc);
             loadPlayerAssets(doc);
             loadItemAssets(doc);
+            loadMusicAssets(doc);
             
             System.out.println("Loaded " + assetPaths.size() + " asset paths from assets.xml");
             
@@ -188,6 +192,36 @@ public class AssetManager {
                     
                     assetPaths.put(id, path);
                 }
+            }
+        }
+    }
+    
+    /**
+     * Loads music asset paths from the XML document.
+     */
+    private void loadMusicAssets(Document doc) {
+        NodeList musicNodes = doc.getElementsByTagName("music");
+        if (musicNodes.getLength() > 0) {
+            Element musicElement = (Element) musicNodes.item(0);
+            NodeList trackNodes = musicElement.getElementsByTagName("track");
+            
+            for (int i = 0; i < trackNodes.getLength(); i++) {
+                Element track = (Element) trackNodes.item(i);
+                String id = track.getAttribute("id");
+                String path = track.getAttribute("path");
+                
+                // Music files: Use bin/ prefix when running from bin, otherwise src/
+                if (!path.startsWith("src/") && !path.startsWith("bin/")) {
+                    // Check if we're running from bin directory (assets.xml exists in bin/config)
+                    File binConfigFile = new File("bin/config/assets.xml");
+                    if (binConfigFile.exists()) {
+                        path = "bin/" + path;
+                    } else {
+                        path = "src/" + path;
+                    }
+                }
+                
+                assetPaths.put(id, path);
             }
         }
     }
