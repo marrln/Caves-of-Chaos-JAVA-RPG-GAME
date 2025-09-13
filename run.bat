@@ -17,9 +17,7 @@ if %errorlevel% neq 0 (
 echo Compilation successful!
 
 REM Copy configuration and asset files to bin directory to ensure they're accessible
-if not exist bin\config mkdir bin\config
 if not exist bin\assets mkdir bin\assets
-xcopy /Y /Q /E src\config bin\config\
 xcopy /Y /Q /E src\assets bin\assets\
 
 echo Running the game...
