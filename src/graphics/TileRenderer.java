@@ -1,12 +1,12 @@
 package graphics;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import config.Config;
 import config.StyleConfig;
-import map.Tile;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import map.FogOfWar;
 import map.GameMap;
+import map.Tile;
 import ui.Camera;
 
 /**
@@ -18,8 +18,8 @@ public class TileRenderer {
 
     // ====== CONFIG & ASSETS ======
     private final AssetManager assetManager = AssetManager.getInstance();
-    private final int tileSize = Config.getIntSetting("tile_size", 32);
-    private final boolean useGraphics = Config.getBoolSetting("use_graphics", false);
+    private final int tileSize = Config.getIntSetting("tile_size");
+    private final boolean useGraphics = Config.getBoolSetting("use_graphics");
 
     // ====== FALLBACK COLORS ======
     private final Color wallColor       = StyleConfig.getColor("tileWall", Color.DARK_GRAY);
@@ -36,7 +36,6 @@ public class TileRenderer {
 
     public TileRenderer() {
         if (useGraphics) assetManager.preloadTileAssets();
-        System.out.printf("TileRenderer initialized - Graphics: %s, Tile Size: %d%n", useGraphics, tileSize);
     }
 
     // ====== TILE RENDERING ======

@@ -293,9 +293,7 @@ public class AssetManager {
             
             BufferedImage image = ImageIO.read(imageFile);
             if (image != null) {
-                // Cache the loaded image
                 imageCache.put(assetId, image);
-                System.out.println("Loaded asset: " + assetId + " from " + path);
             } else {
                 System.err.println("Failed to load image from: " + path + " (ID: " + assetId + ")");
                 missingAssets.add(assetId);

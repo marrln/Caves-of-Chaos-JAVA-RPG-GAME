@@ -30,7 +30,6 @@ public class CavesOfChaos {
     private static final String STYLING_PATH = "bin/config/styling.xml";
 
     public static void main(String[] args) {
-        GameDebugger.printSystemInfo();
 
         // === Load configuration (must exist, no fallbacks) ===
         try {
@@ -49,24 +48,23 @@ public class CavesOfChaos {
 
         String playerClass = args[0].toLowerCase();
         String playerName  = args[1];
-        AbstractPlayer player = switch (playerClass) {
-            case "wizard"  -> new Wizard(0, 0);
-            case "duelist" -> new Duelist(0, 0);
+        AbstractPlayer player;
+        switch (playerClass) {
+            case "wizard" -> player = new Wizard(0, 0);
+            case "duelist" -> player = new Duelist(0, 0);
             default -> {
                 System.out.println("Invalid player class: " + playerClass);
                 System.out.println("Valid options: wizard | duelist");
                 System.exit(0);
-                yield null; // unreachable
+                return;
             }
-        };
+        }
         player.setName(playerName);
 
-        // === Read map settings with defaults ===
-        int mapWidth  = Config.getIntSetting("mapWidth", 80);
-        int mapHeight = Config.getIntSetting("mapHeight", 60);
-        double fillPercentage = Config.getDoubleSetting("mapFillPercentage", 0.32);
-
-        GameDebugger.log("MAP", String.format("Map: %dx%d, fill=%.2f", mapWidth, mapHeight, fillPercentage));
+        // === Read map settings ===
+        int mapWidth  = Config.getIntSetting("mapWidth");
+        int mapHeight = Config.getIntSetting("mapHeight");
+        double fillPercentage = Config.getDoubleSetting("mapFillPercentage");
 
         // === Initialize game ===
         GameState gameState = new GameState(player, mapWidth, mapHeight, fillPercentage);
