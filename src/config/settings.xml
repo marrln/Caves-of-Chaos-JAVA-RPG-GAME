@@ -9,4 +9,6 @@
     <setting name="caveLevelNumber">5</setting>
     <setting name="restHpPercent">0.3</setting>
     <setting name="restMpPercent">0.5</setting>
+    <setting name="tile_size">32</setting>
+    <setting name="use_graphics">true</setting>
 </settings>
