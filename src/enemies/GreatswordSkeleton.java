@@ -20,4 +20,9 @@ public class GreatswordSkeleton extends AbstractEnemy {
     public void update(int playerX, int playerY) {
         super.update(playerX, playerY);
     }
+    
+    @Override
+    protected String getNoticeMessage() {
+        return "A " + getName() + "'s massive sword trails along the ground as it's approaching you!";
+    }
 }

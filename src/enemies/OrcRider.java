@@ -20,4 +20,9 @@ public class OrcRider extends AbstractEnemy {
     public void update(int playerX, int playerY) {
         super.update(playerX, playerY);
     }
+    
+    @Override
+    protected String getNoticeMessage() {
+        return "An " + getName() + " emerges from the darkness, it's coming for you!";
+    }
 }

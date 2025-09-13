@@ -20,4 +20,9 @@ public class Werebear extends AbstractEnemy {
     public void update(int playerX, int playerY) {
         super.update(playerX, playerY);
     }
+    
+    @Override
+    protected String getNoticeMessage() {
+        return "A " + getName() + " has noticed you! A thunderous roar echoes through the Caves of Chaos!";
+    }
 }

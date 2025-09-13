@@ -20,4 +20,9 @@ public class ArmoredOrc extends AbstractEnemy {
     public void update(int playerX, int playerY) {
         super.update(playerX, playerY);
     }
+    
+    @Override
+    protected String getNoticeMessage() {
+        return "An " + getName() + " has noticed your presence, its armor clanks as it charges!";
+    }
 }

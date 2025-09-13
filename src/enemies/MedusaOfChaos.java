@@ -79,4 +79,9 @@ public class MedusaOfChaos extends AbstractEnemy {
         // Call the parent implementation from AbstractEnemy
         super.update(playerX, playerY);
     }
+    
+    @Override
+    protected String getNoticeMessage() {
+        return "The " + getName() + "'s serpentine hair writhes as her gaze falls upon you! 'Another fool seeks to challenge me!'";
+    }
 }

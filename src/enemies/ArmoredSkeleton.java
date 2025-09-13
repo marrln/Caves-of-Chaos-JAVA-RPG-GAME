@@ -20,4 +20,9 @@ public class ArmoredSkeleton extends AbstractEnemy {
     public void update(int playerX, int playerY) {
         super.update(playerX, playerY);
     }
+    
+    @Override
+    protected String getNoticeMessage() {
+        return "An " + getName() + " has noticed your presence, an ugly noise is emanating as it's approaching!";
+    }
 }

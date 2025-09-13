@@ -3,7 +3,13 @@ package config;
 import enemies.EnemyType;
 
 /**
- * Configuration class containing all enemy statistics and combat parameters.
+ * Configuration class containing all enemy statistics and comba            case ARMORED_SKELETON -> new EnemyStats(
+                35,          // baseHp
+                6,           // baseDamage
+                18,          // expReward
+                1,           // movementSpeed
+                2000,        // attackCooldown (2.0 seconds)
+                4,           // noticeRadiuseters.
  * This class centralizes enemy balance configuration to make tweaking easier.
  * 
  * All damage values use dice-based calculations with the Dice utility class.
@@ -55,7 +61,7 @@ public class EnemyConfig {
                 3,           // baseDamage  
                 5,           // expReward
                 1,           // movementSpeed
-                1200,        // attackCooldown (1.2 seconds)
+                2200,        // attackCooldown (2.2 seconds)
                 4,           // noticeRadius (4 tiles)
                 6,           // diceSides (d6)
                 30,          // variationPercent (±30%)
@@ -68,7 +74,7 @@ public class EnemyConfig {
                 5,           // baseDamage
                 10,          // expReward  
                 1,           // movementSpeed
-                1000,        // attackCooldown (1.0 seconds)
+                2000,        // attackCooldown (2.0 seconds)
                 5,           // noticeRadius
                 6,           // diceSides
                 25,          // variationPercent
@@ -81,7 +87,7 @@ public class EnemyConfig {
                 4,           // baseDamage
                 8,           // expReward
                 1,           // movementSpeed
-                1100,        // attackCooldown  
+                2000,        // attackCooldown (2.0 seconds)
                 6,           // noticeRadius
                 6,           // diceSides
                 20,          // variationPercent
@@ -94,7 +100,7 @@ public class EnemyConfig {
                 6,           // baseDamage
                 15,          // expReward
                 2,           // movementSpeed (faster!)
-                800,         // attackCooldown (0.8 seconds)
+                2000,        // attackCooldown (2.0 seconds)
                 7,           // noticeRadius  
                 8,           // diceSides
                 35,          // variationPercent
@@ -107,7 +113,7 @@ public class EnemyConfig {
                 7,           // baseDamage
                 20,          // expReward
                 1,           // movementSpeed
-                1200,        // attackCooldown
+                2000,        // attackCooldown (2.0 seconds)
                 5,           // noticeRadius
                 8,           // diceSides
                 30,          // variationPercent
@@ -133,7 +139,7 @@ public class EnemyConfig {
                 8,           // baseDamage
                 25,          // expReward
                 1,           // movementSpeed
-                900,         // attackCooldown (faster attacks)
+                2000,        // attackCooldown (2.0 seconds)
                 6,           // noticeRadius
                 10,          // diceSides
                 40,          // variationPercent
@@ -146,7 +152,7 @@ public class EnemyConfig {
                 9,           // baseDamage
                 30,          // expReward
                 1,           // movementSpeed
-                1400,        // attackCooldown (slow but powerful)
+                2000,        // attackCooldown (2.0 seconds)
                 5,           // noticeRadius
                 12,          // diceSides
                 45,          // variationPercent
@@ -159,7 +165,7 @@ public class EnemyConfig {
                 7,           // baseDamage
                 22,          // expReward
                 2,           // movementSpeed (mounted = faster)
-                1000,        // attackCooldown
+                2000,        // attackCooldown (2.0 seconds)
                 8,           // noticeRadius (mounted = better vision)
                 8,           // diceSides
                 35,          // variationPercent
@@ -172,7 +178,7 @@ public class EnemyConfig {
                 10,          // baseDamage
                 35,          // expReward
                 1,           // movementSpeed
-                1500,        // attackCooldown (slow but devastating)
+                2000,        // attackCooldown (2.0 seconds)
                 6,           // noticeRadius
                 12,          // diceSides
                 50,          // variationPercent (very random)

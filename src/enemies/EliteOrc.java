@@ -20,4 +20,9 @@ public class EliteOrc extends AbstractEnemy {
     public void update(int playerX, int playerY) {
         super.update(playerX, playerY);
     }
+    
+    @Override
+    protected String getNoticeMessage() {
+        return "An " + getName() + " roars a battle cry, it has noticed you!";
+    }
 }

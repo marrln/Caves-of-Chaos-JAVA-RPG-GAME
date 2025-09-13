@@ -20,4 +20,9 @@ public class Slime extends AbstractEnemy {
     public void update(int playerX, int playerY) {
         super.update(playerX, playerY);
     }
+    
+    @Override
+    protected String getNoticeMessage() {
+        return "A green " + getName() + " bubbles and oozes toward you! Be careful if you notice a sword forming from its insides!";
+    }
 }

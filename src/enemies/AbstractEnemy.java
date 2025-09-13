@@ -146,7 +146,13 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
         if (!combatState.canPerformAction(CombatState.ActionType.MOVE)) return;
 
         double dist = Math.hypot(px - x, py - y);
-        if (dist <= stats.noticeRadius) hasNoticedPlayer = true;
+        if (dist <= stats.noticeRadius && !hasNoticedPlayer) {
+            hasNoticedPlayer = true;
+            // Log the notice message when player is first detected
+            if (combatLogger != null) {
+                combatLogger.accept(getNoticeMessage());
+            }
+        }
 
         if (hasNoticedPlayer) {
             if (isAdjacent(px, py)) attemptAttack();
@@ -173,4 +179,7 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     // ====== STATIC SETTERS ======
     public static void setCollisionManager(CollisionManager manager) { collisionManager = manager; }
     public static void setCombatLogger(Consumer<String> logger) { combatLogger = logger; }
+    
+    // ====== ABSTRACT METHODS ======
+    protected abstract String getNoticeMessage(); // Each enemy provides its own notice message that is logged when it first notices the player
 }
