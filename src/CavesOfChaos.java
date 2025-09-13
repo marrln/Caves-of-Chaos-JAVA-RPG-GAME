@@ -1,9 +1,12 @@
+import audio.MusicManager;
 import config.Config;
 import config.StyleConfig;
 import core.GameController;
 import core.GameDebugger;
 import core.GameState;
 import java.awt.BorderLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import player.AbstractPlayer;
@@ -140,6 +143,16 @@ public class CavesOfChaos {
             JFrame frame = new JFrame(GAME_TITLE);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setLayout(new BorderLayout());
+            
+            // Add window listener for cleanup when game closes
+            frame.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosing(WindowEvent e) {
+                    // Cleanup music system
+                    MusicManager.getInstance().cleanup();
+                    System.out.println("Game cleanup completed - goodbye!");
+                }
+            });
             
             // Main game/map panel (center)
             GamePanel gamePanel = new GamePanel(gameState, controller);
