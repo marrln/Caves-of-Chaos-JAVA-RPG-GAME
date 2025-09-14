@@ -53,22 +53,11 @@ public class Duelist extends AbstractPlayer {
         lastAttackTime = System.currentTimeMillis();
     }
     
-    /**
-     * Gets the attack damage using the default attack (type 1).
-     * 
-     * @return The calculated attack damage
-     */
     @Override
     public int getAttackDamage() {
         return calculateDamage(1); // Use basic attack (type 1)
     }
     
-    /**
-     * Calculates damage for a Duelist attack.
-     * 
-     * @param attackType The attack type
-     * @return The calculated damage
-     */
     public int calculateDamage(int attackType) {
         PlayerConfig.AttackConfig attackConfig = getAttackConfig(attackType);
         PlayerConfig.PlayerLevelStats stats = PlayerConfig.getDuelistStats(level);

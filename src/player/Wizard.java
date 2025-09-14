@@ -12,12 +12,6 @@ import utils.Dice;
  */
 public class Wizard extends AbstractPlayer {
     
-    /**
-     * Creates a new Wizard at the specified position.
-     * 
-     * @param x The initial x position
-     * @param y The initial y position
-     */
     public Wizard(int x, int y) {
         super(x, y);
         this.name = "Wizard";
@@ -62,14 +56,6 @@ public class Wizard extends AbstractPlayer {
         lastAttackTime = System.currentTimeMillis();
     }
     
-    /**
-     * Creates a projectile for wizard spells.
-     * This should be called when the attack animation reaches the projectile launch point.
-     * 
-     * @param attackType The attack type (1 = Fire, 2 = Ice)
-     * @param enemies List of enemies to target
-     * @return The created projectile, or null if no valid target
-     */
     public Projectile createProjectile(int attackType, List<Enemy> enemies) {
         // Find closest enemy
         Enemy closestEnemy = findClosestEnemy(enemies);
@@ -83,13 +69,7 @@ public class Wizard extends AbstractPlayer {
         
         return new Projectile(projectileType, x, y, closestEnemy);
     }
-    
-    /**
-     * Finds the closest living enemy to the wizard.
-     * 
-     * @param enemies List of all enemies
-     * @return The closest enemy, or null if none found
-     */
+
     private Enemy findClosestEnemy(List<Enemy> enemies) {
         Enemy closestEnemy = null;
         double closestDistance = Double.MAX_VALUE;
@@ -111,22 +91,11 @@ public class Wizard extends AbstractPlayer {
         return closestEnemy;
     }
     
-    /**
-     * Gets the attack damage using the default attack (type 1).
-     * 
-     * @return The calculated attack damage
-     */
     @Override
     public int getAttackDamage() {
         return calculateDamage(1); // Use basic spell (type 1)
     }
     
-    /**
-     * Calculates damage for a Wizard spell.
-     * 
-     * @param attackType The attack type
-     * @return The calculated damage
-     */
     public int calculateDamage(int attackType) {
         PlayerConfig.AttackConfig attackConfig = getAttackConfig(attackType);
         PlayerConfig.PlayerLevelStats stats = PlayerConfig.getWizardStats(level);
