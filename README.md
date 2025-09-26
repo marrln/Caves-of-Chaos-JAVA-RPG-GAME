@@ -1,38 +1,84 @@
 # Caves of Chaos - Java RPG Game
-As a part of a JAVA project during my M.Sc. I created this RPG game. Feel free to play!
 
-## Description
-Caves of Chaos is a roguelike RPG game where you play as a noble of the Court of Chaos. Your goal is to navigate through 10 levels of the labyrinth, defeat the Serpent of Chaos, and obtain the Jewel of Judgement.
+## Overview
+
+Caves of Chaos is a roguelike role-playing game written in Java. Originally created as part of an M.Sc. project, it offers a classic dungeon-crawling experience where players select a character class and attempt to navigate a labyrinth filled with monsters, traps, and treasures. The objective is to reach the deepest level, defeat the final boss, and secure victory.
+
+## Game Description
+
+Upon launching Caves of Chaos, players choose between two classes: Wizard or Duelist. Each class has unique abilities and playstyles. The game features multiple levels, each procedurally generated using cellular automata to create a new cave layout for every run. Players fight enemies, collect items, and manage resources as they progress.
+
+The ultimate goal is to descend through all cave floors, culminating in a battle against the Medusa of Chaos, the final boss. The boss is persistent and maintains its health across level transitions, offering a challenging endgame encounter. Victory is achieved by defeating the Medusa and surviving the cave's dangers.
+
+### Main Function and Structure
+
+The entry point of the game is the `main` method in `src/CavesOfChaos.java`. Its responsibilities include:
+
+- **Loading Configuration:** Reads game settings, assets, and styling from XML files.
+- **Parsing Arguments:** Requires the player to specify a class and name, with an optional starting level.
+- **Player Initialization:** Instantiates the chosen player class (`Wizard` or `Duelist`) and sets up initial parameters.
+- **Game State Creation:** Builds the core `GameState` object, which manages the player, map generation, enemies, and progression.
+- **User Interface:** Sets up the main game window using Java Swing, including panels for gameplay, status, and logs.
+- **Cleanup:** Handles resource management and cleanup on game exit.
+
+The game map is generated with each new level, ensuring replayability and dynamic challenges. The game state tracks progression, enemy encounters, and player inventory.
 
 ## How to Run
-The game can be run in several ways:
 
-### Windows Command Line
+### Requirements
+
+- Java 17 or higher
+
+### Running
+
+**Command Line:**
+```sh
+javac -d bin -sourcepath src src/CavesOfChaos.java
+java -cp bin CavesOfChaos <player-class> <player-name> [starting-level]
 ```
-cd path\to\game
-javac -d bin -sourcepath src src\CavesOfChaos.java
-java -cp bin CavesOfChaos <player-class> <player-name>
+Example:
+```sh
+java -cp bin CavesOfChaos wizard Gandalf 1
 ```
 
-### Using the Provided Scripts
-1. Windows Command Prompt (CMD): Run the `run.bat` file
-   - Default: `run.bat` (runs with wizard class and Player1 name)
-   - Custom: `run.bat duelist YourName`
+**Batch Script (Windows):**
+Run `run.bat` for the default wizard class and name, or pass arguments:
+```sh
+run.bat duelist Conan
+```
 
-2. PowerShell: Run the `run.ps1` file
-   - Default: `.\run.ps1` (runs with wizard class and Player1 name)
-   - Custom: `.\run.ps1 duelist YourName`
+## Features
 
-## Game Controls
-- **Movement**: W (up), A (left), S (down), D (right)
-- **Attack**: Space (attacks nearest enemy)
-- **Use Items**: H (health potion), M (mana potion)
-- **Rest**: R (recover health and mana)
-- **Switch Weapon**: P (when standing on a weapon tile)
+- Procedurally generated cave levels for every run
+- Turn-based combat with class-specific abilities
+- Item collection and inventory management
+- Boss level with persistent boss health
+- Save and load functionality
+- Modular and extensible codebase
 
-## Player Classes
-- **Wizard**: Lower HP, can cast spells using mana
-- **Duelist**: Higher HP, melee combat focused
+## Technologies
 
-## Game Objective
-Navigate through 10 levels of the labyrinth, defeat the Serpent of Chaos on level 10, and obtain the Jewel of Judgement to win the game.
+- Java (99%)
+- Batchfile (1%) for Windows automation
+
+## Project Structure
+
+```
+src/
+ ├── core/          # Game logic and state
+ ├── player/        # Player classes and abilities
+ ├── enemies/       # Enemy types and AI
+ ├── map/           # Map generation and navigation
+ ├── ui/            # Swing-based user interface
+ └── config/        # Game configuration files
+```
+
+## License
+
+Look under License for more details.
+
+## Acknowledgments
+
+Developed during an M.Sc. program, this project aims to demonstrate core Java programming concepts, game design, and procedural generation.
+
+---
