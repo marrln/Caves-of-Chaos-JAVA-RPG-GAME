@@ -2,335 +2,205 @@ package graphics;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import javax.imageio.ImageIO;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.*;
 
 /**
- * Manages loading and caching of game assets from assets.xml.
- * Provides efficient access to tile, enemy, player, and item graphics.
+ * Singleton manager for loading and caching game assets.
+ * Provides access to tile, enemy, player, item, and music assets.
  */
 public class AssetManager {
     private static AssetManager instance;
-    private final Map<String, String> assetPaths;
-    private final Map<String, BufferedImage> imageCache;
-    private final Set<String> missingAssets; // Track missing assets to avoid spam logging
-    
+
+    // Asset metadata
+    private static class AssetInfo {
+        final String path;
+        final Integer frameCount; // null = auto-calculate
+
+        AssetInfo(String path, Integer frameCount) {
+            this.path = path;
+            this.frameCount = frameCount;
+        }
+    }
+
+    private final Map<String, AssetInfo> assetInfos = new HashMap<>();
+    private final Map<String, BufferedImage> imageCache = new HashMap<>();
+    private final Set<String> missingAssets = new HashSet<>();
+
     private AssetManager() {
-        assetPaths = new HashMap<>();
-        imageCache = new HashMap<>();
-        missingAssets = new HashSet<>();
         loadAssetPaths();
     }
-    
-    /**
-     * Gets the singleton instance of AssetManager.
-     */
+
     public static synchronized AssetManager getInstance() {
-        if (instance == null) {
-            instance = new AssetManager();
-        }
+        if (instance == null) instance = new AssetManager();
         return instance;
     }
-    
-    /**
-     * Loads asset paths from assets.xml file.
-     */
+
     private void loadAssetPaths() {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            
-            // Try to load from bin/config/assets.xml first, then fallback to src
             File assetsFile = new File("bin/config/assets.xml");
+            if (!assetsFile.exists()) assetsFile = new File("src/config/assets.xml");
             if (!assetsFile.exists()) {
-                assetsFile = new File("src/config/assets.xml");
-                if (!assetsFile.exists()) {
-                    System.err.println("Assets file not found: " + assetsFile.getAbsolutePath());
-                    return;
-                }
+                System.err.println("Assets file not found in bin/config or src/config");
+                return;
             }
-            
+
+            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
             Document doc = builder.parse(assetsFile);
             doc.getDocumentElement().normalize();
-            
-            // Load tile assets
-            loadTileAssets(doc);
-            // Load other asset types as needed
-            loadEnemyAssets(doc);
-            loadPlayerAssets(doc);
-            loadItemAssets(doc);
-            loadMusicAssets(doc);
-            
-            System.out.println("Loaded " + assetPaths.size() + " asset paths from assets.xml");
-            
+
+            loadSprites(doc, "tiles");
+            loadSprites(doc, "enemies");
+            loadSprites(doc, "player");
+            loadSprites(doc, "items", "consumables");
+            loadSprites(doc, "items", "projectiles");
+            loadMusic(doc);
+
+            System.out.println("Loaded " + assetInfos.size() + " assets from assets.xml");
         } catch (Exception e) {
             System.err.println("Error loading assets.xml: " + e.getMessage());
             e.printStackTrace();
         }
     }
-    
-    /**
-     * Loads tile asset paths from the XML document.
-     */
-    private void loadTileAssets(Document doc) {
-        NodeList tileNodes = doc.getElementsByTagName("tiles");
-        if (tileNodes.getLength() > 0) {
-            Element tilesElement = (Element) tileNodes.item(0);
-            NodeList spriteNodes = tilesElement.getElementsByTagName("sprite");
-            
-            for (int i = 0; i < spriteNodes.getLength(); i++) {
-                Element sprite = (Element) spriteNodes.item(i);
-                String id = sprite.getAttribute("id");
-                String path = sprite.getAttribute("path");
-                
-                // Add "src/" prefix to paths that don't already have it
-                if (!path.startsWith("src/")) {
-                    path = "src/" + path;
-                }
-                
-                assetPaths.put(id, path);
-            }
+
+    private void loadSprites(Document doc, String parentTag) {
+        NodeList nodes = doc.getElementsByTagName(parentTag);
+        if (nodes.getLength() == 0) return;
+
+        Element parent = (Element) nodes.item(0);
+        NodeList spriteNodes = parent.getElementsByTagName("sprite");
+
+        for (int i = 0; i < spriteNodes.getLength(); i++) {
+            parseSpriteElement((Element) spriteNodes.item(i));
         }
     }
-    
-    /**
-     * Loads enemy asset paths from the XML document.
-     */
-    private void loadEnemyAssets(Document doc) {
-        NodeList enemyNodes = doc.getElementsByTagName("enemies");
-        if (enemyNodes.getLength() > 0) {
-            Element enemiesElement = (Element) enemyNodes.item(0);
-            NodeList spriteNodes = enemiesElement.getElementsByTagName("sprite");
-            
-            for (int i = 0; i < spriteNodes.getLength(); i++) {
-                Element sprite = (Element) spriteNodes.item(i);
-                String id = sprite.getAttribute("id");
-                String path = sprite.getAttribute("path");
-                
-                // Ensure path has "src/" prefix
-                if (!path.startsWith("src/")) {
-                    path = "src/" + path;
-                }
-                
-                assetPaths.put(id, path);
-            }
+
+    private void loadSprites(Document doc, String parentTag, String childTag) {
+        NodeList parentNodes = doc.getElementsByTagName(parentTag);
+        if (parentNodes.getLength() == 0) return;
+
+        Element parent = (Element) parentNodes.item(0);
+        NodeList childNodes = parent.getElementsByTagName(childTag);
+        if (childNodes.getLength() == 0) return;
+
+        Element child = (Element) childNodes.item(0);
+        NodeList spriteNodes = child.getElementsByTagName("sprite");
+
+        for (int i = 0; i < spriteNodes.getLength(); i++) {
+            parseSpriteElement((Element) spriteNodes.item(i));
         }
     }
-    
-    /**
-     * Loads player asset paths from the XML document.
-     */
-    private void loadPlayerAssets(Document doc) {
-        NodeList playerNodes = doc.getElementsByTagName("player");
-        if (playerNodes.getLength() > 0) {
-            Element playerElement = (Element) playerNodes.item(0);
-            NodeList spriteNodes = playerElement.getElementsByTagName("sprite");
-            
-            for (int i = 0; i < spriteNodes.getLength(); i++) {
-                Element sprite = (Element) spriteNodes.item(i);
-                String id = sprite.getAttribute("id");
-                String path = sprite.getAttribute("path");
-                
-                // Ensure path has "src/" prefix
-                if (!path.startsWith("src/")) {
-                    path = "src/" + path;
-                }
-                
-                assetPaths.put(id, path);
+
+    private void parseSpriteElement(Element sprite) {
+        String id = sprite.getAttribute("id");
+        String path = sprite.getAttribute("path");
+        if (!path.startsWith("src/")) path = "src/" + path;
+
+        // Optional frames attribute (e.g., Medusa of Chaos)
+        String framesAttr = sprite.getAttribute("frames");
+        Integer frameCount = framesAttr.isEmpty() ? null : Integer.parseInt(framesAttr);
+
+        assetInfos.put(id, new AssetInfo(path, frameCount));
+    }
+
+    private void loadMusic(Document doc) {
+        NodeList nodes = doc.getElementsByTagName("music");
+        if (nodes.getLength() == 0) return;
+
+        Element musicElement = (Element) nodes.item(0);
+        NodeList trackNodes = musicElement.getElementsByTagName("track");
+
+        for (int i = 0; i < trackNodes.getLength(); i++) {
+            Element track = (Element) trackNodes.item(i);
+            String id = track.getAttribute("id");
+            String path = track.getAttribute("path");
+
+            if (!path.startsWith("src/") && !path.startsWith("bin/")) {
+                path = new File("bin/config/assets.xml").exists() ? "bin/" + path : "src/" + path;
             }
+            assetInfos.put(id, new AssetInfo(path, null));
         }
     }
-    
-    /**
-     * Loads item asset paths from the XML document.
-     */
-    private void loadItemAssets(Document doc) {
-        NodeList itemNodes = doc.getElementsByTagName("items");
-        if (itemNodes.getLength() > 0) {
-            Element itemsElement = (Element) itemNodes.item(0);
-            // Load consumables
-            NodeList consumableNodes = itemsElement.getElementsByTagName("consumables");
-            if (consumableNodes.getLength() > 0) {
-                Element consumablesElement = (Element) consumableNodes.item(0);
-                NodeList spriteNodes = consumablesElement.getElementsByTagName("sprite");
-                
-                for (int i = 0; i < spriteNodes.getLength(); i++) {
-                    Element sprite = (Element) spriteNodes.item(i);
-                    String id = sprite.getAttribute("id");
-                    String path = sprite.getAttribute("path");
-                    
-                    if (!path.startsWith("src/")) {
-                        path = "src/" + path;
-                    }
-                    
-                    assetPaths.put(id, path);
-                }
-            }
-            
-            // Load projectiles
-            NodeList projectileNodes = itemsElement.getElementsByTagName("projectiles");
-            if (projectileNodes.getLength() > 0) {
-                Element projectilesElement = (Element) projectileNodes.item(0);
-                NodeList spriteNodes = projectilesElement.getElementsByTagName("sprite");
-                
-                for (int i = 0; i < spriteNodes.getLength(); i++) {
-                    Element sprite = (Element) spriteNodes.item(i);
-                    String id = sprite.getAttribute("id");
-                    String path = sprite.getAttribute("path");
-                    
-                    if (!path.startsWith("src/")) {
-                        path = "src/" + path;
-                    }
-                    
-                    assetPaths.put(id, path);
-                }
-            }
-        }
-    }
-    
-    /**
-     * Loads music asset paths from the XML document.
-     */
-    private void loadMusicAssets(Document doc) {
-        NodeList musicNodes = doc.getElementsByTagName("music");
-        if (musicNodes.getLength() > 0) {
-            Element musicElement = (Element) musicNodes.item(0);
-            NodeList trackNodes = musicElement.getElementsByTagName("track");
-            
-            for (int i = 0; i < trackNodes.getLength(); i++) {
-                Element track = (Element) trackNodes.item(i);
-                String id = track.getAttribute("id");
-                String path = track.getAttribute("path");
-                
-                // Music files: Use bin/ prefix when running from bin, otherwise src/
-                if (!path.startsWith("src/") && !path.startsWith("bin/")) {
-                    // Check if we're running from bin directory (assets.xml exists in bin/config)
-                    File binConfigFile = new File("bin/config/assets.xml");
-                    if (binConfigFile.exists()) {
-                        path = "bin/" + path;
-                    } else {
-                        path = "src/" + path;
-                    }
-                }
-                
-                assetPaths.put(id, path);
-            }
-        }
-    }
-    
-    /**
-     * Gets the asset path for the given asset ID.
-     */
+
     public String getAssetPath(String assetId) {
-        return assetPaths.get(assetId);
+        AssetInfo info = assetInfos.get(assetId);
+        return info != null ? info.path : null;
     }
-    
-    /**
-     * Checks if an asset exists for the given ID.
-     */
+
+    public Integer getFrameCount(String assetId) {
+        AssetInfo info = assetInfos.get(assetId);
+        return info != null ? info.frameCount : null;
+    }
+
     public boolean hasAsset(String assetId) {
-        return assetPaths.containsKey(assetId);
+        return assetInfos.containsKey(assetId);
     }
-    
-    /**
-     * Gets asset path with validation and error reporting for music assets.
-     * This method handles all loading concerns including missing files and validates file existence.
-     */
-    public String getMusicAssetPath(String assetId) {
-        String path = assetPaths.get(assetId);
-        
-        if (path == null) {
-            System.err.println("Warning: Music asset '" + assetId + "' not found in assets.xml configuration");
-            return null;
-        }
-        
-        File musicFile = new File(path);
-        if (!musicFile.exists()) {
-            System.err.println("Warning: Music file not found at configured path: " + path);
-            return null;
-        }
-        
-        return path;
-    }
-    
-    /**
-     * Loads and caches an image for the given asset ID.
-     * Returns null if the asset doesn't exist or fails to load.
-     */
+
     public BufferedImage loadImage(String assetId) {
-        // Check cache first
-        if (imageCache.containsKey(assetId)) {
-            return imageCache.get(assetId);
-        }
-        
-        // Check if we already know this asset is missing
-        if (missingAssets.contains(assetId)) {
-            return null;
-        }
-        
-        String path = assetPaths.get(assetId);
-        if (path == null) {
-            // Asset not defined in XML, add to missing set to avoid repeated lookups
+        if (imageCache.containsKey(assetId)) return imageCache.get(assetId);
+        if (missingAssets.contains(assetId)) return null;
+
+        AssetInfo info = assetInfos.get(assetId);
+        if (info == null) {
             missingAssets.add(assetId);
             return null;
         }
-        
+
         try {
-            File imageFile = new File(path);
-            if (!imageFile.exists()) {
-                System.err.println("Asset file not found: " + path + " (ID: " + assetId + ")");
+            File file = new File(info.path);
+            if (!file.exists()) {
+                System.err.println("Missing asset: " + info.path + " (ID: " + assetId + ")");
                 missingAssets.add(assetId);
                 return null;
             }
-            
-            BufferedImage image = ImageIO.read(imageFile);
+
+            BufferedImage image = ImageIO.read(file);
             if (image != null) {
                 imageCache.put(assetId, image);
+                return image;
             } else {
-                System.err.println("Failed to load image from: " + path + " (ID: " + assetId + ")");
-                missingAssets.add(assetId);
+                System.err.println("Failed to load image: " + info.path + " (ID: " + assetId + ")");
             }
-            
-            return image;
-            
         } catch (Exception e) {
-            System.err.println("Error loading asset " + assetId + " from " + path + ": " + e.getMessage());
-            missingAssets.add(assetId);
-            return null;
+            System.err.println("Error loading asset " + assetId + " (" + info.path + "): " + e.getMessage());
         }
+
+        missingAssets.add(assetId);
+        return null;
     }
-    
-    /**
-     * Preloads all tile assets for better performance.
-     */
+
+    // For compatibility with MusicManager
+    public String getMusicAssetPath(String trackId) {
+        AssetInfo info = assetInfos.get(trackId);
+        if (info != null) return info.path;
+        System.err.println("Music asset not found: " + trackId);
+        return null;
+    }
+
+    // For compatibility with TileRenderer
     public void preloadTileAssets() {
-        String[] tileAssets = {"floor", "wall", "stairs_up", "stairs_down", "spawn_point", "floor_with_item"};
-        for (String assetId : tileAssets) {
-            loadImage(assetId);
+        // Preload only assets that look like tiles (e.g., start with "tile_")
+        for (String id : assetInfos.keySet()) {
+            if (id.startsWith("tile_")) {
+                loadImage(id);
+            }
         }
+        System.out.println("Preloaded tile assets");
     }
-    
-    /**
-     * Clears the image cache to free memory.
-     */
+
+
     public void clearCache() {
         imageCache.clear();
         System.out.println("Asset cache cleared");
     }
-    
-    /**
-     * Gets cache statistics for debugging.
-     */
+
     public String getCacheStats() {
-        return String.format("AssetManager: %d paths loaded, %d images cached, %d missing assets", 
-                           assetPaths.size(), imageCache.size(), missingAssets.size());
+        return String.format(
+            "AssetManager: %d paths, %d cached, %d missing",
+            assetInfos.size(), imageCache.size(), missingAssets.size()
+        );
     }
 }
