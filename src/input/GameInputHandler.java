@@ -2,10 +2,9 @@ package input;
 
 import core.GameController;
 import core.GameState;
-import map.GameMap;
-
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import map.GameMap;
 import player.AbstractPlayer;
 import ui.GamePanel;
 import ui.GameUIManager;
@@ -17,6 +16,7 @@ import ui.GameUIManager;
  * 
  * Supported controls:
  * - WASD/Arrow Keys: Player movement
+ * - SPACE: Pick up item
  * - R: Rest/Wait
  * - E: Primary attack
  * - Q: Secondary attack
@@ -30,6 +30,12 @@ public class GameInputHandler extends KeyAdapter {
     private final GameController controller;
     private final GamePanel gamePanel;
     private GameUIManager uiManager;
+    
+    // Input throttling to prevent spam and game slowdown
+    private static final long MOVEMENT_COOLDOWN_MS = 150; // Minimum time between movements
+    private static final long ACTION_COOLDOWN_MS = 200;   // Minimum time between actions
+    private long lastMovementTime = 0;
+    private long lastActionTime = 0;
     
     /**
      * Creates a new GameInputHandler.
@@ -56,74 +62,126 @@ public class GameInputHandler extends KeyAdapter {
     
     @Override
     public void keyPressed(KeyEvent e) {
+        long currentTime = System.currentTimeMillis();
         int dx = 0, dy = 0;
         boolean shouldUpdate = false;
+        boolean isMovement = false;
+        boolean isAction = false;
         
         switch (e.getKeyCode()) {
             // Movement controls
             case KeyEvent.VK_W, KeyEvent.VK_UP -> { 
                 dy = -1; 
+                isMovement = true;
             }
             case KeyEvent.VK_S, KeyEvent.VK_DOWN -> { 
                 dy = 1; 
+                isMovement = true;
             }
             case KeyEvent.VK_A, KeyEvent.VK_LEFT -> { 
                 dx = -1; 
+                isMovement = true;
             }
             case KeyEvent.VK_D, KeyEvent.VK_RIGHT -> { 
                 dx = 1; 
+                isMovement = true;
             }
             
             // Action controls
             case KeyEvent.VK_R -> { 
-                controller.rest(); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.rest(); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_E -> { 
-                controller.attack(1); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.attack(1); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_Q -> { 
-                controller.attack(2); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.attack(2); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
+            }
+            
+            // Item interaction controls
+            case KeyEvent.VK_SPACE -> { 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.pickupItem(); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             
             // Inventory controls (1-9)
             case KeyEvent.VK_1 -> { 
-                controller.useItem(1); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.useItem(1); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_2 -> { 
-                controller.useItem(2); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.useItem(2); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_3 -> { 
-                controller.useItem(3); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.useItem(3); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_4 -> { 
-                controller.useItem(4); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.useItem(4); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_5 -> { 
-                controller.useItem(5); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.useItem(5); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_6 -> { 
-                controller.useItem(6); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.useItem(6); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_7 -> { 
-                controller.useItem(7); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.useItem(7); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_8 -> { 
-                controller.useItem(8); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.useItem(8); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             case KeyEvent.VK_9 -> { 
-                controller.useItem(9); 
-                shouldUpdate = true; 
+                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                    controller.useItem(9); 
+                    shouldUpdate = true;
+                    isAction = true;
+                }
             }
             
             // Debug controls
@@ -143,10 +201,18 @@ public class GameInputHandler extends KeyAdapter {
             }
         }
         
-        // Handle movement input
-        if (dx != 0 || dy != 0) {
-            handleMovementInput(dx, dy);
-            shouldUpdate = true;
+        // Handle movement input with throttling
+        if ((dx != 0 || dy != 0) && isMovement) {
+            if (currentTime - lastMovementTime >= MOVEMENT_COOLDOWN_MS) {
+                handleMovementInput(dx, dy);
+                shouldUpdate = true;
+                lastMovementTime = currentTime;
+            }
+        }
+        
+        // Update action timestamp if an action was performed
+        if (isAction) {
+            lastActionTime = currentTime;
         }
         
         // Update the game view if needed
@@ -162,7 +228,12 @@ public class GameInputHandler extends KeyAdapter {
      * @param dy The vertical movement delta (-1, 0, or 1)
      */
     private void handleMovementInput(int dx, int dy) {
+        // Safety checks to prevent crashes
+        if (gameState == null || controller == null) return;
+        
         AbstractPlayer player = gameState.getPlayer();
+        if (player == null) return;
+        
         int newX = player.getX() + dx;
         int newY = player.getY() + dy;
         
@@ -177,17 +248,23 @@ public class GameInputHandler extends KeyAdapter {
     }
     
     /**
-     * Updates the camera and refreshes the game view after input processing.
+     * Updates the camera after input processing.
+     * Note: Rendering is handled by the main game loop to avoid excessive repaints.
      */
     private void updateGameView() {
+        // Safety checks to prevent crashes
+        if (gameState == null || gamePanel == null) return;
+        
         AbstractPlayer player = gameState.getPlayer();
         GameMap map = gameState.getCurrentMap();
+        
+        if (player == null || map == null) return;
         
         // Update camera to follow player
         gamePanel.getCamera().setMapSize(map.getWidth(), map.getHeight());
         gamePanel.getCamera().centerOn(player.getX(), player.getY());
         
-        // Refresh the view
-        gamePanel.repaint();
+        // Let the main game loop handle repainting to avoid excessive render calls
+        // gamePanel.repaint(); // Removed - handled by game timer
     }
 }
