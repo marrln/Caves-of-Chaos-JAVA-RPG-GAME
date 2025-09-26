@@ -4,6 +4,7 @@ import config.StyleConfig;
 import core.GameController;
 import core.GameState;
 import graphics.EnemyRenderer;
+import graphics.PlayerRenderer;
 import graphics.TileRenderer;
 import input.GameInputHandler;
 import java.awt.*;
@@ -29,7 +30,7 @@ public class GamePanel extends JPanel {
     private int lastKnownLevel = -1;
 
     private Timer gameTimer;
-    private static final int GAME_UPDATE_DELAY = 100; 
+    private static final int GAME_UPDATE_DELAY = 50; // 50ms for smoother gameplay and consistent physics 
 
     public GamePanel(GameState gameState, GameController controller) {
         this.gameState = gameState;
@@ -88,14 +89,34 @@ public class GamePanel extends JPanel {
 
         Graphics2D g2d = (Graphics2D) g;
         int tileSize = getTileSize();
-        EnemyRenderer.renderEnemies(g2d, gameState.getCurrentEnemies(), tileSize, camera.getX() * tileSize, camera.getY() * tileSize, fogOfWar);
 
-        int playerX = (player.getX() - camera.getX()) * tileSize;
-        int playerY = (player.getY() - camera.getY()) * tileSize;
-        g.setColor(StyleConfig.getColor("playerBody", Color.CYAN));
-        g.fillOval(playerX, playerY, tileSize, tileSize);
-        g.setColor(StyleConfig.getColor("playerBorder", Color.WHITE));
-        g.drawOval(playerX, playerY, tileSize, tileSize);
+        // Render enemies
+        double enemySpriteScale = 5; // Match player scale or adjust as needed
+        EnemyRenderer.renderEnemies(
+            g2d,
+            gameState.getCurrentEnemies(),
+            tileSize,
+            camera.getX() * tileSize,
+            camera.getY() * tileSize,
+            fogOfWar,
+            enemySpriteScale
+        );
+
+        // Render projectiles
+        renderProjectiles(g2d, tileSize);
+
+        // Render player (new PlayerRenderer)
+        double spriteScale = 5; // 1.0 = normal size, >1.0 = bigger, <1.0 = smaller
+        PlayerRenderer.renderPlayer(
+            g2d,
+            player,
+            tileSize,
+            camera.getX() * tileSize,
+            camera.getY() * tileSize,
+            fogOfWar,
+            spriteScale
+        );
+
     }
 
     private void reinitializeCameraForNewLevel(AbstractPlayer player) {
@@ -144,10 +165,15 @@ public class GamePanel extends JPanel {
         gameTimer.start();
     }
 
+    private static final double DELTA_TIME = 0.05; // 50ms game update interval in seconds
+    
     private void updateGameLogic() {
         if (gameState == null) return;
 
         gameState.updateEnemies();
+        
+        // Update projectiles
+        controller.updateProjectiles(DELTA_TIME);
 
         AbstractPlayer player = gameState.getPlayer();
         if (player != null) camera.centerOn(player.getX(), player.getY());
@@ -156,5 +182,35 @@ public class GamePanel extends JPanel {
         repaint();
     }
 
-    public void stopGameLoop() { if (gameTimer != null) gameTimer.stop(); }
+    /**
+     * Renders all active projectiles as colored dots.
+     * Fire spells appear as red dots, ice spells as blue dots.
+     */
+    private void renderProjectiles(Graphics2D g2d, int tileSize) {
+        java.util.List<core.Projectile> projectiles = controller.getActiveProjectiles();
+        
+        for (core.Projectile projectile : projectiles) {
+            int screenX = (int) ((projectile.getX() - camera.getX()) * tileSize);
+            int screenY = (int) ((projectile.getY() - camera.getY()) * tileSize);
+
+            switch (projectile.getType()) {
+                case FIRE_SPELL -> g2d.setColor(Color.RED);
+                case ICE_SPELL -> g2d.setColor(Color.CYAN);
+                default -> g2d.setColor(Color.YELLOW);
+            }
+
+            int dotSize = Math.max(4, tileSize / 4);
+            int dotX = screenX + (tileSize - dotSize) / 2;
+            int dotY = screenY + (tileSize - dotSize) / 2;
+
+            g2d.fillOval(dotX, dotY, dotSize, dotSize);
+
+            g2d.setColor(Color.WHITE);
+            g2d.drawOval(dotX, dotY, dotSize, dotSize);
+        }
+    }
+
+    public void stopGameLoop() {
+        if (gameTimer != null) gameTimer.stop();
+    }
 }

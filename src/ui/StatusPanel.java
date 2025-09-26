@@ -2,170 +2,194 @@ package ui;
 
 import config.StyleConfig;
 import core.GameState;
+import items.Inventory;
+import items.Item;
+import items.Potion;
+import items.WeaponItem;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import javax.swing.*;
 
 /**
- * Panel for displaying player status, inventory and game information.
+ * Scrollable status panel with compact item spacing and refresh support.
  */
 public class StatusPanel extends JPanel {
     private GameState gameState;
-    
+    private JPanel contentPanel;
+    private JScrollPane scrollPane;
+
+    private static final int SECTION_SPACING = 10; // Between sections
+    private static final int ITEM_SPACING = 0;     // Between items in the same section
+
     public StatusPanel() {
+        setLayout(new BorderLayout());
         setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
-        setPreferredSize(new Dimension(200, 600));
+        setPreferredSize(new Dimension(250, 600));
         setBorder(BorderFactory.createLineBorder(StyleConfig.getColor("panelBorder", Color.DARK_GRAY), 1));
+
+        contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(getBackground());
+
+        scrollPane = new JScrollPane(contentPanel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        add(scrollPane, BorderLayout.CENTER);
     }
-    
-    /**
-     * Sets the game state for dynamic information display.
-     * 
-     * @param gameState The current game state
-     */
+
     public void setGameState(GameState gameState) {
         this.gameState = gameState;
-        repaint(); // Refresh display when game state changes
+        refresh(); // Rebuild content immediately
     }
-    
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+
+    /**
+     * Refreshes the panel based on the current gameState.
+     * Call this whenever game stats, inventory, or cooldowns change.
+     */
+    public void refresh() {
+        if (gameState == null) return;
+
+        contentPanel.removeAll();
+
+        // CHARACTER section
+        addSectionTitle("PLAYER INFO");
+        String name = gameState.getPlayer().getName();
+        name = name.substring(0, 1).toUpperCase() + name.substring(1);
         
-        g.setColor(StyleConfig.getColor("panelText", Color.WHITE));
+        addText("Name: " + gameState.getPlayer().getClass().getSimpleName() + name);
+        addColoredText("HP: " + gameState.getPlayer().getHp() + "/" + gameState.getPlayer().getMaxHp(), getHpColor());
+        if (gameState.getPlayer().getMaxMp() > 0) {
+            addText("MP: " + gameState.getPlayer().getMp() + "/" + gameState.getPlayer().getMaxMp());
+        }
+        addText("Level: " + gameState.getPlayer().getLevel());
+        addText("EXP: " + gameState.getPlayer().getExp());
+
+        // Cooldowns
+        boolean isWizard = gameState.getPlayer().getClass().getSimpleName().equals("Wizard");
+        String attack1 = isWizard ? "Fire Spell:" : "Quick Strike:";
+        String attack2 = isWizard ? "Ice Spell:" : "Power Attack:";
+        addText("");
+        addColoredText(attack1 + " " + gameState.getPlayer().getCooldownDisplay(1),
+                "Ready".equals(gameState.getPlayer().getCooldownDisplay(1)) ? Color.GREEN : Color.RED);
+        addColoredText(attack2 + " " + gameState.getPlayer().getCooldownDisplay(2),
+                "Ready".equals(gameState.getPlayer().getCooldownDisplay(2)) ? Color.GREEN : Color.RED);
         
-        // Dynamic layout constants
-        final int LINE_HEIGHT = 20;
-        final int SECTION_SPACING = 10;
-        final int LEFT_MARGIN = 15;
-        final int TITLE_LEFT_MARGIN = 10;
-        
-        int currentY = 25;
-        
-        // Title
-        g.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
-        g.drawString("CHARACTER", TITLE_LEFT_MARGIN, currentY);
-        currentY += LINE_HEIGHT + 5; // Extra space after title
-        
-        // Status section
-        g.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
-        
-        if (gameState != null && gameState.getPlayer() != null) {
-            // Player name and class
-            String playerName = gameState.getPlayer().getName();
-            String playerClass = gameState.getPlayer().getClass().getSimpleName();
-            g.drawString("Name: " + (playerName != null ? playerName : "Unknown"), LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
-            g.drawString("Class: " + playerClass, LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
-            
-            // Player stats with color coding for health
-            int currentHp = gameState.getPlayer().getHp();
-            int maxHp = gameState.getPlayer().getMaxHp();
-            double hpPercentage = (double) currentHp / maxHp;
-            
-            // Change color based on health percentage
-            if (hpPercentage < 0.25) {
-                g.setColor(Color.RED); // Critical health
-            } else if (hpPercentage < 0.5) {
-                g.setColor(Color.ORANGE); // Low health
-            } else {
-                g.setColor(StyleConfig.getColor("panelText", Color.WHITE)); // Normal
-            }
-            
-            g.drawString("HP: " + currentHp + "/" + maxHp, LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
-            
-            // Reset color for MP
-            g.setColor(StyleConfig.getColor("panelText", Color.WHITE));
-            
-            // Only display mana for classes that use it (max MP > 0)
-            if (gameState.getPlayer().getMaxMp() > 0) {
-                g.drawString("MP: " + gameState.getPlayer().getMp() + "/" + gameState.getPlayer().getMaxMp(), LEFT_MARGIN, currentY);
-                currentY += LINE_HEIGHT;
-            }
-            
-            String levelDisplay = gameState.getLevelDisplayString();
-            g.drawString(levelDisplay, LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
-            
-            // Show enemy count to track combat
-            int enemyCount = gameState.getCurrentEnemies().size();
-            g.drawString("Enemies: " + enemyCount, LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
-            
-            // Add indicator if on final level
-            if (!gameState.canGoToNextLevel()) {
-                g.setColor(StyleConfig.getColor("panelHighlight", Color.YELLOW));
-                g.drawString("FINAL LEVEL!", LEFT_MARGIN, currentY);
-                g.setColor(StyleConfig.getColor("panelText", Color.WHITE));
-                currentY += LINE_HEIGHT;
-            }
+        addSectionTitle("Cave Info");
+        addText(gameState.getLevelDisplayString());
+        addText("You can sense the presence of " + gameState.getCurrentEnemies().size() + " enemies.");
+        if (!gameState.canGoToNextLevel()) {
+            addColoredText("You have reached the deepest\nparts of the Caves of Chaos!", StyleConfig.getColor("panelHighlight", Color.RED));
+        }
+
+        // INVENTORY section
+        addSectionTitle("INVENTORY");
+        Inventory inventory = gameState.getPlayer().getInventory();
+        for (int i = 0; i < 9; i++) {
+            addItemSlot(i + 1, inventory.getItem(i + 1));
+        }
+
+        // EQUIPMENT section
+        addSectionTitle("EQUIPMENT");
+        WeaponItem weapon = gameState.getPlayer().getEquippedWeapon();
+        if (weapon != null) {
+            addText("Weapon: " + weapon.getName());
+            addText("  +" + weapon.getDamageBonus() + " damage");
         } else {
-            g.drawString("Name: Unknown", LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
-            g.drawString("Class: Unknown", LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
-            g.drawString("HP: ?/?", LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
-            g.drawString("MP: ?/?", LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
-            g.drawString("Cave Floor: ? of ?", LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
+            addText("Weapon: None");
         }
-        
-        currentY += SECTION_SPACING;
-        
-        // Inventory section
-        g.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
-        g.drawString("INVENTORY", TITLE_LEFT_MARGIN, currentY);
-        currentY += LINE_HEIGHT + 5;
-        
-        g.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
-        // Display all 9 inventory slots with new format [num] ItemName: x/x
-        String[] inventoryItems = {
-            "[1] Health Potion: 3/3",
-            "[2] Mana Potion: 2/5", 
-            "[3] --",
-            "[4] --",
-            "[5] --",
-            "[6] --",
-            "[7] --",
-            "[8] --",
-            "[9] --"
-        };
-        
-        for (String item : inventoryItems) {
-            g.drawString(item, LEFT_MARGIN, currentY);
-            currentY += LINE_HEIGHT;
+
+        // CONTROLS section
+        addSectionTitle("CONTROLS");
+        addText("WASD: Move");
+        addText("SPACE: Pick up");
+        addText("Q/E: Attack");
+        addText("R: Rest");
+        addText("1-9: Use Item");
+
+        contentPanel.revalidate();
+        contentPanel.repaint();
+        scrollPane.getVerticalScrollBar().setValue(0); // Scroll to top
+    }
+
+    // --------------------- Helper Methods ---------------------
+
+    public void addSectionTitle(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
+        label.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setBorder(BorderFactory.createEmptyBorder(SECTION_SPACING, 0, ITEM_SPACING, 0));
+        contentPanel.add(label);
+    }
+
+    public void addText(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
+        label.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setBorder(BorderFactory.createEmptyBorder(ITEM_SPACING, 0, ITEM_SPACING, 0));
+        contentPanel.add(label);
+    }
+
+    public void addColoredText(String text, Color color) {
+        JLabel label = new JLabel(text);
+        label.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
+        label.setForeground(color);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setBorder(BorderFactory.createEmptyBorder(ITEM_SPACING, 0, ITEM_SPACING, 0));
+        contentPanel.add(label);
+    }
+
+    public void addItemSlot(int slot, Item item) {
+        JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0)); // hgap=2, vgap=0
+        itemPanel.setBackground(getBackground());
+        itemPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Slot number and item name
+        String text = "[" + slot + "] " + (item != null ? item.getDisplayName() : "--");
+        JLabel textLabel = new JLabel(text);
+        textLabel.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
+        textLabel.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
+        itemPanel.add(textLabel);
+
+        // Potion icon after text
+        if (item instanceof Potion potion) {
+            Icon icon = getPotionIcon(potion);
+            if (icon != null) {
+                JLabel iconLabel = new JLabel(icon);
+                itemPanel.add(iconLabel);
+            }
         }
-        
-        currentY += SECTION_SPACING;
-        
-        // Equipment section
-        g.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
-        g.drawString("EQUIPMENT", TITLE_LEFT_MARGIN, currentY);
-        currentY += LINE_HEIGHT + 5;
-        
-        g.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
-        g.drawString("Weapon: Sword", LEFT_MARGIN, currentY);
-        currentY += LINE_HEIGHT;
-        g.drawString("Armor: Leather", LEFT_MARGIN, currentY);
-        currentY += LINE_HEIGHT;
-        
-        currentY += SECTION_SPACING;
-        
-        // Controls Help
-        g.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
-        g.drawString("CONTROLS", TITLE_LEFT_MARGIN, currentY);
-        currentY += LINE_HEIGHT + 5;
-        
-        g.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
-        g.drawString("WASD: Move", LEFT_MARGIN, currentY);
-        currentY += LINE_HEIGHT;
-        g.drawString("Q/E: Attack", LEFT_MARGIN, currentY);
-        currentY += LINE_HEIGHT;
-        g.drawString("R: Rest", LEFT_MARGIN, currentY);
-        currentY += LINE_HEIGHT;
-        g.drawString("1-9: Use Item", LEFT_MARGIN, currentY);
+
+        // Add small spacing below each slot
+        itemPanel.setBorder(BorderFactory.createEmptyBorder(ITEM_SPACING, 0, ITEM_SPACING, 0));
+
+        contentPanel.add(itemPanel);
+    }
+
+
+    private Icon getPotionIcon(Potion potion) {
+        String iconId = getPotionIconId(potion);
+        BufferedImage image = graphics.AssetManager.getInstance().loadImage(iconId);
+        if (image != null) {
+            return new ImageIcon(image.getScaledInstance(16, 16, Image.SCALE_SMOOTH));
+        }
+        return null;
+    }
+
+    private Color getHpColor() {
+        int currentHp = gameState.getPlayer().getHp();
+        int maxHp = gameState.getPlayer().getMaxHp();
+        double percent = (double) currentHp / maxHp;
+        if (percent < 0.25) return Color.RED;
+        if (percent < 0.5) return Color.ORANGE;
+        return StyleConfig.getColor("panelText", Color.WHITE);
+    }
+
+    private String getPotionIconId(Potion potion) {
+        String name = potion.getName().toLowerCase();
+        if (name.contains("mana")) return "mana_potion";
+        return "health_potion";
     }
 }

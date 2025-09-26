@@ -82,8 +82,9 @@ public class GameUIManager {
      * Refreshes the status panel to update dynamic information like level display.
      */
     public void refreshStatusPanel() {
-        statusPanel.repaint();
+        statusPanel.refresh(); // Rebuilds panel content dynamically
     }
+
     
     /**
      * Validates if a position is within the visible game area.
