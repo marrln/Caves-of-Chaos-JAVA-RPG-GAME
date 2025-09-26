@@ -21,16 +21,16 @@
 
         <enemies>
             <!-- Medusa of Chaos -->
-            <sprite id="medusa_of_chaos_attack01" path="src/assets/enemies/MedusaOfChaos/purple/Attack_1.png"/>
-            <sprite id="medusa_of_chaos_attack02" path="src/assets/enemies/MedusaOfChaos/purple/Attack_2.png"/>
-            <sprite id="medusa_of_chaos_attack03" path="src/assets/enemies/MedusaOfChaos/purple/Attack_3.png"/>
-            <sprite id="medusa_of_chaos_dead" path="src/assets/enemies/MedusaOfChaos/purple/Dead.png"/>
-            <sprite id="medusa_of_chaos_hurt" path="src/assets/enemies/MedusaOfChaos/purple/Hurt.png"/>
-            <!-- sprite id="medusa_of_chaos_idle02" path="src/assets/enemies/MedusaOfChaos/purple/Idle_2.png"/> -->
-            <sprite id="medusa_of_chaos_idle" path="src/assets/enemies/MedusaOfChaos/purple/Idle.png"/>
-            <!-- <sprite id="medusa_of_chaos_run" path="src/assets/enemies/MedusaOfChaos/purple/Run.png"/> -->
-            <!-- <sprite id="medusa_of_chaos_special" path="src/assets/enemies/MedusaOfChaos/purple/Special.png"/> -->
-            <sprite id="medusa_of_chaos_walk" path="src/assets/enemies/MedusaOfChaos/purple/Walk.png"/>
+            <sprite id="medusa_of_chaos_attack01" path="src/assets/enemies/MedusaOfChaos/purple/Attack_1.png" frames="16"/>
+            <sprite id="medusa_of_chaos_attack02" path="src/assets/enemies/MedusaOfChaos/purple/Attack_2.png" frames="7"/>
+            <sprite id="medusa_of_chaos_attack03" path="src/assets/enemies/MedusaOfChaos/purple/Attack_3.png" frames="10"/>
+            <sprite id="medusa_of_chaos_dead" path="src/assets/enemies/MedusaOfChaos/purple/Dead.png" frames="3"/>
+            <sprite id="medusa_of_chaos_hurt" path="src/assets/enemies/MedusaOfChaos/purple/Hurt.png" frames="3"/>
+            <sprite id="medusa_of_chaos_idle02" path="src/assets/enemies/MedusaOfChaos/purple/Idle_2.png" frames="5"/>
+            <sprite id="medusa_of_chaos_idle" path="src/assets/enemies/MedusaOfChaos/purple/Idle.png" frames="7"/>
+            <sprite id="medusa_of_chaos_run" path="src/assets/enemies/MedusaOfChaos/purple/Run.png" frames="7"/>
+            <sprite id="medusa_of_chaos_special" path="src/assets/enemies/MedusaOfChaos/purple/Special.png" frames="5"/>
+            <sprite id="medusa_of_chaos_walk" path="src/assets/enemies/MedusaOfChaos/purple/Walk.png" frames="13"/>
 
             <!-- Armored Orc -->
             <sprite id="armored_orc_attack01" path="src/assets/enemies/Armored Orc-Attack01.png"/>
@@ -119,12 +119,12 @@
         </enemies>
 
         <tiles>
-            <sprite id="floor" path="assets/tiles/floor.png"/>
-            <sprite id="floor_with_item" path="assets/tiles/floor_with_item.png"/>
-            <sprite id="wall" path="assets/tiles/wall.png"/>
-            <sprite id="stairs_up" path="assets/tiles/stairs.png"/>
-            <sprite id="stairs_down" path="assets/tiles/entrance.png"/>
-            <sprite id="spawn_point" path="assets/tiles/start.png"/>
+            <sprite id="floor" path="src/assets/tiles/floor.png"/>
+            <sprite id="floor_with_item" path="src/assets/tiles/floor_with_item.png"/>
+            <sprite id="wall" path="src/assets/tiles/wall.png"/>
+            <sprite id="stairs_up" path="src/assets/tiles/entrance.png"/>
+            <sprite id="stairs_down" path="src/assets/tiles/stairs.png"/>
+            <sprite id="spawn_point" path="src/assets/tiles/start.png"/>
         </tiles>
 
         <items>
