@@ -1,29 +1,55 @@
 package utils;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import map.GameMap;
 
 public class CollisionManager {
 
     private final GameMap gameMap;
     private List<? extends Positionable> entities;
-
     public interface Positionable {
         int getX();
         int getY();
         default int getCollisionRadius() { return 0; }
         default boolean isSolid() { return true; }
+        /**
+         * Returns the facing direction in cardinal degrees: 0=N, 1=E, 2=S, 3=W.
+         * For rendering, 1=E (right) is default, 3=W (left) means mirrored.
+         */
+        int getFacingDirection();
+        /**
+         * Set the facing direction (0=N, 1=E, 2=S, 3=W)
+         */
+        void setFacingDirection(int dir);
+        /**
+         * Utility: true if facing left (W)
+         */
+        default boolean isFacingLeft() { return getFacingDirection() == 3; }
     }
 
-    public CollisionManager(GameMap gameMap) {
-        this.gameMap = gameMap;
+    /**
+     * Utility: Convert a movement offset (dx, dy) to a facing direction (0=N, 1=E, 2=S, 3=W).
+     * Returns -1 if no movement.
+     */
+    public static int getDirectionFromOffset(int dx, int dy) {
+        if (dx == 0 && dy == 0) return -1;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            return dx > 0 ? 1 : 3;
+        } else {
+            return dy > 0 ? 2 : 0;
+        }
     }
 
-    public void updateEntities(List<? extends Positionable> entities) {
-        this.entities = entities;
+    /**
+     * Utility: Returns true if the direction is left (W, 3).
+     */
+    public static boolean isLeftDirection(int dir) {
+        return ((dir % 4) + 4) % 4 == 3;
     }
+
+    public CollisionManager(GameMap gameMap) { this.gameMap = gameMap; }
+    public void updateEntities(List<? extends Positionable> entities) { this.entities = entities; }
 
     public boolean isWallBlocked(int x, int y) {
         if (gameMap == null) return false;
@@ -34,45 +60,41 @@ public class CollisionManager {
 
     public boolean isEntityOccupied(int x, int y, Positionable exclude) {
         if (entities == null) return false;
-        return entities.stream()
-            .filter(e -> e != exclude && e.isSolid())
-            .anyMatch(e -> e.getX() == x && e.getY() == y);
+        for (Positionable e : entities) {
+            if (e != exclude && e.isSolid() && e.getX() == x && e.getY() == y) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    public boolean isEntityOccupied(int x, int y) {
-        return isEntityOccupied(x, y, null);
-    }
+    public boolean isEntityOccupied(int x, int y) { return isEntityOccupied(x, y, null); }
+    public boolean isAccessible(int x, int y) { return !isWallBlocked(x, y) && !isEntityOccupied(x, y); }
 
     public boolean canMoveTo(Positionable entity, int newX, int newY) {
         return !isWallBlocked(newX, newY) && !isEntityOccupied(newX, newY, entity);
     }
 
-    public boolean isAccessible(int x, int y) {
-        return !isWallBlocked(x, y) && !isEntityOccupied(x, y);
-    }
-
-    public Positionable getEntityAt(int x, int y, Predicate<Positionable> filter) {
-        if (entities == null) return null;
-        return entities.stream()
-            .filter(e -> e.getX() == x && e.getY() == y)
-            .filter(filter != null ? filter : e -> true)
-            .findFirst()
-            .orElse(null);
-    }
-
     public Positionable getEntityAt(int x, int y) {
-        return getEntityAt(x, y, null);
+        if (entities == null) return null;
+        for (Positionable e : entities) {
+            if (e.getX() == x && e.getY() == y) return e;
+        }
+        return null;
     }
 
-    public List<Positionable> getEntitiesInRadius(int cx, int cy, int radius, Predicate<Positionable> filter) {
-        if (entities == null) return List.of();
-        var stream = entities.stream()
-            .filter(e -> {
-                int dx = e.getX() - cx, dy = e.getY() - cy;
-                return Math.sqrt(dx * dx + dy * dy) <= radius;
-            });
-        if (filter != null) stream = stream.filter(filter);
-        return stream.collect(Collectors.toList());
+    public List<Positionable> getEntitiesInRadius(int cx, int cy, int radius) {
+        List<Positionable> result = new ArrayList<>();
+        if (entities == null) return result;
+
+        for (Positionable e : entities) {
+            int dx = e.getX() - cx;
+            int dy = e.getY() - cy;
+            if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+                result.add(e);
+            }
+        }
+        return result;
     }
 
     public boolean hasLineOfSight(int x1, int y1, int x2, int y2, boolean checkEntities) {
@@ -85,125 +107,79 @@ public class CollisionManager {
         List<LineUtils.Point> linePoints = LineUtils.getProjectilePath(x1, y1, x2, y2, (x, y) ->
             isWallBlocked(x, y) || (!piercing && isEntityOccupied(x, y))
         );
-        
-        // Convert LineUtils.Point to CollisionManager.Position
-        return linePoints.stream()
-            .map(p -> new Position(p.x, p.y))
-            .collect(Collectors.toList());
+
+        List<Position> path = new ArrayList<>();
+        for (LineUtils.Point p : linePoints) {
+            path.add(new Position(p.x, p.y));
+        }
+        return path;
     }
 
     // ========== COMMON MOVEMENT UTILITIES ==========
-    
-    /**
-     * Converts a direction integer to coordinate offset.
-     * 0=North, 1=East, 2=South, 3=West
-     * 
-     * @param direction Direction code (0-3)
-     * @return Position offset, or (0,0) for invalid direction
-     */
+
     public static Position getDirectionOffset(int direction) {
         return switch (direction) {
-            case 0 -> new Position(0, -1); // North
-            case 1 -> new Position(1, 0);  // East  
+            case 0 -> new Position(0, -1);   // North
+            case 1 -> new Position(1, 0);  // East
             case 2 -> new Position(0, 1);  // South
-            case 3 -> new Position(-1, 0); // West
-            default -> new Position(0, 0); // Invalid/No movement
+            case 3 -> new Position(-1, 0);   // West
+            default -> new Position(0, 0); // No movement
         };
     }
-    
-    /**
-     * Attempts to move an entity in a specific direction with collision checking.
-     * 
-     * @param entity The entity to move
-     * @param direction Direction code (0=N, 1=E, 2=S, 3=W)
-     * @return true if movement was successful, false if blocked
-     */
+
     public boolean tryMoveEntityInDirection(Positionable entity, int direction) {
         Position offset = getDirectionOffset(direction);
-        if (offset.x == 0 && offset.y == 0) {
-            return false; // Invalid direction
-        }
-        
+        if (offset.x == 0 && offset.y == 0) return false;
+
         int newX = entity.getX() + offset.x;
         int newY = entity.getY() + offset.y;
-        
-        return canMoveTo(entity, newX, newY);
+        boolean moved = canMoveTo(entity, newX, newY);
+        if (moved) {
+            entity.setFacingDirection(direction);
+        }
+        return moved;
     }
-    
-    /**
-     * Smart pathfinding that tries to move toward a target.
-     * Attempts horizontal movement first if it's the larger distance,
-     * then falls back to vertical movement if blocked.
-     * 
-     * @param entity The entity to move
-     * @param targetX Target x coordinate
-     * @param targetY Target y coordinate
-     * @return Position of successful move, or null if no valid move found
-     */
+
     public Position findSmartMoveToward(Positionable entity, int targetX, int targetY) {
         int currentX = entity.getX();
         int currentY = entity.getY();
         int dx = targetX - currentX;
         int dy = targetY - currentY;
-        
-        // Try to move on the axis with the larger distance first
+
         if (Math.abs(dx) > Math.abs(dy)) {
-            // Try horizontal movement first
             int newX = currentX + (dx > 0 ? 1 : -1);
-            if (canMoveTo(entity, newX, currentY)) {
-                return new Position(newX, currentY);
-            }
-            // If horizontal blocked, try vertical
+            if (canMoveTo(entity, newX, currentY)) return new Position(newX, currentY);
+
             if (dy != 0) {
                 int newY = currentY + (dy > 0 ? 1 : -1);
-                if (canMoveTo(entity, currentX, newY)) {
-                    return new Position(currentX, newY);
-                }
+                if (canMoveTo(entity, currentX, newY)) return new Position(currentX, newY);
             }
         } else if (dy != 0) {
-            // Try vertical movement first
             int newY = currentY + (dy > 0 ? 1 : -1);
-            if (canMoveTo(entity, currentX, newY)) {
-                return new Position(currentX, newY);
-            }
-            // If vertical blocked, try horizontal
+            if (canMoveTo(entity, currentX, newY)) return new Position(currentX, newY);
+
             if (dx != 0) {
                 int newX = currentX + (dx > 0 ? 1 : -1);
-                if (canMoveTo(entity, newX, currentY)) {
-                    return new Position(newX, currentY);
-                }
+                if (canMoveTo(entity, newX, currentY)) return new Position(newX, currentY);
             }
         }
-        
-        return null; // No valid move found
+
+        return null;
     }
-    
-    /**
-     * Attempts random movement with retry logic.
-     * Tries up to maxAttempts random directions.
-     * 
-     * @param entity The entity to move
-     * @param maxAttempts Maximum number of random directions to try
-     * @param random Random number generator to use
-     * @return Position of successful move, or null if no valid move found
-     */
+
     public Position findRandomMove(Positionable entity, int maxAttempts, java.util.Random random) {
         int currentX = entity.getX();
         int currentY = entity.getY();
-        
+
         for (int attempts = 0; attempts < maxAttempts; attempts++) {
             int direction = random.nextInt(4);
             Position offset = getDirectionOffset(direction);
-            
             int newX = currentX + offset.x;
             int newY = currentY + offset.y;
-            
-            if (canMoveTo(entity, newX, newY)) {
-                return new Position(newX, newY);
-            }
+            if (canMoveTo(entity, newX, newY)) return new Position(newX, newY);
         }
-        
-        return null; // No valid move found after all attempts
+
+        return null;
     }
 
     public static class Position {
