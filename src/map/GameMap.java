@@ -6,511 +6,256 @@ import java.util.Random;
 
 /**
  * Represents the game map with tiles and navigation.
+ * Supports cave generation, path connectivity, and entrance/exit placement.
  */
 public class GameMap {
-    
+
     private final Tile[][] tiles;
-    private final int width;
-    private final int height;
-    private int entranceX;
-    private int entranceY;
-    private int exitX;
-    private int exitY;
+    private final int width, height;
+    private int entranceX, entranceY;
+    private int exitX, exitY;
     private final Random random;
-    
-    /**
-     * Creates a new map with the specified dimensions.
-     * 
-     * @param width The width of the map
-     * @param height The height of the map
-     */
+
     public GameMap(int width, int height) {
         this.width = width;
         this.height = height;
         this.tiles = new Tile[width][height];
         this.random = new Random();
-        
+
         // Initialize all tiles as walls
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
                 tiles[x][y] = new Tile(Tile.WALL);
-            }
-        }
-        
-        // Entrance and exit will be placed AFTER map generation
-        this.entranceX = -1;
-        this.entranceY = -1;
-        this.exitX = -1;
-        this.exitY = -1;
+
+        entranceX = entranceY = exitX = exitY = -1;
     }
-    
-    /**
-     * Checks if the specified position is within map bounds.
-     * 
-     * @param x The x coordinate
-     * @param y The y coordinate
-     * @return true if the position is within bounds, false otherwise
-     */
-    public boolean isInBounds(int x, int y) {
-        return x >= 0 && x < width && y >= 0 && y < height;
-    }
-    
-    /**
-     * Gets the tile at the specified position.
-     * 
-     * @param x The x coordinate
-     * @param y The y coordinate
-     * @return The tile at the position, or null if out of bounds
-     */
-    public Tile getTile(int x, int y) {
-        if (isInBounds(x, y)) {
-            return tiles[x][y];
-        }
-        return null;
-    }
-    
-    /**
-     * Sets the tile at the specified position.
-     * 
-     * @param x The x coordinate
-     * @param y The y coordinate
-     * @param tile The tile to set
-     */
-    public void setTile(int x, int y, Tile tile) {
-        if (isInBounds(x, y)) {
-            tiles[x][y] = tile;
-        }
-    }
-    
-    /**
-     * Checks if the specified position is blocked.
-     * 
-     * @param x The x coordinate
-     * @param y The y coordinate
-     * @return true if the position is blocked, false otherwise
-     */
+
+    // === BASIC TILE ACCESS ===
+
+    public int getWidth() { return width; }
+    public int getHeight() { return height; }
+    public int getEntranceX() { return entranceX; }
+    public int getEntranceY() { return entranceY; }
+    public int getExitX() { return exitX; }
+    public int getExitY() { return exitY; }
+
+    public boolean isInBounds(int x, int y) { return x >= 0 && x < width && y >= 0 && y < height; }
+    public Tile getTile(int x, int y) { return isInBounds(x, y) ? tiles[x][y] : null; }
+    public void setTile(int x, int y, Tile tile) { if (isInBounds(x, y)) tiles[x][y] = tile; }
+
     public boolean isBlocked(int x, int y) {
         Tile tile = getTile(x, y);
         return tile == null || tile.isBlocked();
     }
-    
-    /**
-     * Gets the width of the map.
-     * 
-     * @return The map width
-     */
-    public int getWidth() {
-        return width;
+
+    private boolean isEdgeTile(int x, int y) {
+        return x == 0 || y == 0 || x == width - 1 || y == height - 1;
     }
-    
-    /**
-     * Gets the height of the map.
-     * 
-     * @return The map height
-     */
-    public int getHeight() {
-        return height;
-    }
-    
-    /**
-     * Gets the x coordinate of the entrance.
-     * 
-     * @return The entrance x coordinate
-     */
-    public int getEntranceX() {
-        return entranceX;
-    }
-    
-    /**
-     * Gets the y coordinate of the entrance.
-     * 
-     * @return The entrance y coordinate
-     */
-    public int getEntranceY() {
-        return entranceY;
-    }
-    
-    /**
-     * Gets the x coordinate of the exit.
-     * 
-     * @return The exit x coordinate
-     */
-    public int getExitX() {
-        return exitX;
-    }
-    
-    /**
-     * Gets the y coordinate of the exit.
-     * 
-     * @return The exit y coordinate
-     */
-    public int getExitY() {
-        return exitY;
-    }
-    
-    /**
-     * Generates a dungeon map using a cellular automata algorithm.
-     * 
-     * @param fillProbability The probability of a cell starting as a wall
-     * @param iterations The number of cellular automata iterations
-     * @param isFinalLevel Whether this is the final level (no down stairs needed)
-     */
-    public void generateCaves(double fillProbability, int iterations, boolean isFinalLevel) {
-        boolean validMapGenerated = false;
+
+    // === CAVE GENERATION ===
+
+    public void generateCaves(double fillProbability, int iterations, boolean isFinalLevel, boolean isFirstLevel) {
+        boolean validMap = false;
         int attempts = 0;
         final int maxAttempts = 10;
-        
-        while (!validMapGenerated && attempts < maxAttempts) {
-            attempts++;
-            
-            // Initially fill the map randomly
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    // Keep borders as walls
-                    if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
-                        tiles[x][y] = new Tile(Tile.WALL);
-                    } else {
-                        // Random fill
-                        if (random.nextDouble() < fillProbability) {
-                            tiles[x][y] = new Tile(Tile.WALL);
-                        } else {
-                            tiles[x][y] = new Tile(Tile.FLOOR);
-                        }
-                    }
-                }
-            }
-            
-            // Run cellular automata iterations
-            for (int i = 0; i < iterations; i++) {
-                iterateCellularAutomata();
-            }
-            
-            // NOW find good positions for entrance and exit
-            if (findAndPlaceStairs(isFinalLevel)) {
-                // Validate that the map has enough open space and connectivity
-                if (validateMap()) {
-                    validMapGenerated = true;
-                    System.out.println("Generated valid cave map on attempt " + attempts);
-                    System.out.println("Entrance placed at: (" + entranceX + ", " + entranceY + ")");
-                    System.out.println("Exit placed at: (" + exitX + ", " + exitY + ")");
-                }
+
+        while (!validMap && attempts++ < maxAttempts) {
+            randomFillMap(fillProbability);
+            for (int i = 0; i < iterations; i++) iterateCellularAutomata();
+
+            if (findAndPlaceStairs(isFinalLevel, isFirstLevel) && validateAndSealMap()) {
+                validMap = true;
             }
         }
-        
-        // If we couldn't generate a valid map, create a simple fallback
-        if (!validMapGenerated) {
-            System.out.println("Failed to generate valid cave after " + maxAttempts + " attempts, using fallback");
-            createFallbackMap(isFinalLevel);
+
+        if (!validMap) {
+            System.err.println("Failed to generate valid cave after " + maxAttempts + " attempts.");
         }
     }
-    
-    /**
-     * Finds suitable positions for entrance and exit stairs after map generation.
-     * Places stairs in good floor locations that are well-separated.
-     * 
-     * @param isFinalLevel Whether this is the final level (no down stairs needed)
-     * @return true if stairs were successfully placed, false otherwise
-     */
-    private boolean findAndPlaceStairs(boolean isFinalLevel) {
-        // Find all floor tiles that could be good candidates
-        List<int[]> floorTiles = new ArrayList<>();
-        
-        // Look for floor tiles not too close to borders and with good clearance
-        for (int x = 3; x < width - 3; x++) {
-            for (int y = 3; y < height - 3; y++) {
-                if (!isBlocked(x, y)) {
-                    // Check that there's some open space around this position
-                    int nearbyFloorCount = 0;
-                    for (int dx = -1; dx <= 1; dx++) {
-                        for (int dy = -1; dy <= 1; dy++) {
-                            if (!isBlocked(x + dx, y + dy)) {
-                                nearbyFloorCount++;
-                            }
-                        }
-                    }
-                    
-                    // Good position if most nearby tiles are floor
-                    if (nearbyFloorCount >= 6) {
-                        floorTiles.add(new int[]{x, y});
-                    }
-                }
-            }
-        }
-        
-        if (floorTiles.size() < 2) {
-            System.out.println("Not enough good floor positions found for stairs");
-            return false;
-        }
-        
-        // Choose entrance from first quarter of candidates
-        int entranceIndex = random.nextInt(Math.min(floorTiles.size() / 4 + 1, floorTiles.size()));
-        int[] entrancePos = floorTiles.get(entranceIndex);
-        this.entranceX = entrancePos[0];
-        this.entranceY = entrancePos[1];
-        
-        // Choose exit from last quarter, ensuring it's far from entrance
-        int[] exitPos = null;
-        double maxDistance = 0;
-        int startIdx = Math.max(0, floorTiles.size() * 3 / 4);
-        
-        for (int i = startIdx; i < floorTiles.size(); i++) {
-            int[] pos = floorTiles.get(i);
-            double distance = Math.sqrt(Math.pow(pos[0] - entranceX, 2) + Math.pow(pos[1] - entranceY, 2));
-            if (distance > maxDistance) {
-                maxDistance = distance;
-                exitPos = pos;
-            }
-        }
-        
-        if (exitPos == null) {
-            // Fallback: just pick the last position
-            exitPos = floorTiles.get(floorTiles.size() - 1);
-        }
-        
-        this.exitX = exitPos[0];
-        this.exitY = exitPos[1];
-        
-        // Ensure areas around stairs are accessible
-        ensureAreaAccessible(entranceX, entranceY, 2);
-        ensureAreaAccessible(exitX, exitY, 2);
-        
-        // Create a path between entrance and exit to ensure connectivity
-        createPath(entranceX, entranceY, exitX, exitY);
-        
-        // Place the actual stair tiles
-        tiles[entranceX][entranceY] = new Tile(Tile.STAIRS_UP);
-        
-        // Only place down stairs if this is not the final level
-        if (!isFinalLevel) {
-            tiles[exitX][exitY] = new Tile(Tile.STAIRS_DOWN);
-        } else {
-            // On final level, the exit remains a regular floor tile
-            tiles[exitX][exitY] = new Tile(Tile.FLOOR);
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Ensures an area around the specified coordinates is accessible (floor tiles).
-     * 
-     * @param centerX The center x coordinate
-     * @param centerY The center y coordinate  
-     * @param radius The radius around the center to clear
-     */
-    private void ensureAreaAccessible(int centerX, int centerY, int radius) {
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dy = -radius; dy <= radius; dy++) {
-                int x = centerX + dx;
-                int y = centerY + dy;
-                
-                if (isInBounds(x, y) && !(x == 0 || x == width - 1 || y == 0 || y == height - 1)) {
-                    tiles[x][y] = new Tile(Tile.FLOOR);
-                }
-            }
-        }
-    }
-    
-    /**
-     * Creates a guaranteed path between two points using LineUtils for consistent algorithms.
-     * Uses Bresenham's line algorithm for optimal pathfinding.
-     * 
-     * @param x1 Start x coordinate
-     * @param y1 Start y coordinate
-     * @param x2 End x coordinate
-     * @param y2 End y coordinate
-     */
-    private void createPath(int x1, int y1, int x2, int y2) {
-        // Use LineUtils for consistent line-based path creation
-        java.util.List<utils.LineUtils.Point> pathPoints = utils.LineUtils.getLinePoints(x1, y1, x2, y2);
-        
-        for (utils.LineUtils.Point point : pathPoints) {
-            // Create floor tiles along the path
-            if (isInBounds(point.x, point.y) && !isEdgeTile(point.x, point.y)) {
-                tiles[point.x][point.y] = new Tile(Tile.FLOOR);
-                
-                // Create wider corridors by clearing adjacent tiles
-                createCorridorWidth(point.x, point.y);
-            }
-        }
-    }
-    
-    /**
-     * Creates wider corridors by clearing tiles adjacent to the main path.
-     * 
-     * @param centerX Center x coordinate of the corridor
-     * @param centerY Center y coordinate of the corridor
-     */
-    private void createCorridorWidth(int centerX, int centerY) {
-        // Clear adjacent tiles in cardinal directions for wider corridors
-        int[] dx = {-1, 1, 0, 0};
-        int[] dy = {0, 0, -1, 1};
-        
-        for (int i = 0; i < 4; i++) {
-            int adjX = centerX + dx[i];
-            int adjY = centerY + dy[i];
-            
-            if (isInBounds(adjX, adjY) && !isEdgeTile(adjX, adjY)) {
-                tiles[adjX][adjY] = new Tile(Tile.FLOOR);
-            }
-        }
-    }
-    
-    /**
-     * Checks if a position is on the map edge (should remain as walls for boundaries).
-     * 
-     * @param x X coordinate to check
-     * @param y Y coordinate to check
-     * @return true if position is on the edge
-     */
-    private boolean isEdgeTile(int x, int y) {
-        return x == 0 || x == width - 1 || y == 0 || y == height - 1;
-    }
-    
-    /**
-     * Validates that the generated map has sufficient open space and connectivity.
-     * 
-     * @return true if the map is valid, false otherwise
-     */
-    private boolean validateMap() {
-        int floorCount = 0;
-        int totalTiles = width * height;
-        
-        // Count floor tiles
+
+    private void randomFillMap(double fillProbability) {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                if (tiles[x][y].getType() == Tile.FLOOR || 
-                    tiles[x][y].getType() == Tile.STAIRS_UP || 
-                    tiles[x][y].getType() == Tile.STAIRS_DOWN) {
-                    floorCount++;
+                if (isEdgeTile(x, y)) tiles[x][y] = new Tile(Tile.WALL);
+                else tiles[x][y] = (random.nextDouble() < fillProbability) ? new Tile(Tile.WALL) : new Tile(Tile.FLOOR);
+            }
+        }
+    }
+
+    private void iterateCellularAutomata() {
+        Tile[][] newTiles = new Tile[width][height];
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                if (isEdgeTile(x, y)) newTiles[x][y] = new Tile(Tile.WALL);
+                else {
+                    int wallCount = countNeighboringWalls(x, y);
+                    Tile current = tiles[x][y];
+                    if (current.getType() == Tile.WALL)
+                        newTiles[x][y] = (wallCount >= 4) ? new Tile(Tile.WALL) : new Tile(Tile.FLOOR);
+                    else
+                        newTiles[x][y] = (wallCount >= 5) ? new Tile(Tile.WALL) : new Tile(Tile.FLOOR);
                 }
             }
         }
-        
-        // Ensure at least 25% of the map is open space
-        double openSpaceRatio = (double) floorCount / totalTiles;
-        
-        // Check connectivity between entrance and exit using flood fill
-        boolean isConnected = isPathConnected(entranceX, entranceY, exitX, exitY);
-        
-        return openSpaceRatio >= 0.25 && isConnected;
+
+        for (int x = 0; x < width; x++) System.arraycopy(newTiles[x], 0, tiles[x], 0, height);
     }
-    
+
+    private int countNeighboringWalls(int x, int y) {
+        int count = 0;
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+                if (tiles[x + dx][y + dy].getType() == Tile.WALL) count++;
+        return count;
+    }
+
+    // === STAIRS PLACEMENT & PATHS ===
+
+    private boolean findAndPlaceStairs(boolean isFinalLevel, boolean isFirstLevel) {
+        List<int[]> floorTiles = new ArrayList<>();
+
+        for (int x = 3; x < width - 3; x++)
+            for (int y = 3; y < height - 3; y++)
+                if (!isBlocked(x, y) && nearbyFloorCount(x, y) >= 6)
+                    floorTiles.add(new int[]{x, y});
+
+        if (floorTiles.size() < 2) return false;
+
+        int entranceIndex = random.nextInt(Math.min(floorTiles.size() / 4 + 1, floorTiles.size()));
+        int[] entrancePos = floorTiles.get(entranceIndex);
+        entranceX = entrancePos[0]; entranceY = entrancePos[1];
+
+        int[] exitPos = null; double maxDistance = 0;
+        int startIdx = Math.max(0, floorTiles.size() * 3 / 4);
+        for (int i = startIdx; i < floorTiles.size(); i++) {
+            int[] pos = floorTiles.get(i);
+            double distance = Math.hypot(pos[0] - entranceX, pos[1] - entranceY);
+            if (distance > maxDistance) { maxDistance = distance; exitPos = pos; }
+        }
+        if (exitPos == null) exitPos = floorTiles.get(floorTiles.size() - 1);
+        exitX = exitPos[0]; exitY = exitPos[1];
+
+        ensureAreaAccessible(entranceX, entranceY, 2);
+        ensureAreaAccessible(exitX, exitY, 2);
+        createPath(entranceX, entranceY, exitX, exitY);
+
+        tiles[entranceX][entranceY] = new Tile(isFirstLevel ? Tile.FLOOR : Tile.STAIRS_UP);
+        tiles[exitX][exitY] = new Tile(isFinalLevel ? Tile.FLOOR : Tile.STAIRS_DOWN);
+
+        return true;
+    }
+
+    private int nearbyFloorCount(int x, int y) {
+        int count = 0;
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+                if (!isBlocked(x + dx, y + dy)) count++;
+        return count;
+    }
+
+    private void ensureAreaAccessible(int cx, int cy, int radius) {
+        for (int dx = -radius; dx <= radius; dx++)
+            for (int dy = -radius; dy <= radius; dy++) {
+                int x = cx + dx, y = cy + dy;
+                if (isInBounds(x, y) && !isEdgeTile(x, y)) tiles[x][y] = new Tile(Tile.FLOOR);
+            }
+    }
+
+    private void createPath(int x1, int y1, int x2, int y2) {
+        List<utils.LineUtils.Point> points = utils.LineUtils.getLinePoints(x1, y1, x2, y2);
+        for (utils.LineUtils.Point p : points) {
+            if (isInBounds(p.x, p.y) && !isEdgeTile(p.x, p.y)) {
+                tiles[p.x][p.y] = new Tile(Tile.FLOOR);
+                createCorridorWidth(p.x, p.y);
+            }
+        }
+    }
+
+    private void createCorridorWidth(int cx, int cy) {
+        int[] dx = {-1, 1, 0, 0};
+        int[] dy = {0, 0, -1, 1};
+        for (int i = 0; i < 4; i++) {
+            int x = cx + dx[i], y = cy + dy[i];
+            if (isInBounds(x, y) && !isEdgeTile(x, y)) tiles[x][y] = new Tile(Tile.FLOOR);
+        }
+    }
+
+    // === MAP VALIDATION ===
+
+    private boolean validateMap() {
+        int floorCount = 0, totalTiles = width * height;
+        for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
+                if (tiles[x][y].getType() != Tile.WALL) floorCount++;
+
+        boolean connected = isPathConnected(entranceX, entranceY, exitX, exitY);
+        return ((double) floorCount / totalTiles >= 0.25) && connected;
+    }
+
     /**
-     * Checks if there's a connected path between two points using flood fill.
-     * 
-     * @param startX Start x coordinate
-     * @param startY Start y coordinate
-     * @param endX End x coordinate
-     * @param endY End y coordinate
-     * @return true if path exists, false otherwise
+     * Validates the map and seals off any isolated caverns to ensure all accessible areas
+     * are connected to the main cave system. This prevents enemies from spawning in unreachable areas.
      */
+    private boolean validateAndSealMap() {
+        // First, check basic map validity
+        if (!validateMap()) {
+            return false;
+        }
+
+        // Use flood-fill to identify all tiles accessible from the entrance
+        boolean[][] accessible = new boolean[width][height];
+        markAccessibleTiles(entranceX, entranceY, accessible);
+
+        // Seal off any floor tiles that are not accessible
+        int sealedTiles = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                if (tiles[x][y].getType() == Tile.FLOOR && !accessible[x][y]) {
+                    tiles[x][y] = new Tile(Tile.WALL);
+                    sealedTiles++;
+                }
+            }
+        }
+
+        if (sealedTiles > 0) {
+            System.out.println("[MAP GENERATION] Sealed " + sealedTiles + " isolated floor tiles");
+        }
+
+        // Verify the exit is still accessible after sealing
+        return isPathConnected(entranceX, entranceY, exitX, exitY);
+    }
+
+    /**
+     * Uses flood-fill algorithm to mark all tiles accessible from the starting position.
+     * This identifies the main connected cave system.
+     */
+    private void markAccessibleTiles(int startX, int startY, boolean[][] accessible) {
+        if (!isInBounds(startX, startY) || accessible[startX][startY] || tiles[startX][startY].isBlocked()) {
+            return;
+        }
+
+        accessible[startX][startY] = true;
+
+        // Recursively mark all connected floor tiles
+        markAccessibleTiles(startX + 1, startY, accessible);
+        markAccessibleTiles(startX - 1, startY, accessible);
+        markAccessibleTiles(startX, startY + 1, accessible);
+        markAccessibleTiles(startX, startY - 1, accessible);
+    }
+
     private boolean isPathConnected(int startX, int startY, int endX, int endY) {
         boolean[][] visited = new boolean[width][height];
         return floodFill(startX, startY, endX, endY, visited);
     }
-    
-    /**
-     * Recursive flood fill to check connectivity.
-     */
+
     private boolean floodFill(int x, int y, int targetX, int targetY, boolean[][] visited) {
-        if (!isInBounds(x, y) || visited[x][y] || tiles[x][y].isBlocked()) {
-            return false;
-        }
-        
-        if (x == targetX && y == targetY) {
-            return true;
-        }
-        
+        if (!isInBounds(x, y) || visited[x][y] || tiles[x][y].isBlocked()) return false;
+        if (x == targetX && y == targetY) return true;
         visited[x][y] = true;
-        
-        // Check all 4 directions
         return floodFill(x + 1, y, targetX, targetY, visited) ||
                floodFill(x - 1, y, targetX, targetY, visited) ||
                floodFill(x, y + 1, targetX, targetY, visited) ||
                floodFill(x, y - 1, targetX, targetY, visited);
-    }
-    
-    /**
-     * Creates a simple fallback map when generation fails.
-     */
-    private void createFallbackMap(boolean isFinalLevel) {
-        // Fill with walls
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                tiles[x][y] = new Tile(Tile.WALL);
-            }
-        }
-        
-        // Create a simple rectangular room in the center
-        int roomWidth = Math.min(width - 10, 20);
-        int roomHeight = Math.min(height - 10, 15);
-        int startX = (width - roomWidth) / 2;
-        int startY = (height - roomHeight) / 2;
-        
-        for (int x = startX; x < startX + roomWidth; x++) {
-            for (int y = startY; y < startY + roomHeight; y++) {
-                tiles[x][y] = new Tile(Tile.FLOOR);
-            }
-        }
-        
-        // Place entrance and exit in the room
-        tiles[startX + 2][startY + 2] = new Tile(Tile.STAIRS_UP);
-        
-        // Only place down stairs if this is not the final level
-        if (!isFinalLevel) {
-            tiles[startX + roomWidth - 3][startY + roomHeight - 3] = new Tile(Tile.STAIRS_DOWN);
-        } else {
-            // On final level, the exit remains a regular floor tile
-            tiles[startX + roomWidth - 3][startY + roomHeight - 3] = new Tile(Tile.FLOOR);
-        }
-        
-        // Set entrance and exit coordinates for the fallback map
-        this.entranceX = startX + 2;
-        this.entranceY = startY + 2;
-        this.exitX = startX + roomWidth - 3;
-        this.exitY = startY + roomHeight - 3;
-    }
-    
-    /**
-     * Performs one iteration of cellular automata for cave generation.
-     */
-    private void iterateCellularAutomata() {
-        Tile[][] newTiles = new Tile[width][height];
-        
-        // Initialize all border tiles as walls
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
-                    newTiles[x][y] = new Tile(Tile.WALL);
-                } else {
-                    // Count neighboring wall tiles
-                    int wallCount = 0;
-                    for (int dx = -1; dx <= 1; dx++) {
-                        for (int dy = -1; dy <= 1; dy++) {
-                            if (tiles[x + dx][y + dy].getType() == Tile.WALL) {
-                                wallCount++;
-                            }
-                        }
-                    }
-                    
-                    // Apply cellular automata rules
-                    if (tiles[x][y].getType() == Tile.WALL) {
-                        // Wall remains if it has 4 or more wall neighbors
-                        newTiles[x][y] = (wallCount >= 4) ? 
-                                new Tile(Tile.WALL) : new Tile(Tile.FLOOR);
-                    } else {
-                        // Floor becomes wall if it has 5 or more wall neighbors
-                        newTiles[x][y] = (wallCount >= 5) ? 
-                                new Tile(Tile.WALL) : new Tile(Tile.FLOOR);
-                    }
-                }
-            }
-        }
-        
-        // Update the map
-        for (int x = 0; x < width; x++) {
-            System.arraycopy(newTiles[x], 0, tiles[x], 0, height);
-        }
     }
 }
