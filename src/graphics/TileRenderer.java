@@ -62,10 +62,10 @@ public class TileRenderer {
     }
 
     private String getTileAssetId(Tile tile, boolean isEntrance) {
-        if (isEntrance) return "spawn_point";
+        // Priority: Always render stairs up/down tiles correctly, even if they're at entrance
         return switch (tile.getType()) {
             case Tile.WALL -> "wall";
-            case Tile.FLOOR -> "floor";
+            case Tile.FLOOR -> isEntrance ? "spawn_point" : "floor";
             case Tile.STAIRS_DOWN -> "stairs_down";
             case Tile.STAIRS_UP -> "stairs_up";
             default -> null;
@@ -73,10 +73,10 @@ public class TileRenderer {
     }
 
     private Color getFallbackColor(Tile tile, boolean isEntrance) {
-        if (isEntrance) return entranceColor;
+        // Priority: Always render stairs up/down tiles correctly, even if they're at entrance
         return switch (tile.getType()) {
             case Tile.WALL -> wallColor;
-            case Tile.FLOOR -> floorColor;
+            case Tile.FLOOR -> isEntrance ? entranceColor : floorColor;
             case Tile.STAIRS_DOWN -> stairsDownColor;
             case Tile.STAIRS_UP -> stairsUpColor;
             default -> unknownColor;
@@ -84,9 +84,15 @@ public class TileRenderer {
     }
 
     // ====== ITEM RENDERING ======
-    public void renderTileWithItem(Graphics g, Tile tile, int x, int y) {
-        if (useGraphics && assetManager.hasAsset("floor_with_item")) {
-            BufferedImage img = assetManager.loadImage("floor_with_item");
+    public void renderTileWithItem(Graphics g, Tile tile, int x, int y, boolean isEntrance) {
+        // First render the base tile
+        renderTile(g, tile, x, y, isEntrance);
+        
+        // Then render item indicator
+        if (useGraphics) {
+            // Try to use graphics first - look for specific item graphics
+            String itemAssetId = "floor_with_item"; // Generic item indicator
+            BufferedImage img = assetManager.loadImage(itemAssetId);
             if (img != null) {
                 Image drawImg = (img.getWidth() != tileSize || img.getHeight() != tileSize)
                                 ? img.getScaledInstance(tileSize, tileSize, Image.SCALE_SMOOTH)
@@ -95,8 +101,13 @@ public class TileRenderer {
                 return;
             }
         }
-        g.setColor(floorColor);
-        g.fillRect(x, y, tileSize, tileSize);
+        
+        // Fallback: Draw a small red rectangle to indicate item
+        g.setColor(Color.RED);
+        int itemSize = tileSize / 4;
+        int itemX = x + (tileSize - itemSize) / 2;
+        int itemY = y + (tileSize - itemSize) / 2;
+        g.fillRect(itemX, itemY, itemSize, itemSize);
     }
 
     // ====== FOG OF WAR RENDERING ======
@@ -137,7 +148,12 @@ public class TileRenderer {
 
     public void renderTileWithFog(Graphics g, Tile tile, int screenX, int screenY, int mapX, int mapY,
                                   boolean isEntrance, FogOfWar fogOfWar, boolean debugNoFog) {
-        renderTile(g, tile, screenX, screenY, isEntrance);
+        // Check if tile has an item and render accordingly
+        if (tile.hasItem()) {
+            renderTileWithItem(g, tile, screenX, screenY, isEntrance);
+        } else {
+            renderTile(g, tile, screenX, screenY, isEntrance);
+        }
         renderFogOverlay(g, tile, screenX, screenY, fogOfWar, mapX, mapY, debugNoFog);
     }
 
@@ -187,6 +203,16 @@ public class TileRenderer {
 
                 g.setColor(getFallbackColor(tile, isEntrance));
                 g.fillRect(screenX, screenY, tileSize, tileSize);
+                
+                // Draw item indicator if tile has an item
+                if (tile.hasItem()) {
+                    g.setColor(Color.RED);
+                    int itemSize = tileSize / 4;
+                    int itemX = screenX + (tileSize - itemSize) / 2;
+                    int itemY = screenY + (tileSize - itemSize) / 2;
+                    g.fillRect(itemX, itemY, itemSize, itemSize);
+                }
+                
                 renderFogOverlay(g, tile, screenX, screenY, fogOfWar, mapX, mapY, debugNoFog);
             }
         }
