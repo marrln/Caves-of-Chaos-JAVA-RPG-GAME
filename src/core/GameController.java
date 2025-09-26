@@ -1,179 +1,217 @@
 package core;
 
 import enemies.Enemy;
+import items.AbstractTrap;
+import items.Item;
+import items.Potion;
 import map.GameMap;
 import map.Tile;
 import player.AbstractPlayer;
+import player.Wizard;
 import ui.GameUIManager;
+import utils.LineUtils;
 
-/**
- * Controller for game logic and player actions.
- */
 public class GameController {
-    private GameState gameState;
+    private final GameState gameState;
     private GameUIManager uiManager;
+    private final ProjectileManager projectileManager;
 
-    /**
-     * Creates a new game controller with the given game state.
-     * 
-     * @param gameState The game state to control
-     */
     public GameController(GameState gameState) {
         this.gameState = gameState;
-    }
-    
-    /**
-     * Sets the UI manager to use for boundary checking.
-     * This is called from the Game class after all UI components are initialized.
-     * 
-     * @param uiManager The UI manager to use
-     */
-    public void setUIManager(GameUIManager uiManager) {
-        this.uiManager = uiManager;
+        this.projectileManager = new ProjectileManager();
     }
 
-    /**
-     * Attempts to move the player in the specified direction.
-     * Validates the move against map boundaries, wall tiles, and UI boundaries.
-     * 
-     * @param dx The change in x position (-1, 0, or 1)
-     * @param dy The change in y position (-1, 0, or 1)
-     * @return true if the player moved, false otherwise
-     */
+    public void setUIManager(GameUIManager uiManager) { this.uiManager = uiManager; }
+
+    // ====== PLAYER MOVEMENT ======
     public boolean movePlayer(int dx, int dy) {
         AbstractPlayer player = gameState.getPlayer();
         int newX = player.getX() + dx;
         int newY = player.getY() + dy;
         GameMap map = gameState.getCurrentMap();
-        
-        // Check map boundaries
-        if (newX < 0 || newY < 0 || newX >= map.getWidth() || newY >= map.getHeight()) {
-            return false;
-        }
-        
-        // Check UI boundaries if a UI manager is set
-        if (uiManager != null && !uiManager.isPositionVisible(newX, newY)) {
-            return false;
-        }
-        
-        // Check tile type
+
+        // Boundaries and visibility
+        if (newX < 0 || newY < 0 || newX >= map.getWidth() || newY >= map.getHeight()) return false;
+        if (uiManager != null && !uiManager.isPositionVisible(newX, newY)) return false;
+
         Tile tile = map.getTile(newX, newY);
-        if (tile == null) {
-            return false;
-        }
-        
-        switch (tile.getType()) {
+
+        return switch (tile.getType()) {
             case Tile.FLOOR -> {
-                // Use collision-aware movement from AbstractPlayer
                 if (player.tryMoveTo(newX, newY)) {
                     gameState.updateFogOfWar();
-                    return true;
-                } else {
-                    return false; // Movement blocked by collision system
+                    checkForTraps(newX, newY);
+                    yield true;
                 }
+                yield false;
             }
             case Tile.STAIRS_DOWN -> {
-                // Move to next level if possible (using config-defined max levels)
                 if (gameState.canGoToNextLevel()) {
                     gameState.goToNextLevel();
-                    return true;
+                    gameState.logMessage("You descend to floor " + (gameState.getCurrentLevel() + 1) + ".");
+                    yield true;
                 }
-                return false;
+                yield false;
             }
             case Tile.STAIRS_UP -> {
-                // Move to previous level if possible
                 if (gameState.getCurrentLevel() > 0) {
                     gameState.goToPreviousLevel();
-                    return true;
+                    gameState.logMessage("You climb back to floor " + (gameState.getCurrentLevel() + 1) + ".");
+                    yield true;
                 }
-                return false;
+                yield false;
             }
-            default -> {
-                return false;
-            }
-        }
-    }
-    
-    /**
-     * Resting: restore health/mana for the player.
-     * In a roguelike, this typically advances time and may trigger random events.
-     */
-    public void rest() {
-        AbstractPlayer player = gameState.getPlayer();
-        player.rest();
-        // TODO: Add logic for possible enemy spawn on rest
+            default -> false;
+        };
     }
 
-    /**
-     * Perform an attack of the specified type.
-     * 
-     * @param attackType The type of attack (1 or 2)
-     */
+    // ====== RESTING ======
+    public void rest() {
+        AbstractPlayer player = gameState.getPlayer();
+        int oldHp = player.getHp();
+        int oldMp = player.getMp();
+
+        player.rest();
+        logRestoration("Rested", player, player.getHp() - oldHp, player.getMp() - oldMp);
+    }
+
+    private void logRestoration(String source, AbstractPlayer player, int hpRestored, int mpRestored) {
+        if (hpRestored > 0) {
+            gameState.logMessage(source + ": Restored " + hpRestored + " HP (" + player.getHp() + "/" + player.getMaxHp() + " HP)");
+        }
+        if (mpRestored > 0) {
+            gameState.logMessage(source + ": Restored " + mpRestored + " MP (" + player.getMp() + "/" + player.getMaxMp() + " MP)");
+        }
+        if (hpRestored == 0 && mpRestored == 0) {
+            gameState.logMessage(source + ": No effect, already at full stats.");
+        }
+    }
+
+    // ====== ATTACKING ======
     public void attack(int attackType) {
         AbstractPlayer player = gameState.getPlayer();
-        
-        // Start the player's attack animation/state
+        player.updateCombat();
+
+        int mpBefore = player.getMp();
         player.attack(attackType);
-        
-        // Find enemies in cardinal directions (N, S, E, W) and attack them
-        int playerX = player.getX();
-        int playerY = player.getY();
-        
-        // Check all four cardinal directions for enemies
-        int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}; // N, E, S, W
-        
-        for (int[] dir : directions) {
-            int targetX = playerX + dir[0];
-            int targetY = playerY + dir[1];
-            
-            // Find enemy at this position
-            Enemy targetEnemy = findEnemyAt(targetX, targetY);
-            if (targetEnemy != null) {
-                // Calculate player's attack damage
-                int damage = player.getAttackDamage();
-                
-                gameState.logCombatMessage(player.getName() + " attacks " + targetEnemy.getName() + 
-                                         " for " + damage + " damage!");
-                
-                // Deal damage to the enemy
-                boolean enemyDied = targetEnemy.takeDamage(damage);
-                
-                if (enemyDied) {
-                    gameState.logCombatMessage(targetEnemy.getName() + " has been defeated!");
-                    // Player gains experience
-                    int exp = targetEnemy.getExpReward();
-                    player.addExperience(exp);
-                    gameState.logCombatMessage(player.getName() + " gains " + exp + " experience!");
-                }
-                
-                // Only attack one enemy per attack action
-                return;
-            }
+        int mpAfter = player.getMp();
+
+        boolean success = !(player instanceof Wizard) || mpAfter < mpBefore;
+        if (!success) return;
+
+        if (player instanceof Wizard wizard) {
+            handleWizardAttack(wizard, attackType);
+        } else {
+            handleMeleeAttack(player, attackType);
         }
-        
-        gameState.logCombatMessage(player.getName() + " swings at empty air!");
     }
-    
-    /**
-     * Finds an enemy at the specified position.
-     */
-    private Enemy findEnemyAt(int x, int y) {
-        for (Enemy enemy : gameState.getCurrentEnemies()) {
-            if (!enemy.isDead() && enemy.getX() == x && enemy.getY() == y) {
-                return enemy;
+
+    private void handleWizardAttack(Wizard wizard, int attackType) {
+        Projectile projectile = wizard.createProjectile(
+            attackType, gameState.getCurrentEnemies(), gameState.getFogOfWar()
+        );
+
+        if (projectile != null) {
+            addProjectile(projectile);
+            String spell = attackType == 1 ? "Fire Spell" : "Ice Spell";
+            gameState.logMessage(wizard.getName() + " casts " + spell + "!");
+        } else {
+            gameState.logMessage("No targets in sight. The spell fizzles.");
+        }
+    }
+
+    private void handleMeleeAttack(AbstractPlayer player, int attackType) {
+        for (Enemy target : gameState.getCurrentEnemies()) {
+            if (target.isDead()) continue;
+            if (!LineUtils.isCardinallyAdjacent(player.getX(), player.getY(), target.getX(), target.getY())) continue;
+
+            int dmg = player.getAttackDamage(attackType);
+            gameState.logMessage(player.getName() + " attacks " + target.getName() + " for " + dmg + " damage!");
+
+            boolean dead = target.takeDamage(dmg);
+            if (dead) {
+                int exp = target.getExpReward();
+                player.addExperience(exp);
+                gameState.logMessage(target.getName() + " has been defeated! You gained " + exp + " exp!");
             }
+            return; // only one enemy per attack
+        }
+    }
+
+    private Enemy findEnemyAt(int x, int y) {
+        for (Enemy e : gameState.getCurrentEnemies()) {
+            if (!e.isDead() && e.getX() == x && e.getY() == y) return e;
         }
         return null;
     }
 
-    /**
-     * Use an item from the specified inventory slot.
-     * 
-     * @param slot The inventory slot (1-9)
-     */
+    // ====== ITEMS ======
     public void useItem(int slot) {
         AbstractPlayer player = gameState.getPlayer();
-        player.useItem(slot);
-        // TODO: Remove item if consumed, update inventory
+        Item item = player.getInventory().getItem(slot);
+        if (item == null) return;
+
+        if (item instanceof Potion potion) {
+            int oldHp = player.getHp();
+            int oldMp = player.getMp();
+            player.useItem(slot);
+            logRestoration("Used " + potion.getName(), player, player.getHp() - oldHp, player.getMp() - oldMp);
+        } else {
+            player.useItem(slot);
+        }
+    }
+
+    public void pickupItem() {
+        AbstractPlayer player = gameState.getPlayer();
+        Tile tile = gameState.getCurrentMap().getTile(player.getX(), player.getY());
+        if (!tile.hasItem()) return;
+
+        Item item = tile.getItem().get();
+
+        if (item instanceof items.ShardOfJudgement shard) {
+            tile.removeItem();
+            gameState.logMessage("You found the legendary " + shard.getName() + "!");
+            shard.use(player);
+            return;
+        }
+
+        if (player.getInventory().addItem(item)) {
+            tile.removeItem();
+            gameState.logMessage("Picked up: " + item.getName());
+        } else {
+            gameState.logMessage("Inventory is full!");
+        }
+    }
+
+    // ====== PROJECTILES ======
+    public void updateProjectiles(double dt) {
+        projectileManager.updateAll(dt, gameState.getCurrentMap(), gameState.getCurrentEnemies(), gameState.getFogOfWar());
+    }
+
+    public void addProjectile(Projectile p) { projectileManager.addProjectile(p); }
+    public java.util.List<Projectile> getActiveProjectiles() { return projectileManager.getActiveProjectiles(); }
+    public void clearProjectiles() { projectileManager.clearAll(); }
+
+    // ====== TRAPS ======
+    private void checkForTraps(int x, int y) {
+        Tile tile = gameState.getCurrentMap().getTile(x, y);
+        if (!tile.hasItem()) return;
+
+        Item item = tile.getItem().get();
+        if (item instanceof AbstractTrap trap) {
+            AbstractPlayer player = gameState.getPlayer();
+            gameState.logMessage(trap.getTriggerMessage());
+
+            int dmg = trap.getDamage();
+            player.takeDamage(dmg);
+
+            int after = player.getHp();
+            gameState.logMessage(trap.getDamageMessage() + " You lost " + dmg + " HP! (" + after + "/" + player.getMaxHp() + ")");
+            if (after <= 0) {
+                gameState.logMessage("The " + trap.getName() + " was LETHAL! You have died!");
+            }
+
+            tile.removeItem();
+        }
     }
 }

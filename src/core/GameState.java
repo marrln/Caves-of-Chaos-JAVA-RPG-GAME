@@ -9,107 +9,103 @@ import map.FogOfWar;
 import map.GameMap;
 import map.Tile;
 import player.AbstractPlayer;
-import player.PlayerFactory;
 import ui.GameUIManager;
 
 /**
- * Manages the overall game state including player, maps, enemies,
- * fog of war, collision, music, and level progression.
+ * Manages the overall game state:
+ * - Player, maps, enemies, fog of war
+ * - Collision handling, music, and level progression
  */
-public class GameState {
+public final class GameState {
 
     // ====== CORE GAME STATE ======
     private final List<GameMap> maps;
     private int currentLevel;
-    private final int maxLevel;
-    private GameMap map;
     private final AbstractPlayer player;
-    private FogOfWar fogOfWar; // re-created on level change
-    private List<Enemy> currentEnemies; // reassigned on spawn
+    private FogOfWar fogOfWar;                  
+    private final List<Enemy> currentEnemies;   
     private boolean gameOver;
 
     // ====== SYSTEM REFERENCES ======
-    private GameUIManager uiManager; // for logging
-    private utils.CollisionManager collisionManager; // for movement/collision
-    private final MusicManager musicManager; // dynamic music
-    private boolean anyEnemyHasNoticedPlayer = false;
+    private GameUIManager uiManager;        
+    private utils.CollisionManager collisionManager;
+    private final MusicManager musicManager;
+    private final ItemSpawner itemSpawner;
 
-    // ====== CONSTRUCTORS ======
-    public GameState(String playerClass) {
+    // ====== CONFIG CONSTANTS  ======
+    private static final int MAP_WIDTH = Config.getIntSetting("mapWidth");
+    private static final int MAP_HEIGHT = Config.getIntSetting("mapHeight");
+    private static final double MAP_FILL_PERCENTAGE = Config.getDoubleSetting("mapFillPercentage");
+    private static final int MAP_ITERATIONS = Config.getIntSetting("mapIterations");
+    private static final int CAVE_MAX_LEVEL = Config.getIntSetting("caveLevelNumber");
+    private static final int VISION_RADIUS = Config.getIntSetting("visionRadius");
+
+    // ====== CONSTRUCTOR ======
+    public GameState(AbstractPlayer player, int startingLevel) {
         this.maps = new ArrayList<>();
         this.currentEnemies = new ArrayList<>();
-        this.maxLevel = getMaxCaveLevelsFromConfigImpl();
-        this.currentLevel = 0;
+        this.currentLevel = Math.max(0, Math.min(startingLevel, CAVE_MAX_LEVEL - 1));
         this.gameOver = false;
 
         this.musicManager = MusicManager.getInstance();
         this.musicManager.startExplorationMusic();
-
-        int[] mapDimensions = getMapDimensionsFromConfig();
-        int mapWidth = mapDimensions[0];
-        int mapHeight = mapDimensions[1];
-
-        this.fogOfWar = new FogOfWar(mapWidth, mapHeight);
-
-        this.map = new GameMap(mapWidth, mapHeight);
-        this.map.generateCaves(getMapFillPercentageFromConfig(), getMapIterationsFromConfig(), false);
-        maps.add(this.map);
-
-        this.player = PlayerFactory.createPlayer(playerClass, map.getEntranceX(), map.getEntranceY());
-
-        fogOfWar.updateVisibility(map, player.getX(), player.getY(), getVisionRadiusFromConfig());
-
-        setupEnemyCollisionChecking();
-        initializeEnemiesForLevel();
-    }
-
-    public GameState(AbstractPlayer player, int mapWidth, int mapHeight, double fillPercentage) {
-        this.maps = new ArrayList<>();
-        this.currentEnemies = new ArrayList<>();
-        this.maxLevel = getMaxCaveLevelsFromConfigImpl();
-        this.currentLevel = 0;
-        this.gameOver = false;
-
-        this.musicManager = MusicManager.getInstance();
-        this.musicManager.startExplorationMusic();
+        this.itemSpawner = new ItemSpawner();
 
         this.player = player;
-        this.fogOfWar = new FogOfWar(mapWidth, mapHeight);
+        this.fogOfWar = new FogOfWar(MAP_WIDTH, MAP_HEIGHT);
 
-        this.map = new GameMap(mapWidth, mapHeight);
-        this.map.generateCaves(fillPercentage, getMapIterationsFromConfig(), false);
-        maps.add(this.map);
+        initGame();
+    }
 
-        player.setPosition(map.getEntranceX(), map.getEntranceY());
+    /** Performs initial setup after construction */
+    private void initGame() {
+        for (int level = 0; level <= currentLevel; level++) {
+            maps.add(createAndPopulateMap(level, true));
+        }
 
-        fogOfWar.updateVisibility(map, player.getX(), player.getY(), getVisionRadiusFromConfig());
+        GameMap startMap = getCurrentMap();
+        player.setPosition(startMap.getEntranceX(), startMap.getEntranceY());
 
+        fogOfWar.updateVisibility(startMap, player.getX(), player.getY(), VISION_RADIUS);
         setupEnemyCollisionChecking();
-        initializeEnemiesForLevel();
+        loadEnemiesForCurrentLevel();
+    }
+
+    /** Creates and fully populates a new map */
+    private GameMap createAndPopulateMap(int level, boolean allowEntrance) {
+        GameMap map = new GameMap(MAP_WIDTH, MAP_HEIGHT);
+        boolean isFinalLevel = (level == CAVE_MAX_LEVEL - 1);
+
+        map.generateCaves(
+            MAP_FILL_PERCENTAGE,
+            MAP_ITERATIONS,
+            isFinalLevel,
+            allowEntrance
+        );
+
+        itemSpawner.spawnItemsForLevel(map, level + 1, player);
+        return map;
     }
 
     // ====== COLLISION MANAGEMENT ======
     private void setupEnemyCollisionChecking() {
-        collisionManager = new utils.CollisionManager(map);
+        collisionManager = new utils.CollisionManager(getCurrentMap());
         updateCollisionEntities();
 
         enemies.AbstractEnemy.setCollisionManager(collisionManager);
         AbstractPlayer.setCollisionManager(collisionManager);
 
-        enemies.AbstractEnemy.setCombatLogger(this::logCombatMessage);
+        enemies.AbstractEnemy.setCombatLogger(this::logMessage);
     }
 
     private void updateCollisionEntities() {
         if (collisionManager == null) return;
 
         List<utils.CollisionManager.Positionable> entities = new ArrayList<>();
-        if (player != null) entities.add(player);
-
-        if (currentEnemies != null) {
-            for (Enemy enemy : currentEnemies) {
-                if (enemy instanceof utils.CollisionManager.Positionable pos && !enemy.isDead()) {
-                    entities.add(pos);
-                }
+        entities.add(player);
+        for (Enemy enemy : currentEnemies) {
+            if (enemy instanceof utils.CollisionManager.Positionable pos && !enemy.isDead()) {
+                entities.add(pos);
             }
         }
         collisionManager.updateEntities(entities);
@@ -117,18 +113,19 @@ public class GameState {
 
     // ====== LEVEL GENERATION ======
     public void generateLevel(int mapWidth, int mapHeight, double fillPercentage, int iterations) {
-        GameMap map = new GameMap(mapWidth, mapHeight);
-
-        boolean isFinalLevel = (maps.size() + 1) >= getMaxCaveLevelsFromConfigImpl();
-        map.generateCaves(fillPercentage, iterations, isFinalLevel);
-
-        maps.add(map);
+        int level = maps.size();
+        maps.add(createAndPopulateMap(level, false));
     }
 
     // ====== FOG OF WAR ======
     public void updateFogOfWar() {
-        if (fogOfWar != null && player != null) {
-            fogOfWar.updateVisibility(getCurrentMap(), player.getX(), player.getY(), getVisionRadiusFromConfig());
+        if (fogOfWar != null) {
+            fogOfWar.updateVisibility(
+                getCurrentMap(),
+                player.getX(),
+                player.getY(),
+                VISION_RADIUS
+            );
         }
     }
 
@@ -141,15 +138,16 @@ public class GameState {
         GameMap currentMap = getCurrentMap();
 
         if (currentMap.isInBounds(newX, newY) && !currentMap.isBlocked(newX, newY)) {
-            Tile destinationTile = currentMap.getTile(newX, newY);
+            Tile dest = currentMap.getTile(newX, newY);
 
-            return switch (destinationTile.getType()) {
+            return switch (dest.getType()) {
                 case Tile.STAIRS_DOWN -> { goToNextLevel(); yield true; }
                 case Tile.STAIRS_UP   -> { goToPreviousLevel(); yield true; }
                 default -> {
-                    player.setPosition(newX, newY);
-                    updateFogOfWar();
-                    yield true;
+                    if (player.tryMoveTo(newX, newY)) {
+                        updateFogOfWar();
+                        yield true;
+                    } else yield false;
                 }
             };
         }
@@ -159,133 +157,113 @@ public class GameState {
     // ====== LEVEL PROGRESSION ======
     public void goToNextLevel() {
         int nextLevel = currentLevel + 1;
-
-        if (nextLevel >= maps.size()) {
-            int[] dims = getMapDimensionsFromConfig();
-            generateLevel(dims[0], dims[1], getMapFillPercentageFromConfig(), getMapIterationsFromConfig());
-        }
-
+        if (nextLevel >= maps.size()) generateLevel(MAP_WIDTH, MAP_HEIGHT, MAP_FILL_PERCENTAGE, MAP_ITERATIONS);
         currentLevel = nextLevel;
-
         GameMap newMap = getCurrentMap();
-        player.setPosition(newMap.getEntranceX(), newMap.getEntranceY());
-
-        fogOfWar = new FogOfWar(newMap.getWidth(), newMap.getHeight());
-        updateFogOfWar();
-
-        spawnEnemiesForCurrentLevel();
+        loadLevel(newMap.getEntranceX(), newMap.getEntranceY());
     }
 
     public void goToPreviousLevel() {
         if (currentLevel > 0) {
             currentLevel--;
-
             GameMap newMap = getCurrentMap();
-            player.setPosition(newMap.getExitX(), newMap.getExitY());
-
-            fogOfWar = new FogOfWar(newMap.getWidth(), newMap.getHeight());
-            updateFogOfWar();
-
-            spawnEnemiesForCurrentLevel();
+            loadLevel(newMap.getExitX(), newMap.getExitY());
         }
     }
 
-    // ====== ENEMY MANAGEMENT ======
-    private void initializeEnemiesForLevel() {
-        currentEnemies.clear();
-        currentEnemies.addAll(EnemySpawner.spawnEnemiesForLevel(getCurrentMap(), currentLevel + 1));
+    private void loadLevel(int playerX, int playerY) {
+        GameMap newMap = getCurrentMap();
+        fogOfWar = new FogOfWar(newMap.getWidth(), newMap.getHeight());
+        setupEnemyCollisionChecking();
+        loadEnemiesForCurrentLevel();
+        itemSpawner.spawnItemsForLevel(newMap, currentLevel + 1, player);
+
+        if (!player.tryMoveTo(playerX, playerY)) {
+            player.setPosition(playerX, playerY);
+        }
+        updateFogOfWar();
     }
 
-    public void spawnEnemiesForCurrentLevel() {
+    // ====== ENEMY MANAGEMENT ======
+    public void loadEnemiesForCurrentLevel() {
         currentEnemies.clear();
-        currentEnemies.addAll(EnemySpawner.spawnEnemiesForLevel(getCurrentMap(), currentLevel + 1));
+        currentEnemies.addAll(
+            EnemySpawner.spawnEnemiesForLevel(getCurrentMap(), currentLevel + 1)
+        );
+        updateCollisionEntities();
     }
 
     public void updateEnemies() {
         if (player == null) return;
-
-        boolean currentlyCombatActive = false;
+        player.updateCombat();
 
         for (Enemy enemy : currentEnemies) {
             if (!enemy.isDead()) {
                 enemy.update(player.getX(), player.getY());
 
                 if (enemy instanceof enemies.AbstractEnemy abstractEnemy) {
-                    if (abstractEnemy.hasNoticedPlayer()) currentlyCombatActive = true;
-
                     if (abstractEnemy.hasPendingPlayerDamage()) {
-                        int damage = abstractEnemy.getPendingPlayerDamage();
-                        logCombatMessage(player.getName() + " takes " + damage + " damage!");
+                        int dmg = abstractEnemy.getPendingPlayerDamage();
+                        logMessage(player.getName() + " takes " + dmg + " damage!");
 
-                        if (player.takeDamage(damage)) {
-                            logCombatMessage(player.getName() + " has been defeated!");
-                            // TODO: handle game over properly
+                        if (player.takeDamage(dmg)) {
+                            if (!gameOver) {
+                                gameOver = true;
+                                logMessage(player.getName() + " has been defeated!");
+                                handlePlayerDeath();
+                            }
                         }
                     }
                 }
             }
         }
 
-        updateMusicForCombatState(currentlyCombatActive);
+        musicManager.updateForCombatState(currentEnemies);
 
-        if (currentEnemies.removeIf(Enemy::isDead)) {
-            updateCollisionEntities();
+        boolean enemiesRemoved = false;
+        for (int i = currentEnemies.size() - 1; i >= 0; i--) {
+            Enemy enemy = currentEnemies.get(i);
+            if (enemy.isDead()) {
+                if (enemy instanceof enemies.MedusaOfChaos) {
+                    handleMedusaDefeat(enemy.getX(), enemy.getY());
+                }
+                currentEnemies.remove(i);
+                enemiesRemoved = true;
+            }
         }
+
+        if (enemiesRemoved) updateCollisionEntities();
     }
 
-    public boolean areAllEnemiesDefeated() {
-        return currentEnemies.stream().allMatch(Enemy::isDead);
+    // ====== PLAYER DEATH & BOSS ======
+    private void handlePlayerDeath() {
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            ui.GameOverWindow win = new ui.GameOverWindow(null, player.getName(), currentLevel);
+            if (win.showGameOverDialog()) {
+                logMessage("Game restart requested - not yet implemented");
+            } else {
+                System.exit(0);
+            }
+        });
     }
 
-    // ====== MUSIC MANAGEMENT ======
-    private void updateMusicForCombatState(boolean combatActive) {
-        if (combatActive && !anyEnemyHasNoticedPlayer) {
-            anyEnemyHasNoticedPlayer = true;
-            musicManager.startCombatMusic();
-        } else if (!combatActive && anyEnemyHasNoticedPlayer) {
-            anyEnemyHasNoticedPlayer = false;
-            musicManager.endCombatMusic();
-        }
+    private void handleMedusaDefeat(int x, int y) {
+        logMessage("The Medusa of Chaos has been defeated! The evil presence lifts...");
+        logMessage("A brilliant shard of light materializes where the beast fell!");
+        if (itemSpawner.spawnShardOfJudgement(getCurrentMap(), x, y)) logMessage("The legendary Shard of Judgement awaits your claim!");
+        else logMessage("The Shard of Judgement failed to spawn, in any case you have won!");
     }
 
-    // ====== UI LOGGING ======
-    public void logCombatMessage(String message) {
-        if (uiManager != null) {
-            uiManager.addLogMessage(message);
-        } else {
-            System.out.println(message);
-        }
-    }
-
-    public void setUIManager(GameUIManager uiManager) {
-        this.uiManager = uiManager;
-    }
-
-    // ====== GETTERS & STATE ======
+    // ====== CONVINIENCE ======
+    public void setUIManager(GameUIManager ui) { this.uiManager = ui; }
     public GameMap getCurrentMap() { return maps.get(currentLevel); }
     public AbstractPlayer getPlayer() { return player; }
     public FogOfWar getFogOfWar() { return fogOfWar; }
     public List<Enemy> getCurrentEnemies() { return currentEnemies; }
     public int getCurrentLevel() { return currentLevel; }
     public boolean isGameOver() { return gameOver; }
-    public void setGameOver(boolean gameOver) { this.gameOver = gameOver; }
-    public boolean canGoToNextLevel() { return currentLevel < (getMaxCaveLevelsFromConfigImpl() - 1); }
-    public String getLevelDisplayString() { return "Cave Floor: " + (currentLevel + 1) + " of " + getMaxCaveLevelsFromConfigImpl(); }
-
-    // ====== CONFIG HELPERS ======
-    private int[] getMapDimensionsFromConfig() {
-        String mapSizeStr = Config.getSetting("mapSize");
-        int wIdx = mapSizeStr.indexOf("width=\"");
-        int hIdx = mapSizeStr.indexOf("height=\"");
-        int wEnd = mapSizeStr.indexOf('"', wIdx + 7);
-        int hEnd = mapSizeStr.indexOf('"', hIdx + 8);
-
-        int width = Integer.parseInt(mapSizeStr.substring(wIdx + 7, wEnd));
-        int height = Integer.parseInt(mapSizeStr.substring(hIdx + 8, hEnd));
-        return new int[]{width, height};
-    }
-    private double getMapFillPercentageFromConfig() { return Double.parseDouble(Config.getSetting("mapFillPercentage").trim()); }
-    private int getMapIterationsFromConfig() { return Integer.parseInt(Config.getSetting("mapIterations").trim()); }
-    private int getVisionRadiusFromConfig() { return Integer.parseInt(Config.getSetting("visionRadius").trim()); }
-    private int getMaxCaveLevelsFromConfigImpl() { return Integer.parseInt(Config.getSetting("caveLevelNumber").trim()); }
+    public void setGameOver(boolean val) { this.gameOver = val; }
+    public boolean canGoToNextLevel() { return currentLevel < (CAVE_MAX_LEVEL - 1); }
+    public String getLevelDisplayString() { return "Cave Floor: " + (currentLevel + 1) + " of " + CAVE_MAX_LEVEL; }
+    public void logMessage(String msg) { uiManager.addLogMessage(msg); }
 }
