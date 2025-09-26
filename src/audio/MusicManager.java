@@ -1,8 +1,11 @@
 package audio;
 
+import enemies.AbstractEnemy;
+import enemies.Enemy;
 import graphics.AssetManager;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import javax.sound.sampled.*;
 
 /**
@@ -24,7 +27,7 @@ public class MusicManager {
     // ====== ASSET IDs ======
     private static final String EXPLORATION_TRACK_ID = "regular_music";
     private static final String COMBAT_TRACK_ID = "battle_music";
-    
+
     // ====== MUSIC CLIPS ======
     private Clip explorationClip;
     private Clip combatClip;
@@ -32,6 +35,9 @@ public class MusicManager {
 
     // ====== SETTINGS ======
     private boolean isMusicEnabled = true;
+
+    // ====== COMBAT STATE TRACKING ======
+    private boolean wasCombatMusicPlaying = false;
 
     private MusicManager() {
         initializeMusic();
@@ -47,22 +53,17 @@ public class MusicManager {
             return;
         }
 
-        // Delegate all asset loading concerns to AssetManager
         AssetManager assetManager = AssetManager.getInstance();
-        
+
         String explorationPath = assetManager.getMusicAssetPath(EXPLORATION_TRACK_ID);
         String combatPath = assetManager.getMusicAssetPath(COMBAT_TRACK_ID);
-        
-        // Simply attempt to load - AssetManager handled all file system concerns
+
         explorationClip = loadClip(explorationPath);
         combatClip = loadClip(combatPath);
     }
 
     private Clip loadClip(String filePath) {
-        if (filePath == null) {
-            return null;
-        }
-        
+
         try {
             AudioInputStream originalStream = AudioSystem.getAudioInputStream(new File(filePath));
             AudioFormat originalFormat = originalStream.getFormat();
@@ -86,8 +87,7 @@ public class MusicManager {
             return clip;
 
         } catch (UnsupportedAudioFileException | LineUnavailableException | IOException e) {
-            // Audio loading failed - return null and let playback methods handle gracefully
-            return null;
+            return null; // Failed to load clip
         }
     }
 
@@ -131,13 +131,33 @@ public class MusicManager {
         if (!enabled) stopMusic();
     }
 
-    public boolean isMusicEnabled() { return isMusicEnabled;    }
+    public boolean isMusicEnabled() {
+        return isMusicEnabled;
+    }
 
     // ====== CLEANUP ======
     public void cleanup() {
         stopMusic();
-
         if (explorationClip != null) explorationClip.close();
         if (combatClip != null) combatClip.close();
+    }
+
+    // ====== COMBAT STATE HANDLING ======
+
+    public void updateForCombatState(List<Enemy> enemies) {
+        boolean anyNoticed = false;
+        for (Enemy enemy : enemies) {
+            if (enemy instanceof AbstractEnemy ae && ae.hasNoticedPlayer() && !enemy.isDead()) {
+                anyNoticed = true;
+                break;
+            }
+        }
+        if (anyNoticed && !wasCombatMusicPlaying) {
+            wasCombatMusicPlaying = true;
+            startCombatMusic();
+        } else if (!anyNoticed && wasCombatMusicPlaying) {
+            wasCombatMusicPlaying = false;
+            endCombatMusic();
+        }
     }
 }
