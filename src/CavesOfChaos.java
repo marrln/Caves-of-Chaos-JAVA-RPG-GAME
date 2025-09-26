@@ -42,12 +42,31 @@ public class CavesOfChaos {
 
         // === Command-line arguments ===
         if (args.length < 2) {
-            System.out.println("Usage: java CavesOfChaos <player-class> <player-name>");
+            System.out.println("Usage: java CavesOfChaos <player-class> <player-name> [starting-level]");
+            System.out.println("Example: java CavesOfChaos wizard gandalf 5");
             System.exit(0);
         }
 
         String playerClass = args[0].toLowerCase();
         String playerName  = args[1];
+        int startingLevel = 0; // Default to level 1 (0-indexed)
+        int max_level = Config.getIntSetting("caveLevelNumber");
+        // Parse optional starting level
+        if (args.length >= 3) {
+            try {
+            int level = Integer.parseInt(args[2]);
+            if (level >= 1 && level <= max_level) {
+                startingLevel = level - 1; // Convert to 0-indexed
+                System.out.println("Starting on level " + level + " (boss mode: " + (level == max_level ? "ON" : "OFF") + ")");
+            } else {
+                System.out.println("Invalid starting level: " + level + " (must be 1-" + max_level + ")");
+                System.exit(0);
+            }
+            } catch (NumberFormatException e) {
+            System.out.println("Invalid starting level format: " + args[2]);
+            System.exit(0);
+            }
+        }
         AbstractPlayer player;
         switch (playerClass) {
             case "wizard" -> player = new Wizard(0, 0);
@@ -61,13 +80,8 @@ public class CavesOfChaos {
         }
         player.setName(playerName);
 
-        // === Read map settings ===
-        int mapWidth  = Config.getIntSetting("mapWidth");
-        int mapHeight = Config.getIntSetting("mapHeight");
-        double fillPercentage = Config.getDoubleSetting("mapFillPercentage");
-
         // === Initialize game ===
-        GameState gameState = new GameState(player, mapWidth, mapHeight, fillPercentage);
+        GameState gameState = new GameState(player, startingLevel);
         GameController controller = new GameController(gameState);
 
         // === Build UI on Event Dispatch Thread ===
