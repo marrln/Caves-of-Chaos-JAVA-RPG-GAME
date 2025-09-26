@@ -10,7 +10,7 @@ import utils.Dice;
 import utils.LineUtils;
 
 public abstract class AbstractEnemy implements Enemy, CollisionManager.Positionable {
-    
+
     // ====== CORE STATS ======
     protected int x, y;                     // Position
     protected EnemyType type;               // Enemy classification
@@ -23,10 +23,25 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     // ====== COMBAT ======
     protected CombatState combatState = new CombatState();
 
+
+    // ====== DIRECTION ======
+    /**
+     * 0=N, 1=E (right), 2=S, 3=W (left)
+     * Default facing is right (1). Used for rendering mirroring.
+     */
+    protected int facingDirection = 1;
+
     // ====== TIMING & AI ======
     protected long lastMoveTime = 0, lastAttackTime = 0;
     protected boolean hasNoticedPlayer = false;
     protected Random random = new Random();
+    @Override
+    public int getFacingDirection() { return facingDirection; }
+
+    @Override
+    public void setFacingDirection(int dir) {
+        this.facingDirection = ((dir % 4) + 4) % 4; // ensure 0-3
+    }
 
     // ====== DAMAGE TRACKING ======
     private int pendingPlayerDamage = 0;
@@ -52,7 +67,16 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     // ====== BASIC GETTERS/SETTERS ======
     @Override public int getX() { return x; }
     @Override public int getY() { return y; }
-    @Override public void setPosition(int x, int y) { this.x = x; this.y = y; }
+    @Override
+    public void setPosition(int x, int y) {
+        int dx = x - this.x;
+        // Only update facing if moving left or right
+        if (dx != 0) {
+            setFacingDirection(dx > 0 ? 1 : 3); // 1=E, 3=W
+        }
+        this.x = x;
+        this.y = y;
+    }
     @Override public int getHp() { return hp; }
     @Override public int getMaxHp() { return maxHp; }
     @Override public void setHp(int hp) { this.hp = Math.max(0, Math.min(hp, maxHp)); }
@@ -110,17 +134,19 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     private int selectAttackType() {
         int roll = random.nextInt(100), cumulative = 0;
-        for (int i = 0; i < stats.attackChances.length; i++) {
+        for (int i = 1; i < stats.attackChances.length; i++) { // start at 1
             cumulative += stats.attackChances[i];
             if (roll < cumulative) return i;
         }
-        return 0; // Fallback
+        return 1; 
     }
+
 
     // ====== MOVEMENT ======
     private boolean executeMovement(CollisionManager.Position pos) {
         if (!canMove() || collisionManager == null || pos == null) return false;
-        x = pos.x; y = pos.y; lastMoveTime = System.currentTimeMillis();
+        setPosition(pos.x, pos.y);
+        lastMoveTime = System.currentTimeMillis();
         return true;
     }
 
@@ -129,7 +155,17 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     }
 
     protected void moveToward(int px, int py) {
-        executeMovement(collisionManager != null ? collisionManager.findSmartMoveToward(this, px, py) : null);
+        CollisionManager.Position next = collisionManager != null ? collisionManager.findSmartMoveToward(this, px, py) : null;
+        if (next != null) {
+            // Set facing direction based on movement
+            int dx = next.x - x;
+            int dy = next.y - y;
+            if (dx > 0) setFacingDirection(1); // East
+            else if (dx < 0) setFacingDirection(3); // West
+            else if (dy < 0) setFacingDirection(0); // North
+            else if (dy > 0) setFacingDirection(2); // South
+        }
+        executeMovement(next);
     }
 
     // ====== AI LOOP ======
