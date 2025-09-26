@@ -53,14 +53,14 @@ public class Wizard extends AbstractPlayer {
         
         // Start attack animation (use proper animation duration, not cooldown)
         combatState.startAttack(attackType, AnimationConfig.getPlayerAnimationDuration("attack"));
-        lastAttackTime = System.currentTimeMillis();
+        lastAttackTimes[attackType] = System.currentTimeMillis();
     }
     
-    public Projectile createProjectile(int attackType, List<Enemy> enemies) {
-        // Find closest enemy
-        Enemy closestEnemy = findClosestEnemy(enemies);
+    public Projectile createProjectile(int attackType, List<Enemy> enemies, map.FogOfWar fogOfWar) {
+        // Find closest visible enemy
+        Enemy closestEnemy = findClosestVisibleEnemy(enemies, fogOfWar);
         if (closestEnemy == null) {
-            return null; // No targets available
+            return null; // No visible targets available
         }
         
         // Create appropriate projectile type
@@ -70,12 +70,12 @@ public class Wizard extends AbstractPlayer {
         return new Projectile(projectileType, x, y, closestEnemy);
     }
 
-    private Enemy findClosestEnemy(List<Enemy> enemies) {
+    private Enemy findClosestVisibleEnemy(List<Enemy> enemies, map.FogOfWar fogOfWar) {
         Enemy closestEnemy = null;
         double closestDistance = Double.MAX_VALUE;
         
         for (Enemy enemy : enemies) {
-            if (!enemy.isDead()) {
+            if (!enemy.isDead() && isEnemyVisible(enemy, fogOfWar)) {
                 double distance = Math.sqrt(
                     (enemy.getX() - x) * (enemy.getX() - x) + 
                     (enemy.getY() - y) * (enemy.getY() - y)
@@ -90,25 +90,37 @@ public class Wizard extends AbstractPlayer {
         
         return closestEnemy;
     }
+
+    // NOTE: The Wizard can see all enemies if fog of war is disabled
+    // NOTE: Can only perform spell attacks on visible enemies, else the spell fizzles
+    private boolean isEnemyVisible(Enemy enemy, map.FogOfWar fogOfWar) {
+        // If fog of war is null, assume everything is visible
+        if (fogOfWar == null) {
+            return true;
+        }
+        
+        // Check if the enemy's position is visible
+        return fogOfWar.isVisible(enemy.getX(), enemy.getY());
+    }
     
     @Override
-    public int getAttackDamage() {
-        return calculateDamage(1); // Use basic spell (type 1)
-    }
+    public int getAttackDamage(int attackType) { return calculateDamage(attackType); }
     
     public int calculateDamage(int attackType) {
         PlayerConfig.AttackConfig attackConfig = getAttackConfig(attackType);
         PlayerConfig.PlayerLevelStats stats = PlayerConfig.getWizardStats(level);
         
+        // Calculate base damage including weapon bonus
+        int weaponBonus = (equippedWeapon != null) ? equippedWeapon.getDamageBonus() : 0;
+        int totalBaseDamage = baseDamage + weaponBonus;
+        
         // Check for critical hit
         int totalCritChance = stats.criticalChance + attackConfig.criticalBonus;
         boolean isCritical = Dice.checkChance(totalCritChance);
         
-        return PlayerConfig.calculatePlayerDamage(baseDamage, attackConfig, isCritical, stats.criticalMultiplier);
+        return PlayerConfig.calculatePlayerDamage(totalBaseDamage, attackConfig, isCritical, stats.criticalMultiplier);
     }
     
     @Override
-    public void useItem(int slot) {
-        // TODO: Implement inventory and item usage
-    }
+    public void useItem(int slot) { inventory.useItem(slot, this); }
 }

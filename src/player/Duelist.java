@@ -50,27 +50,31 @@ public class Duelist extends AbstractPlayer {
         
         // Start attack animation (use proper animation duration, not cooldown)
         combatState.startAttack(attackType, AnimationConfig.getPlayerAnimationDuration("attack"));
-        lastAttackTime = System.currentTimeMillis();
+        lastAttackTimes[attackType] = System.currentTimeMillis();
     }
     
     @Override
-    public int getAttackDamage() {
-        return calculateDamage(1); // Use basic attack (type 1)
+    public int getAttackDamage(int attackType) {
+        return calculateDamage(attackType); 
     }
     
     public int calculateDamage(int attackType) {
         PlayerConfig.AttackConfig attackConfig = getAttackConfig(attackType);
         PlayerConfig.PlayerLevelStats stats = PlayerConfig.getDuelistStats(level);
         
+        // Calculate base damage including weapon bonus
+        int weaponBonus = (equippedWeapon != null) ? equippedWeapon.getDamageBonus() : 0;
+        int totalBaseDamage = baseDamage + weaponBonus;
+        
         // Check for critical hit
         int totalCritChance = stats.criticalChance + attackConfig.criticalBonus;
         boolean isCritical = Dice.checkChance(totalCritChance);
         
-        return PlayerConfig.calculatePlayerDamage(baseDamage, attackConfig, isCritical, stats.criticalMultiplier);
+        return PlayerConfig.calculatePlayerDamage(totalBaseDamage, attackConfig, isCritical, stats.criticalMultiplier);
     }
 
     @Override
     public void useItem(int slot) {
-        // TODO: Implement inventory and item usage
+        inventory.useItem(slot, this);
     }
 }
