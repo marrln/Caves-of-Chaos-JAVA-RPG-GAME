@@ -2,19 +2,16 @@ package graphics;
 
 import config.Config;
 import core.CombatState;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.util.HashMap;
+import java.util.Map;
 import map.FogOfWar;
 import player.AbstractPlayer;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
-import java.util.HashMap;
-import java.util.Map;
-
 public class PlayerRenderer {
 
-    private static final boolean useGraphics = Config.getBoolSetting("use_graphics");
+    private static final boolean USE_GRAPHICS = Config.getBoolSetting("use_graphics");
     private static final SpriteSheetLoader sheetLoader = new SpriteSheetLoader();
 
     // Cache scaled sprite frames: assetId → BufferedImage[]
@@ -26,17 +23,6 @@ public class PlayerRenderer {
     private static long lastFrameTime = 0;
     private static final int FRAME_DURATION = 150; // ms per frame
 
-    /**
-     * Render the player with optional scaling.
-     *
-     * @param g2d Graphics2D
-     * @param player AbstractPlayer
-     * @param tileSize Base tile size
-     * @param cameraOffsetX Camera X offset in pixels
-     * @param cameraOffsetY Camera Y offset in pixels
-     * @param fog FogOfWar object (can be null)
-     * @param scale Scale factor (1.0 = normal tileSize, 2.0 = double, etc.)
-     */
     public static void renderPlayer(Graphics2D g2d,
                                     AbstractPlayer player,
                                     int tileSize,
@@ -51,7 +37,7 @@ public class PlayerRenderer {
         int screenX = (player.getX() * tileSize) - cameraOffsetX;
         int screenY = (player.getY() * tileSize) - cameraOffsetY;
 
-        if (!useGraphics) {
+        if (!USE_GRAPHICS) {
             // fallback circle
             g2d.setColor(Color.CYAN);
             g2d.fillOval(screenX, screenY, scaledTile, scaledTile);

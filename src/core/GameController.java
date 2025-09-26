@@ -138,13 +138,6 @@ public class GameController {
         }
     }
 
-    private Enemy findEnemyAt(int x, int y) {
-        for (Enemy e : gameState.getCurrentEnemies()) {
-            if (!e.isDead() && e.getX() == x && e.getY() == y) return e;
-        }
-        return null;
-    }
-
     // ====== ITEMS ======
     public void useItem(int slot) {
         AbstractPlayer player = gameState.getPlayer();
@@ -176,8 +169,8 @@ public class GameController {
         }
 
         if (player.getInventory().addItem(item)) {
-            tile.removeItem();
             gameState.logMessage("Picked up: " + item.getName());
+            tile.removeItem();
         } else {
             gameState.logMessage("Inventory is full!");
         }

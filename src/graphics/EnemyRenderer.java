@@ -15,7 +15,7 @@ import map.FogOfWar;
 public class EnemyRenderer {
 
     // === Config flag ===
-    private static final boolean useGraphics = Config.getBoolSetting("use_graphics");
+    private static final boolean USE_GRAPHICS = Config.getBoolSetting("use_graphics");
 
     // Enemy visuals
     private static final int ENEMY_CIRCLE_SIZE = 28;
@@ -60,7 +60,7 @@ public class EnemyRenderer {
 
         float visibility = fogOfWar != null ? fogOfWar.getVisibilityStrength(enemy.getX(), enemy.getY()) : 1.0f;
 
-        if (useGraphics && enemy instanceof AbstractEnemy ae) {
+        if (USE_GRAPHICS && enemy instanceof AbstractEnemy ae) {
             renderEnemySprite(g2d, screenX, screenY, ae, scaledTile, visibility);
         } else {
             renderEnemyCircle(g2d, screenX, screenY, getEnemyColor(enemy), enemy, visibility);

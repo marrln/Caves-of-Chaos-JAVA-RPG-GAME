@@ -105,9 +105,9 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     @Override
     public int getAttackDamage() {
-        int type = combatState.getAttackType();
-        if (type < 0 || type >= stats.attackDamageMultipliers.length) type = 0;
-        int base = (stats.baseDamage * stats.attackDamageMultipliers[type]) / 100;
+        int attackType = combatState.getAttackType();
+        if (attackType < 0 || attackType >= stats.attackDamageMultipliers.length) attackType = 0;
+        int base = (stats.baseDamage * stats.attackDamageMultipliers[attackType]) / 100;
         return Dice.calculateDamage(base, stats.diceSides, stats.variationPercent);
     }
 
