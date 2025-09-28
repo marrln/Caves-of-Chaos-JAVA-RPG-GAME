@@ -13,25 +13,16 @@ public class CollisionManager {
         int getY();
         default int getCollisionRadius() { return 0; }
         default boolean isSolid() { return true; }
-        /**
-         * Returns the facing direction in cardinal degrees: 0=N, 1=E, 2=S, 3=W.
-         * For rendering, 1=E (right) is default, 3=W (left) means mirrored.
-         */
+
+        // Returns the facing direction in cardinal degrees: 0=N, 1=E, 2=S, 3=W.
+        // For rendering, 1=E (right) is default, 3=W (left) means mirrored.
         int getFacingDirection();
-        /**
-         * Set the facing direction (0=N, 1=E, 2=S, 3=W)
-         */
         void setFacingDirection(int dir);
-        /**
-         * Utility: true if facing left (W)
-         */
         default boolean isFacingLeft() { return getFacingDirection() == 3; }
     }
 
-    /**
-     * Utility: Convert a movement offset (dx, dy) to a facing direction (0=N, 1=E, 2=S, 3=W).
-     * Returns -1 if no movement.
-     */
+    // Convert a movement offset (dx, dy) to a facing direction (0=N, 1=E, 2=S, 3=W).
+    // Returns -1 if no movement.
     public static int getDirectionFromOffset(int dx, int dy) {
         if (dx == 0 && dy == 0) return -1;
         if (Math.abs(dx) > Math.abs(dy)) {

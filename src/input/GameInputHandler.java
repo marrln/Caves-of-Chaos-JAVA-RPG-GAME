@@ -37,25 +37,12 @@ public class GameInputHandler extends KeyAdapter {
     private long lastMovementTime = 0;
     private long lastActionTime = 0;
     
-    /**
-     * Creates a new GameInputHandler.
-     * 
-     * @param gameState The current game state
-     * @param controller The game controller for processing actions
-     * @param gamePanel The game panel for camera and rendering operations
-     */
     public GameInputHandler(GameState gameState, GameController controller, GamePanel gamePanel) {
         this.gameState = gameState;
         this.controller = controller;
         this.gamePanel = gamePanel;
     }
     
-    /**
-     * Sets the UI manager for boundary checking.
-     * This should be called after the UI manager is initialized.
-     * 
-     * @param uiManager The UI manager instance
-     */
     public void setUIManager(GameUIManager uiManager) {
         this.uiManager = uiManager;
     }
@@ -185,11 +172,11 @@ public class GameInputHandler extends KeyAdapter {
             }
             
             // Debug controls
-            case KeyEvent.VK_C -> {
-                // Debug key: manually recenter camera on player
-                gamePanel.centerCameraOnPlayer();
-                return; // Don't process further
-            }
+            // case KeyEvent.VK_C -> {
+            //     // Debug key: manually recenter camera on player
+            //     gamePanel.centerCameraOnPlayer();
+            //     return; // Don't process further
+            // }
             case KeyEvent.VK_F -> {
                 // Debug key: toggle fog of war
                 gamePanel.toggleFogOfWar();
@@ -221,25 +208,14 @@ public class GameInputHandler extends KeyAdapter {
         }
     }
     
-    /**
-     * Processes movement input and validates the move before executing it.
-     * 
-     * @param dx The horizontal movement delta (-1, 0, or 1)
-     * @param dy The vertical movement delta (-1, 0, or 1)
-     */
     private void handleMovementInput(int dx, int dy) {
-        // Safety checks to prevent crashes
-        if (gameState == null || controller == null) return;
-        
-        AbstractPlayer player = gameState.getPlayer();
-        if (player == null) return;
-        
+
+        AbstractPlayer player = gameState.getPlayer();        
         int newX = player.getX() + dx;
         int newY = player.getY() + dy;
         
         // Check if the position is within the visible UI boundaries
-        boolean isVisible = (uiManager == null) || 
-                            uiManager.isPositionVisible(newX, newY);
+        boolean isVisible = (uiManager == null) || uiManager.isPositionVisible(newX, newY);
         
         // Only try to move if within visible area
         if (isVisible) {
@@ -257,14 +233,10 @@ public class GameInputHandler extends KeyAdapter {
         
         AbstractPlayer player = gameState.getPlayer();
         GameMap map = gameState.getCurrentMap();
-        
         if (player == null || map == null) return;
         
         // Update camera to follow player
         gamePanel.getCamera().setMapSize(map.getWidth(), map.getHeight());
         gamePanel.getCamera().centerOn(player.getX(), player.getY());
-        
-        // Let the main game loop handle repainting to avoid excessive render calls
-        // gamePanel.repaint(); // Removed - handled by game timer
     }
 }

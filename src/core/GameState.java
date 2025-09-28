@@ -99,6 +99,8 @@ public final class GameState {
     }
 
     private void updateCollisionEntities() {
+        if (collisionManager == null) return;
+
         List<utils.CollisionManager.Positionable> entities = new ArrayList<>();
         entities.add(player);
         for (Enemy enemy : currentEnemies) {
@@ -213,9 +215,6 @@ public final class GameState {
                 }
             }
         }
-
-        // Ensure collision manager is updated so dead enemies no longer block tiles
-        updateCollisionEntities();
 
         musicManager.updateForCombatState(currentEnemies);
     }
