@@ -5,7 +5,7 @@ import config.Config;
 import config.PlayerConfig;
 import core.CombatState;
 import items.Inventory;
-import items.WeaponItem;
+import items.Weapon;
 import utils.CollisionManager;
 
 public abstract class AbstractPlayer implements CollisionManager.Positionable {
@@ -22,11 +22,16 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     // ====== INVENTORY & EQUIPMENT ======
     protected Inventory inventory = new Inventory();
-    protected WeaponItem equippedWeapon;
+    protected Weapon equippedWeapon;
 
     // ====== COMBAT ======
     protected CombatState combatState = new CombatState();
     protected long[] lastAttackTimes = new long[3]; // Index 0 unused, 1 and 2 for attack types
+
+    // ====== FOR EFFECT TRACKING ======
+    private long healingEffectEndTime = 0;
+    private long manaEffectEndTime = 0;
+    private static final int EFFECT_DURATION = 800; // milliseconds
 
     // ====== DIRECTION ======
     /**
@@ -99,9 +104,9 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     // ====== INVENTORY & EQUIPMENT ======
     public Inventory getInventory() { return inventory; }
-    public WeaponItem getEquippedWeapon() { return equippedWeapon; }
+    public Weapon getEquippedWeapon() { return equippedWeapon; }
 
-    public boolean equipWeapon(WeaponItem weapon) {
+    public boolean equipWeapon(Weapon weapon) {
         if (weapon != null && weapon.canUse(this)) {
             equippedWeapon = weapon;
             return true;
@@ -109,8 +114,8 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         return false;
     }
 
-    public WeaponItem unequipWeapon() {
-        WeaponItem weapon = equippedWeapon;
+    public Weapon unequipWeapon() {
+        Weapon weapon = equippedWeapon;
         equippedWeapon = null;
         return weapon;
     }
@@ -126,6 +131,11 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         mp = Math.min(maxMp, mp + amount);
         return mp - oldMp;
     }
+
+    public void triggerHealingEffect() { healingEffectEndTime = System.currentTimeMillis() + EFFECT_DURATION; }
+    public boolean isHealingEffectActive() { return System.currentTimeMillis() < healingEffectEndTime; }
+    public void triggerManaEffect() { manaEffectEndTime = System.currentTimeMillis() + EFFECT_DURATION; }
+    public boolean isManaEffectActive() { return System.currentTimeMillis() < manaEffectEndTime; }
 
     public void addExperience(int gained) {
         exp += gained;

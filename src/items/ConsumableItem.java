@@ -15,17 +15,11 @@ public abstract class ConsumableItem extends Item {
         this.maxStack = maxStack;
     }
     
-    // ====== QUANTITY MANAGEMENT ======
     public int getQuantity() { return quantity; }
     public int getMaxStack() { return maxStack; }
     
-    public boolean canAddQuantity(int amount) {
-        return quantity + amount <= maxStack;
-    }
-    
-    public void addQuantity(int amount) {
-        quantity = Math.min(maxStack, quantity + amount);
-    }
+    public boolean canAddQuantity(int amount) { return quantity + amount <= maxStack; }
+    public void addQuantity(int amount) { quantity = Math.min(maxStack, quantity + amount); }
     
     public boolean consume() {
         if (quantity > 0) {
@@ -35,20 +29,9 @@ public abstract class ConsumableItem extends Item {
         return false;
     }
     
-    public void consume(int amount) {
-        quantity = Math.max(0, quantity - amount);
-    }
+    public boolean canStack(ConsumableItem other) { return this.getClass().equals(other.getClass()) && canAddQuantity(other.getQuantity()); }
+    public boolean isEmpty() { return quantity <= 0; }
     
-    public boolean canStack(ConsumableItem other) {
-        return this.getClass().equals(other.getClass()) && 
-               canAddQuantity(other.getQuantity());
-    }
-    
-    public boolean isEmpty() {
-        return quantity <= 0;
-    }
-    
-    // ====== USAGE ======
     @Override
     public boolean use(player.AbstractPlayer player) {
         if (canUse(player) && consume()) {
@@ -56,13 +39,7 @@ public abstract class ConsumableItem extends Item {
         }
         return false;
     }
-    
-    // ====== DISPLAY ======
-    @Override
-    public String getDisplayName() {
-        return name + " " + quantity + "/" + maxStack;
-    }
-    
-    // ====== ABSTRACT METHODS ======
+
+    @Override public String getDisplayName() { return name + " " + quantity + "/" + maxStack; }
     protected abstract boolean applyEffect(player.AbstractPlayer player);
 }

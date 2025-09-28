@@ -1,38 +1,58 @@
 package items;
 
+import player.AbstractPlayer;
+
 /**
  * A weapon that can be equipped by a player to increase damage output.
  */
-public class Weapon extends WeaponItem {
+public class Weapon extends Item {
     
-    private final String weaponType;
-    
-    /**
-     * Creates a new weapon.
-     * 
-     * @param name The name of the weapon
-     * @param description The description of the weapon
-     * @param damageBonus The bonus damage the weapon provides
-     * @param playerClass The player class that can use this weapon ("any", "duelist", or "wizard")
-     * @param weaponType The type of weapon for display
-     */
+    private final int damageBonus;
+    private final String playerClass; // "duelist", "wizard", or "any"
+    private final String weaponType;  // "sword", "staff", etc.
+
     public Weapon(String name, String description, int damageBonus, String playerClass, String weaponType) {
-        super(name, description, damageBonus, playerClass);
+        super(name, ItemType.WEAPON, description);
+        this.damageBonus = damageBonus;
+        this.playerClass = playerClass;
         this.weaponType = weaponType;
     }
-    
+
+    // ====== GETTERS ======
+    public int getDamageBonus() { return damageBonus; }
+    public String getPlayerClass() { return playerClass; }
+    public String getWeaponType() { return weaponType; }
+
+    // ====== USAGE ======
     @Override
-    public String getWeaponType() {
-        return weaponType;
+    public boolean canUse(AbstractPlayer player) {
+        // Check if weapon is for the correct player class
+        String playerClassName = player.getClass().getSimpleName().toLowerCase();
+        return playerClass.equals("any") || playerClassName.contains(playerClass);
     }
-    
+
+    @Override
+    public boolean use(AbstractPlayer player) {
+        // Weapons are equipped/unequipped, not consumed
+        if (canUse(player)) {
+            if (player.getEquippedWeapon() == this) {
+                player.unequipWeapon();
+                return true;
+            } else {
+                return player.equipWeapon(this);
+            }
+        }
+        return false;
+    }
+
+    // ====== DISPLAY ======
     @Override
     public String getDisplayName() {
-        return getName() + " (+" + getDamageBonus() + " dmg)";
+        return getName() + " (+" + damageBonus + " dmg)";
     }
-    
+
     @Override
     public Item copy() {
-        return new Weapon(getName(), getDescription(), getDamageBonus(), getPlayerClass(), weaponType);
+        return new Weapon(getName(), getDescription(), damageBonus, playerClass, weaponType);
     }
 }

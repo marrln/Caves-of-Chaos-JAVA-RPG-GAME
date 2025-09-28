@@ -36,7 +36,7 @@ public class ShardOfJudgement extends Item {
                 // Signal to restart the game (will be handled by main game loop)
                 victoryTriggered = false;
                 System.out.println("Player chose to play again!");
-                // For now, just exit - a proper restart would require main game loop changes
+                // TODO: For now, just exit - a proper restart would require main game loop changes
                 System.exit(0);
             } else {
                 // Exit the game

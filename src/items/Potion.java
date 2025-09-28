@@ -28,11 +28,13 @@ public class Potion extends ConsumableItem {
         if (hpRestore > 0) {
             int actualHpRestored = player.restoreHp(hpRestore);
             used = actualHpRestored > 0;
+            player.triggerHealingEffect();
         }
         
         if (mpRestore > 0) {
             int actualMpRestored = player.restoreMp(mpRestore);
             used = actualMpRestored > 0 || used;
+            player.triggerManaEffect();
         }
         
         return used;
