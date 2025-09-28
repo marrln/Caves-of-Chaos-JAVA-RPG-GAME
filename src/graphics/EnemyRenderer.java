@@ -46,7 +46,8 @@ public class EnemyRenderer {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         for (Enemy enemy : enemies) {
-            if (!enemy.isDead() && (fogOfWar == null || fogOfWar.isVisible(enemy.getX(), enemy.getY()))) {
+            // Always render, so DYING state is visible. Only filter by fog of war.
+            if (fogOfWar == null || fogOfWar.isVisible(enemy.getX(), enemy.getY())) {
                 renderEnemy(g2d, enemy, tileSize, cameraX, cameraY, fogOfWar, scale);
             }
         }
@@ -66,9 +67,11 @@ public class EnemyRenderer {
             renderEnemyCircle(g2d, screenX, screenY, getEnemyColor(enemy), enemy, visibility);
         }
 
-        if (visibility > 0.3f) {
+        if (!enemy.isDead() && visibility > 0.3f) {
             renderHealthBar(g2d, screenX, screenY, enemy, visibility);
-            if (visibility > 0.6f) renderEnemyName(g2d, screenX, screenY, enemy, visibility);
+        }
+        if (!enemy.isDead() && visibility > 0.6f) {
+            renderEnemyName(g2d, screenX, screenY, enemy, visibility);
         }
     }
 
@@ -81,15 +84,20 @@ public class EnemyRenderer {
         // Build asset key dynamically
         String enemyName = enemy.getName().toLowerCase().replace(" ", "_");
         String assetKey;
-        switch (state) {
-            case ATTACKING -> {
-                int attackType = combatState.getAttackType();
-                assetKey = enemyName + "_attack" + String.format("%02d", attackType);
+        boolean isDead = enemy.isDead();
+        if (isDead) {
+            assetKey = enemyName + "_death";
+        } else {
+            switch (state) {
+                case ATTACKING -> {
+                    int attackType = combatState.getAttackType();
+                    assetKey = enemyName + "_attack" + String.format("%02d", attackType);
+                }
+                case MOVING -> assetKey = enemyName + "_walk";
+                case HURT -> assetKey = enemyName + "_hurt";
+                case DYING -> assetKey = enemyName + "_death";
+                default -> assetKey = enemyName + "_idle";
             }
-            case MOVING -> assetKey = enemyName + "_walk";
-            case HURT -> assetKey = enemyName + "_hurt";
-            case DYING -> assetKey = enemyName + "_death";
-            default -> assetKey = enemyName + "_idle";
         }
 
         BufferedImage[] frames = spriteCache.computeIfAbsent(assetKey, key -> sheetLoader.loadFrames(key));
@@ -114,9 +122,15 @@ public class EnemyRenderer {
             return scaled;
         });
 
-        long now = System.currentTimeMillis();
-        int frameIndex = (int) ((now / 120) % scaledFrames.length); // 8 fps
-        BufferedImage frame = scaledFrames[frameIndex];
+        BufferedImage frame;
+        if (isDead) {
+            // Always show last frame of death animation
+            frame = scaledFrames[scaledFrames.length - 1];
+        } else {
+            long now = System.currentTimeMillis();
+            int frameIndex = (int) ((now / 120) % scaledFrames.length); // 8 fps
+            frame = scaledFrames[frameIndex];
+        }
 
         Composite original = g2d.getComposite();
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibility));
