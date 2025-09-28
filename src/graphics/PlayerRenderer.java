@@ -23,6 +23,11 @@ public class PlayerRenderer {
     private static long lastFrameTime = 0;
     private static final int FRAME_DURATION = 150; // ms per frame
 
+    private static BufferedImage[] healFrames = null;
+    private static BufferedImage[] manaFrames = null;
+    private static final String HEAL_EFFECT_ID = "health_potion_effect";
+    private static final String MANA_EFFECT_ID = "mana_potion_effect";
+
     public static void renderPlayer(Graphics2D g2d,
                                     AbstractPlayer player,
                                     int tileSize,
@@ -91,6 +96,9 @@ public class PlayerRenderer {
         } else {
             g2d.drawImage(frame, drawX, drawY, scaledTile, scaledTile, null);
         }
+
+        renderHealingEffect(g2d, player, drawX, drawY, scaledTile);
+        renderManaEffect(g2d, player, drawX, drawY, scaledTile);
     }
 
     private static String buildAssetId(AbstractPlayer player) {
@@ -107,4 +115,41 @@ public class PlayerRenderer {
             default -> className + "_idle";
         };
     }
+
+    private static void loadEffectFrames(String effectId, int scaledTile) {
+        SpriteSheetLoader loader = new SpriteSheetLoader();
+        BufferedImage[] originalFrames = loader.loadFrames(effectId);
+        BufferedImage[] scaledFrames = new BufferedImage[originalFrames.length];
+        for (int i = 0; i < originalFrames.length; i++) {
+            scaledFrames[i] = new BufferedImage(scaledTile, scaledTile, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = scaledFrames[i].createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(originalFrames[i], 0, 0, scaledTile, scaledTile, null);
+            g.dispose();
+        }
+
+        if (effectId.equals(HEAL_EFFECT_ID)) healFrames = scaledFrames;
+        else if (effectId.equals(MANA_EFFECT_ID)) manaFrames = scaledFrames;
+    }
+
+    private static void renderHealingEffect(Graphics2D g2d, AbstractPlayer player, int drawX, int drawY, int scaledTile) {
+        if (!player.isHealingEffectActive()) return;
+
+        if (healFrames == null) loadEffectFrames(HEAL_EFFECT_ID, scaledTile);
+        if (healFrames.length == 0) return;
+
+        int frameIndex = (int) ((System.currentTimeMillis() / 100) % healFrames.length);
+        g2d.drawImage(healFrames[frameIndex], drawX, drawY, scaledTile, scaledTile, null);
+    }
+
+    private static void renderManaEffect(Graphics2D g2d, AbstractPlayer player, int drawX, int drawY, int scaledTile) {
+        if (!player.isManaEffectActive()) return;
+
+        if (manaFrames == null) loadEffectFrames(MANA_EFFECT_ID, scaledTile);
+        if (manaFrames.length == 0) return;
+
+        int frameIndex = (int) ((System.currentTimeMillis() / 100) % manaFrames.length);
+        g2d.drawImage(manaFrames[frameIndex], drawX, drawY, scaledTile, scaledTile, null);
+    }
+
 }
