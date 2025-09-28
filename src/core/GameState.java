@@ -216,6 +216,8 @@ public final class GameState {
             }
         }
 
+        // Ensure collision entities are updated so dead enemies are no longer blocking
+        updateCollisionEntities();
         musicManager.updateForCombatState(currentEnemies);
     }
 
