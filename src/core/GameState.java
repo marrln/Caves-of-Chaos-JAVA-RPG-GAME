@@ -99,8 +99,6 @@ public final class GameState {
     }
 
     private void updateCollisionEntities() {
-        if (collisionManager == null) return;
-
         List<utils.CollisionManager.Positionable> entities = new ArrayList<>();
         entities.add(player);
         for (Enemy enemy : currentEnemies) {
@@ -198,41 +196,28 @@ public final class GameState {
         player.updateCombat();
 
         for (Enemy enemy : currentEnemies) {
-            if (!enemy.isDead()) {
-                enemy.update(player.getX(), player.getY());
+            enemy.update(player.getX(), player.getY());
 
-                if (enemy instanceof enemies.AbstractEnemy abstractEnemy) {
-                    if (abstractEnemy.hasPendingPlayerDamage()) {
-                        int dmg = abstractEnemy.getPendingPlayerDamage();
-                        logMessage(player.getName() + " takes " + dmg + " damage!");
+            if (!enemy.isDead() && enemy instanceof enemies.AbstractEnemy abstractEnemy) {
+                if (abstractEnemy.hasPendingPlayerDamage()) {
+                    int dmg = abstractEnemy.getPendingPlayerDamage();
+                    logMessage(player.getName() + " takes " + dmg + " damage!");
 
-                        if (player.takeDamage(dmg)) {
-                            if (!gameOver) {
-                                gameOver = true;
-                                logMessage(player.getName() + " has been defeated!");
-                                handlePlayerDeath();
-                            }
+                    if (player.takeDamage(dmg)) {
+                        if (!gameOver) {
+                            gameOver = true;
+                            logMessage(player.getName() + " has been defeated!");
+                            handlePlayerDeath();
                         }
                     }
                 }
             }
         }
 
+        // Ensure collision manager is updated so dead enemies no longer block tiles
+        updateCollisionEntities();
+
         musicManager.updateForCombatState(currentEnemies);
-
-        boolean enemiesRemoved = false;
-        for (int i = currentEnemies.size() - 1; i >= 0; i--) {
-            Enemy enemy = currentEnemies.get(i);
-            if (enemy.isDead()) {
-                if (enemy instanceof enemies.MedusaOfChaos) {
-                    handleMedusaDefeat(enemy.getX(), enemy.getY());
-                }
-                currentEnemies.remove(i);
-                enemiesRemoved = true;
-            }
-        }
-
-        if (enemiesRemoved) updateCollisionEntities();
     }
 
     // ====== PLAYER DEATH & BOSS ======
@@ -265,5 +250,5 @@ public final class GameState {
     public void setGameOver(boolean val) { this.gameOver = val; }
     public boolean canGoToNextLevel() { return currentLevel < (CAVE_MAX_LEVEL - 1); }
     public String getLevelDisplayString() { return "Cave Floor: " + (currentLevel + 1) + " of " + CAVE_MAX_LEVEL; }
-    public void logMessage(String msg) { uiManager.addLogMessage(msg); }
+    public void logMessage(String msg) { uiManager.addMessage(msg); }
 }
