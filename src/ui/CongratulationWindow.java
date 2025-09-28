@@ -12,12 +12,6 @@ public class CongratulationWindow extends JDialog {
     
     private boolean shouldPlayAgain = false;
     
-    /**
-     * Creates a new Congratulation window.
-     * 
-     * @param parent The parent frame
-     * @param playerName The name of the victorious player
-     */
     public CongratulationWindow(JFrame parent, String playerName) {
         super(parent, "Victory!", true);
         initializeWindow(playerName);
@@ -140,11 +134,6 @@ public class CongratulationWindow extends JDialog {
         return panel;
     }
     
-    /**
-     * Shows the Congratulation window and waits for user input.
-     * 
-     * @return true if the player wants to play again, false to exit
-     */
     public boolean showVictoryDialog() {
         // Make the dialog modal and wait for user input
         setModalityType(ModalityType.APPLICATION_MODAL);

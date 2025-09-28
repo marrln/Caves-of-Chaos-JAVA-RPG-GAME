@@ -5,7 +5,7 @@ import core.GameState;
 import items.Inventory;
 import items.Item;
 import items.Potion;
-import items.WeaponItem;
+import items.Weapon;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.swing.*;
@@ -15,8 +15,8 @@ import javax.swing.*;
  */
 public class StatusPanel extends JPanel {
     private GameState gameState;
-    private JPanel contentPanel;
-    private JScrollPane scrollPane;
+    private final JPanel contentPanel;
+    private final JScrollPane scrollPane;
 
     private static final int SECTION_SPACING = 10; // Between sections
     private static final int ITEM_SPACING = 0;     // Between items in the same section
@@ -91,7 +91,7 @@ public class StatusPanel extends JPanel {
 
         // EQUIPMENT section
         addSectionTitle("EQUIPMENT");
-        WeaponItem weapon = gameState.getPlayer().getEquippedWeapon();
+        Weapon weapon = gameState.getPlayer().getEquippedWeapon();
         if (weapon != null) {
             addText("Weapon: " + weapon.getName());
             addText("  +" + weapon.getDamageBonus() + " damage");

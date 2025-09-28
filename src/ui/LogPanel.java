@@ -15,7 +15,7 @@ public class LogPanel extends JPanel {
     private static final int PANEL_HEIGHT      = 160;
     private static final int SCROLLBAR_WIDTH   = 12;
     private static final int MARGIN_SIZE       = 8;
-    private static final int TYPEWRITER_DELAY  = 30; // ms per character
+    private static final int TYPEWRITER_DELAY  = 20; // ms per character
 
     // ====== UI COMPONENTS ======
     private final JTextArea logTextArea;
@@ -86,11 +86,7 @@ public class LogPanel extends JPanel {
         SwingUtilities.invokeLater(() -> {
             String msg = message.trim(); // <-- use a new local variable
             if (msg.isEmpty()) return;
-
-            // If a message is currently typing, complete it instantly
             if (isTyping) completeCurrentMessageInstantly();
-
-            // Start typing the new message
             startTypingMessage(msg);
         });
     }

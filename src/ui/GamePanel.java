@@ -103,7 +103,14 @@ public class GamePanel extends JPanel {
         );
 
         // Render projectiles
-        renderProjectiles(g2d, tileSize);
+        graphics.ProjectileRenderer.renderProjectiles(
+            g2d,
+            controller.getActiveProjectiles(),
+            tileSize,
+            camera.getX() * tileSize,
+            camera.getY() * tileSize,
+            2.0 
+            );
 
         // Render player (new PlayerRenderer)
         double spriteScale = 5; // 1.0 = normal size, >1.0 = bigger, <1.0 = smaller
@@ -182,33 +189,6 @@ public class GamePanel extends JPanel {
         repaint();
     }
 
-    /**
-     * Renders all active projectiles as colored dots.
-     * Fire spells appear as red dots, ice spells as blue dots.
-     */
-    private void renderProjectiles(Graphics2D g2d, int tileSize) {
-        java.util.List<core.Projectile> projectiles = controller.getActiveProjectiles();
-        
-        for (core.Projectile projectile : projectiles) {
-            int screenX = (int) ((projectile.getX() - camera.getX()) * tileSize);
-            int screenY = (int) ((projectile.getY() - camera.getY()) * tileSize);
-
-            switch (projectile.getType()) {
-                case FIRE_SPELL -> g2d.setColor(Color.RED);
-                case ICE_SPELL -> g2d.setColor(Color.CYAN);
-                default -> g2d.setColor(Color.YELLOW);
-            }
-
-            int dotSize = Math.max(4, tileSize / 4);
-            int dotX = screenX + (tileSize - dotSize) / 2;
-            int dotY = screenY + (tileSize - dotSize) / 2;
-
-            g2d.fillOval(dotX, dotY, dotSize, dotSize);
-
-            g2d.setColor(Color.WHITE);
-            g2d.drawOval(dotX, dotY, dotSize, dotSize);
-        }
-    }
 
     public void stopGameLoop() {
         if (gameTimer != null) gameTimer.stop();

@@ -13,14 +13,7 @@ import javax.swing.*;
 public class GameOverWindow extends JDialog {
     
     private boolean shouldRestart = false;
-    
-    /**
-     * Creates a new Game Over window.
-     * 
-     * @param parent The parent frame
-     * @param playerName The name of the player who died
-     * @param level The level the player reached
-     */
+
     public GameOverWindow(JFrame parent, String playerName, int level) {
         super(parent, "Game Over", true);
         initializeWindow(playerName, level);
@@ -135,11 +128,6 @@ public class GameOverWindow extends JDialog {
         return panel;
     }
     
-    /**
-     * Shows the Game Over window and waits for user input.
-     * 
-     * @return true if the player wants to restart, false to exit
-     */
     public boolean showGameOverDialog() {
         setVisible(true);
         return shouldRestart;
