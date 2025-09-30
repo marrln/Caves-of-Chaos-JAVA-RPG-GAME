@@ -9,13 +9,7 @@ public class MedusaOfChaos extends AbstractEnemy {
     
     private static int persistentHp = -1; // Shared HP across all instances
     private static boolean hasBeenCreated = false;
-    
-    /**
-     * Creates a new Medusa of Chaos at the specified position.
-     * 
-     * @param x The initial x position
-     * @param y The initial y position
-     */
+
     public MedusaOfChaos(int x, int y) {
         super(x, y, EnemyType.MEDUSA_OF_CHAOS);
         
@@ -30,10 +24,7 @@ public class MedusaOfChaos extends AbstractEnemy {
             }
         }
     }
-    
-    /**
-     * Overrides takeDamage to maintain persistent HP.
-     */
+
     @Override
     public boolean takeDamage(int damage) {
         boolean result = super.takeDamage(damage);
@@ -43,12 +34,7 @@ public class MedusaOfChaos extends AbstractEnemy {
         
         return result;
     }
-    
-    /**
-     * Checks if the boss has been defeated permanently.
-     * 
-     * @return true if the boss is dead
-     */
+
     public static boolean isBossDefeated() {
         return hasBeenCreated && persistentHp <= 0;
     }
@@ -61,11 +47,6 @@ public class MedusaOfChaos extends AbstractEnemy {
         hasBeenCreated = false;
     }
     
-    /**
-     * Gets the current persistent HP of the boss.
-     * 
-     * @return The boss's current HP, or -1 if not yet created
-     */
     public static int getPersistentHp() {
         return persistentHp;
     }

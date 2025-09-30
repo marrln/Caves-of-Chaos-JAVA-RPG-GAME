@@ -24,7 +24,7 @@
             <sprite id="medusa_of_chaos_attack01" path="src/assets/enemies/MedusaOfChaos/purple/Attack_1.png" frames="16"/>
             <sprite id="medusa_of_chaos_attack02" path="src/assets/enemies/MedusaOfChaos/purple/Attack_2.png" frames="7"/>
             <sprite id="medusa_of_chaos_attack03" path="src/assets/enemies/MedusaOfChaos/purple/Attack_3.png" frames="10"/>
-            <sprite id="medusa_of_chaos_dead" path="src/assets/enemies/MedusaOfChaos/purple/Dead.png" frames="3"/>
+            <sprite id="medusa_of_chaos_death" path="src/assets/enemies/MedusaOfChaos/purple/Dead.png" frames="3"/>
             <sprite id="medusa_of_chaos_hurt" path="src/assets/enemies/MedusaOfChaos/purple/Hurt.png" frames="3"/>
             <sprite id="medusa_of_chaos_idle02" path="src/assets/enemies/MedusaOfChaos/purple/Idle_2.png" frames="5"/>
             <sprite id="medusa_of_chaos_idle" path="src/assets/enemies/MedusaOfChaos/purple/Idle.png" frames="7"/>

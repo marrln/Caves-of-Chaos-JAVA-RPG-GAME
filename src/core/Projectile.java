@@ -95,6 +95,15 @@ public class Projectile {
     public void update(double deltaTime, GameMap gameMap, List<Enemy> enemies, map.FogOfWar fogOfWar) {
         if (!active) return;
 
+        // --- Check for collision with enemies BEFORE movement ---
+        for (Enemy enemy : enemies) {
+            if (!enemy.isDead() && isHitting(enemy)) {
+                hitTarget(enemy);
+                active = false;
+                return;
+            }
+        }
+
         // Update homing target
         if (lockedTarget != null && !lockedTarget.isDead()) {
             if (isEnemyVisible(lockedTarget, fogOfWar)) {
@@ -156,7 +165,7 @@ public class Projectile {
             return;
         }
 
-        // Enemy collision
+        // --- Check for collision with enemies AFTER movement ---
         for (Enemy enemy : enemies) {
             if (!enemy.isDead() && isHitting(enemy)) {
                 hitTarget(enemy);
