@@ -2,19 +2,6 @@ package config;
 
 import enemies.EnemyType;
 
-/**
- * Configuration class containing all enemy statistics and comba            case ARMORED_SKELETON -> new EnemyStats(
-                35,          // baseHp
-                6,           // baseDamage
-                18,          // expReward
-                1,           // movementSpeed
-                2000,        // attackCooldown (2.0 seconds)
-                4,           // noticeRadiuseters.
- * This class centralizes enemy balance configuration to make tweaking easier.
- * 
- * All damage values use dice-based calculations with the Dice utility class.
- * Attack chances should sum to 100 for each enemy type.
- */
 public class EnemyConfig {
     
     /**
@@ -204,42 +191,8 @@ public class EnemyConfig {
     /**
      * Gets the base movement cooldown in milliseconds.
      * This can be modified by enemy movement speed.
-     * 
-     * @return Base movement delay
      */
     public static int getBaseMovementCooldown() {
         return 800; // 0.8 seconds base movement
-    }
-    
-    /**
-     * Gets the maximum number of random movement attempts.
-     * Used when enemies perform Brownian (random) movement.
-     * 
-     * @return Maximum attempts for random movement
-     */
-    public static int getMaxRandomMoveAttempts() {
-        return 4; // Try up to 4 random directions
-    }
-    
-    /**
-     * Gets the attack names for display purposes.
-     * 
-     * @param type The enemy type
-     * @return Array of attack names corresponding to attack indices
-     */
-    public static String[] getAttackNames(EnemyType type) {
-        return switch (type) {
-            case SLIME -> new String[]{"Slime Strike", "Acid Splash"};
-            case ORC -> new String[]{"Sword Slash", "Heavy Swing"};
-            case SKELETON -> new String[]{"Bone Stab", "Bone Throw"};
-            case WEREWOLF -> new String[]{"Claw Swipe", "Savage Bite"};
-            case ARMORED_ORC -> new String[]{"Armored Slash", "Heavy Blow", "Shield Bash"};
-            case ARMORED_SKELETON -> new String[]{"Skeletal Strike", "Bone Crack", "Critical Stab"};
-            case ELITE_ORC -> new String[]{"Elite Slash", "Power Strike", "Berserker Rage"};
-            case GREATSWORD_SKELETON -> new String[]{"Greatsword Swing", "Devastating Slash", "Execution Strike"};
-            case ORC_RIDER -> new String[]{"Lance Strike", "Trample", "Charging Attack"};
-            case WEREBEAR -> new String[]{"Bear Claw", "Crushing Maul", "Intimidating Roar"};
-            case MEDUSA_OF_CHAOS -> new String[]{"Venomous Bite", "Petrifying Gaze", "Chaos Magic"};
-        };
     }
 }

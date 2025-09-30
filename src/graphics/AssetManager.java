@@ -29,6 +29,8 @@ public class AssetManager {
     private final Map<String, AssetInfo> assetInfos = new HashMap<>();
     private final Map<String, BufferedImage> imageCache = new HashMap<>();
     private final Set<String> missingAssets = new HashSet<>();
+    // Track tile asset IDs for preloading
+    private final Set<String> tileAssetIds = new HashSet<>();
 
     private AssetManager() {
         loadAssetPaths();
@@ -72,7 +74,15 @@ public class AssetManager {
         NodeList spriteNodes = parent.getElementsByTagName("sprite");
 
         for (int i = 0; i < spriteNodes.getLength(); i++) {
-            parseSpriteElement((Element) spriteNodes.item(i));
+            Element spriteElem = (Element) spriteNodes.item(i);
+            parseSpriteElement(spriteElem);
+            // If loading tiles, record the ID for preloading
+            if ("tiles".equals(parentTag)) {
+                String id = spriteElem.getAttribute("id");
+                if (id != null && !id.isEmpty()) {
+                    tileAssetIds.add(id);
+                }
+            }
         }
     }
 
@@ -178,13 +188,10 @@ public class AssetManager {
         return null;
     }
 
-    // For compatibility with TileRenderer
+    // Preload all assets defined as tiles in assets.xml
     public void preloadTileAssets() {
-        // Preload only assets that look like tiles (e.g., start with "tile_")
-        for (String id : assetInfos.keySet()) {
-            if (id.startsWith("tile_")) {
-                loadImage(id);
-            }
+        for (String id : tileAssetIds) {
+            loadImage(id);
         }
     }
 

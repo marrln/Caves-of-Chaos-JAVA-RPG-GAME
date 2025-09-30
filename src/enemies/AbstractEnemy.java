@@ -143,7 +143,7 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     }
 
     private void performBrownianMovement() {
-        executeMovement(collisionManager != null ? collisionManager.findRandomMove(this, EnemyConfig.getMaxRandomMoveAttempts(), random) : null);
+        executeMovement(collisionManager != null ? collisionManager.findRandomMove(this, 4, random) : null);
     }
 
     protected void moveToward(int px, int py) {
