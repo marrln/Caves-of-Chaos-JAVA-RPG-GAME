@@ -28,17 +28,13 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     protected CombatState combatState = new CombatState();
     protected long[] lastAttackTimes = new long[3]; // Index 0 unused, 1 and 2 for attack types
 
-    // ====== FOR EFFECT TRACKING ======
+    // ====== EFFECT TRACKING ======
     private long healingEffectEndTime = 0;
     private long manaEffectEndTime = 0;
     private static final int EFFECT_DURATION = 800; // milliseconds
 
     // ====== DIRECTION ======
-    /**
-     * 0=N, 1=E (right), 2=S, 3=W (left)
-     * Default facing is right (1). Used for rendering mirroring.
-     */
-    protected int facingDirection = 1;
+    protected int facingDirection = 1; // 0=N,1=E,2=S,3=W
 
     // ====== COLLISION ======
     private static CollisionManager collisionManager;
@@ -56,10 +52,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     @Override public int getY() { return y; }
     public void setPosition(int x, int y) {
         int dx = x - this.x;
-        // Only update facing if moving left or right
-        if (dx != 0) {
-            setFacingDirection(dx > 0 ? 1 : 3); // 1=E, 3=W
-        }
+        if (dx != 0) setFacingDirection(dx > 0 ? 1 : 3); // 1=E, 3=W
         this.x = x;
         this.y = y;
     }
@@ -67,9 +60,11 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     public boolean tryMoveTo(int newX, int newY) {
         if (collisionManager != null && collisionManager.canMoveTo(this, newX, newY)) {
             setPosition(newX, newY);
+            combatState.setState(CombatState.State.MOVING, AnimationConfig.getPlayerAnimationDuration("walk"));
             return true;
         } else if (collisionManager == null) {
             setPosition(newX, newY);
+            combatState.setState(CombatState.State.MOVING, AnimationConfig.getPlayerAnimationDuration("walk"));
             return true;
         }
         return false;
@@ -82,13 +77,8 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         return moved;
     }
 
-    @Override
-    public int getFacingDirection() { return facingDirection; }
-
-    @Override
-    public void setFacingDirection(int dir) {
-        this.facingDirection = ((dir % 4) + 4) % 4; // ensure 0-3
-    }
+    @Override public int getFacingDirection() { return facingDirection; }
+    @Override public void setFacingDirection(int dir) { this.facingDirection = ((dir % 4) + 4) % 4; }
 
     // ====== STATS & PROGRESSION ======
     public int getHp() { return hp; }
@@ -176,7 +166,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         if (remaining <= 0) return "Ready";
         return String.format("%.1fs", remaining / 1000.0);
     }
-
+    
     public void updateCombat() { combatState.update(); }
 
     // ====== RESTING ======

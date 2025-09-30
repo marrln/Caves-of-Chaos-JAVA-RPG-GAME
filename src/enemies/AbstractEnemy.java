@@ -23,25 +23,16 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     // ====== COMBAT ======
     protected CombatState combatState = new CombatState();
 
-
     // ====== DIRECTION ======
-    /**
-     * 0=N, 1=E (right), 2=S, 3=W (left)
-     * Default facing is right (1). Used for rendering mirroring.
-     */
-    protected int facingDirection = 1;
+    protected int facingDirection = 1; // Default facing right
 
     // ====== TIMING & AI ======
     protected long lastMoveTime = 0, lastAttackTime = 0;
     protected boolean hasNoticedPlayer = false;
     protected Random random = new Random();
-    @Override
-    public int getFacingDirection() { return facingDirection; }
 
-    @Override
-    public void setFacingDirection(int dir) {
-        this.facingDirection = ((dir % 4) + 4) % 4; // ensure 0-3
-    }
+    @Override public int getFacingDirection() { return facingDirection; }
+    @Override public void setFacingDirection(int dir) { this.facingDirection = ((dir % 4) + 4) % 4; }
 
     // ====== DAMAGE TRACKING ======
     private int pendingPlayerDamage = 0;
@@ -70,12 +61,12 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     @Override
     public void setPosition(int x, int y) {
         int dx = x - this.x;
-        // Only update facing if moving left or right
         if (dx != 0) {
             setFacingDirection(dx > 0 ? 1 : 3); // 1=E, 3=W
         }
         this.x = x;
         this.y = y;
+        lastMoveTime = System.currentTimeMillis();
     }
     @Override public int getHp() { return hp; }
     @Override public int getMaxHp() { return maxHp; }
@@ -134,19 +125,20 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     private int selectAttackType() {
         int roll = random.nextInt(100), cumulative = 0;
-        for (int i = 1; i < stats.attackChances.length; i++) { // start at 1
+        for (int i = 1; i < stats.attackChances.length; i++) { // Start from 1
             cumulative += stats.attackChances[i];
             if (roll < cumulative) return i;
         }
         return 1; 
     }
 
-
     // ====== MOVEMENT ======
     private boolean executeMovement(CollisionManager.Position pos) {
         if (!canMove() || collisionManager == null || pos == null) return false;
         setPosition(pos.x, pos.y);
-        lastMoveTime = System.currentTimeMillis();
+        // MOVING state persists until tile reached
+        if (combatState.getCurrentState() != CombatState.State.MOVING)
+            combatState.setState(CombatState.State.MOVING, AnimationConfig.getEnemyAnimationDuration("walk"));
         return true;
     }
 
@@ -156,16 +148,21 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     protected void moveToward(int px, int py) {
         CollisionManager.Position next = collisionManager != null ? collisionManager.findSmartMoveToward(this, px, py) : null;
-        if (next != null) {
-            // Set facing direction based on movement
-            int dx = next.x - x;
-            int dy = next.y - y;
-            if (dx > 0) setFacingDirection(1); // East
-            else if (dx < 0) setFacingDirection(3); // West
-            else if (dy < 0) setFacingDirection(0); // North
-            else if (dy > 0) setFacingDirection(2); // South
-        }
+        if (next == null) return;
+
+        int dx = next.x - x;
+        int dy = next.y - y;
+        if (dx > 0) setFacingDirection(1);          // East
+        else if (dx < 0) setFacingDirection(3);     // West
+        else if (dy < 0) setFacingDirection(0);     // North
+        else if (dy > 0) setFacingDirection(2);     // South
+
         executeMovement(next);
+    }
+
+    private boolean isCurrentlyMoving() {
+        long now = System.currentTimeMillis();
+        return now - lastMoveTime < (EnemyConfig.getBaseMovementCooldown() / stats.movementSpeed);
     }
 
     // ====== AI LOOP ======
@@ -173,27 +170,31 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     public void update(int px, int py) {
         combatState.update();
         if (isDead()) return;
-
+        
+        // Handle attack
         if (combatState.getCurrentState() == CombatState.State.ATTACKING) {
             if (combatState.shouldDealDamage(AnimationConfig.getDamageTimingPercent())) dealDamageToPlayer(px, py);
             return;
         }
 
-        if (!combatState.canPerformAction(CombatState.ActionType.MOVE)) return;
+        // Handle movement
+        if (combatState.canPerformAction(CombatState.ActionType.MOVE)) {
+            double dist = Math.hypot(px - x, py - y);
+            if (dist <= stats.noticeRadius && !hasNoticedPlayer) {
+                hasNoticedPlayer = true;
+                if (combatLogger != null) combatLogger.accept(getNoticeMessage());
+            }
 
-        double dist = Math.hypot(px - x, py - y);
-        if (dist <= stats.noticeRadius && !hasNoticedPlayer) {
-            hasNoticedPlayer = true;
-            // Log the notice message when player is first detected
-            if (combatLogger != null) {
-                combatLogger.accept(getNoticeMessage());
+            if (hasNoticedPlayer) {
+                if (isAdjacent(px, py)) attemptAttack();
+                else moveToward(px, py);
+            } else performBrownianMovement();
+
+            // Finish MOVING when tile reached
+            if (combatState.getCurrentState() == CombatState.State.MOVING && !isCurrentlyMoving()) {
+                combatState.finishState();
             }
         }
-
-        if (hasNoticedPlayer) {
-            if (isAdjacent(px, py)) attemptAttack();
-            else moveToward(px, py);
-        } else performBrownianMovement();
     }
 
     // ====== DAMAGE TO PLAYER ======
@@ -215,7 +216,7 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     // ====== STATIC SETTERS ======
     public static void setCollisionManager(CollisionManager manager) { collisionManager = manager; }
     public static void setCombatLogger(Consumer<String> logger) { combatLogger = logger; }
-    
+
     // ====== ABSTRACT METHODS ======
     protected abstract String getNoticeMessage(); // Each enemy provides its own notice message that is logged when it first notices the player
 }
