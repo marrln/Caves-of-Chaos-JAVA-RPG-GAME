@@ -218,10 +218,6 @@ public class GameMap {
             }
         }
 
-        if (sealedTiles > 0) {
-            System.out.println("[MAP GENERATION] Sealed " + sealedTiles + " isolated floor tiles");
-        }
-
         // Verify the exit is still accessible after sealing
         return isPathConnected(entranceX, entranceY, exitX, exitY);
     }

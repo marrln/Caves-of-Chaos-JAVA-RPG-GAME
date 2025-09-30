@@ -58,8 +58,6 @@ public class AssetManager {
             loadSprites(doc, "items", "consumables");
             loadSprites(doc, "items", "projectiles");
             loadMusic(doc);
-
-            System.out.println("Loaded " + assetInfos.size() + " assets from assets.xml");
         } catch (Exception e) {
             System.err.println("Error loading assets.xml: " + e.getMessage());
             e.printStackTrace();
@@ -188,7 +186,6 @@ public class AssetManager {
                 loadImage(id);
             }
         }
-        System.out.println("Preloaded tile assets");
     }
 
 
