@@ -91,7 +91,7 @@ public class GamePanel extends JPanel {
         int tileSize = getTileSize();
 
         // Render enemies
-        double enemySpriteScale = 5; // Match player scale or adjust as needed
+        double enemySpriteScale = 6; // Match player scale or adjust as needed
         EnemyRenderer.renderEnemies(
             g2d,
             gameState.getCurrentEnemies(),
@@ -113,7 +113,7 @@ public class GamePanel extends JPanel {
             );
 
         // Render player (new PlayerRenderer)
-        double spriteScale = 5; // 1.0 = normal size, >1.0 = bigger, <1.0 = smaller
+        double spriteScale = 5.5;
         PlayerRenderer.renderPlayer(
             g2d,
             player,
@@ -177,10 +177,8 @@ public class GamePanel extends JPanel {
     private void updateGameLogic() {
         if (gameState == null) return;
 
-        gameState.updateEnemies();
-        
-        // Update projectiles
         controller.updateProjectiles(DELTA_TIME);
+        gameState.updateEnemies();
 
         AbstractPlayer player = gameState.getPlayer();
         if (player != null) camera.centerOn(player.getX(), player.getY());
