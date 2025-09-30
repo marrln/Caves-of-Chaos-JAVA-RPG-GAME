@@ -4,12 +4,18 @@ import config.Config;
 import core.CombatState;
 import enemies.AbstractEnemy;
 import enemies.Enemy;
-import java.awt.*;
+import enemies.EnemyType;
+import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Composite;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import map.FogOfWar;
 
 public class EnemyRenderer {
@@ -28,7 +34,6 @@ public class EnemyRenderer {
     private static final Color DEFAULT_ENEMY_COLOR = Color.RED;
     private static final Color BOSS_COLOR = new Color(150, 0, 150);
     private static final Color ELITE_COLOR = new Color(200, 100, 0);
-    private static final Color BASIC_COLOR = Color.RED;
 
     // Health bar colors
     private static final Color HEALTH_BAR_BACKGROUND = Color.DARK_GRAY;
@@ -38,200 +43,182 @@ public class EnemyRenderer {
 
     // === Sprite management ===
     private static final SpriteSheetLoader sheetLoader = new SpriteSheetLoader();
-    private static final Map<String, BufferedImage[]> spriteCache = new HashMap<>();
 
+    // === Public rendering entry point ===
     public static void renderEnemies(Graphics2D g2d, List<Enemy> enemies,
-                                     int tileSize, int cameraX, int cameraY, FogOfWar fogOfWar, double scale) {
+                                     int tileSize, int cameraX, int cameraY,
+                                     FogOfWar fogOfWar, double scale) {
         if (enemies == null || enemies.isEmpty()) return;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         for (Enemy enemy : enemies) {
-            // Always render, so DYING state is visible. Only filter by fog of war.
             if (fogOfWar == null || fogOfWar.isVisible(enemy.getX(), enemy.getY())) {
                 renderEnemy(g2d, enemy, tileSize, cameraX, cameraY, fogOfWar, scale);
             }
         }
     }
 
+    // === Internal rendering per enemy ===
     private static void renderEnemy(Graphics2D g2d, Enemy enemy,
-                                    int tileSize, int cameraX, int cameraY, FogOfWar fogOfWar, double scale) {
-        int scaledTile = (int)(tileSize * scale);
+                                    int tileSize, int cameraX, int cameraY,
+                                    FogOfWar fogOfWar, double scale) {
+
+        int scaledTile = (int) (tileSize * scale);
         int screenX = (enemy.getX() * tileSize) - cameraX + (tileSize / 2);
         int screenY = (enemy.getY() * tileSize) - cameraY + (tileSize / 2);
 
         float visibility = fogOfWar != null ? fogOfWar.getVisibilityStrength(enemy.getX(), enemy.getY()) : 1.0f;
 
+        boolean isMedusa = (enemy instanceof AbstractEnemy ae) && ae.getType() == EnemyType.MEDUSA_OF_CHAOS;
+        int medusaYOffset = 0;
+
+        if (isMedusa && USE_GRAPHICS) {
+            String assetKey = buildAssetKey((AbstractEnemy) enemy);
+            BufferedImage[] frames = sheetLoader.loadFrames(assetKey);
+            if (frames.length > 0) {
+                BufferedImage frame = frames[0];
+                medusaYOffset = Math.round(frame.getHeight() * 0.7f);
+            }
+        }
+
         if (USE_GRAPHICS && enemy instanceof AbstractEnemy ae) {
             renderEnemySprite(g2d, screenX, screenY, ae, scaledTile, visibility);
         } else {
-            renderEnemyCircle(g2d, screenX, screenY, getEnemyColor(enemy), enemy, visibility);
+            renderEnemyCircle(g2d, screenX, screenY, getEnemyColor(enemy), visibility);
         }
 
+        int overlayY = isMedusa && medusaYOffset > 0 ? screenY - medusaYOffset : screenY;
+
         if (!enemy.isDead() && visibility > 0.3f) {
-            renderHealthBar(g2d, screenX, screenY, enemy, visibility);
+            renderHealthBar(g2d, screenX, overlayY, enemy, visibility);
         }
         if (!enemy.isDead() && visibility > 0.6f) {
-            renderEnemyName(g2d, screenX, screenY, enemy, visibility);
+            renderEnemyName(g2d, screenX, overlayY, enemy, visibility);
         }
     }
 
-    // === SPRITE RENDERING WITH SCALING AND MIRRORING ===
+    // === Sprite rendering ===
     private static void renderEnemySprite(Graphics2D g2d, int x, int y,
                                           AbstractEnemy enemy, int scaledTile, float visibility) {
-        CombatState combatState = enemy.getCombatState();
-        CombatState.State state = combatState.getCurrentState();
 
-        // Build asset key dynamically
-        String enemyName = enemy.getName().toLowerCase().replace(" ", "_");
-        String assetKey;
-        boolean isDead = enemy.isDead();
-        if (isDead) {
-            assetKey = enemyName + "_death";
-        } else {
-            switch (state) {
-                case ATTACKING -> {
-                    int attackType = combatState.getAttackType();
-                    assetKey = enemyName + "_attack" + String.format("%02d", attackType);
-                }
-                case MOVING -> assetKey = enemyName + "_walk";
-                case HURT -> assetKey = enemyName + "_hurt";
-                case DYING -> assetKey = enemyName + "_death";
-                default -> assetKey = enemyName + "_idle";
-            }
-        }
+        String assetKey = buildAssetKey(enemy);
+        BufferedImage[] frames = sheetLoader.loadFrames(assetKey);
 
-        BufferedImage[] frames = spriteCache.computeIfAbsent(assetKey, key -> sheetLoader.loadFrames(key));
         if (frames.length == 0) {
-            renderEnemyCircle(g2d, x, y, DEFAULT_ENEMY_COLOR, enemy, visibility);
-            System.out.println("Missing enemy sprite for asset ID: " + assetKey);
+            renderEnemyCircle(g2d, x, y, DEFAULT_ENEMY_COLOR, visibility);
             return;
         }
 
-        // --- SCALE FRAMES ---
-        String scaledKey = assetKey + "_scaled_" + scaledTile;
-        BufferedImage[] scaledFrames = spriteCache.computeIfAbsent(scaledKey, key -> {
-            BufferedImage[] scaled = new BufferedImage[frames.length];
-            for (int i = 0; i < frames.length; i++) {
-                BufferedImage buf = new BufferedImage(scaledTile, scaledTile, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g = buf.createGraphics();
-                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                g.drawImage(frames[i], 0, 0, scaledTile, scaledTile, null);
-                g.dispose();
-                scaled[i] = buf;
-            }
-            return scaled;
-        });
-
+        boolean isMedusa = enemy.getType() == EnemyType.MEDUSA_OF_CHAOS;
         BufferedImage frame;
-        if (isDead) {
-            // Always show last frame of death animation
-            frame = scaledFrames[scaledFrames.length - 1];
+        int drawX, drawY, width, height;
+
+        if (isMedusa) {
+            frame = selectFrame(frames, enemy.isDead());
+            width = Math.round(frame.getWidth() * 0.7f);
+            height = Math.round(frame.getHeight() * 0.7f);
+            drawX = x - width / 2;
+            drawY = y - height + 16;
         } else {
-            long now = System.currentTimeMillis();
-            int frameIndex = (int) ((now / 120) % scaledFrames.length); // 8 fps
-            frame = scaledFrames[frameIndex];
+            BufferedImage[] scaledFrames = sheetLoader.loadFrames(assetKey, scaledTile);
+            frame = selectFrame(scaledFrames, enemy.isDead());
+            width = scaledTile;
+            height = scaledTile;
+            drawX = x - scaledTile / 2;
+            drawY = y - scaledTile / 2;
         }
 
+        drawWithAlpha(g2d, visibility, () -> {
+            if (enemy.isFacingLeft()) {
+                g2d.drawImage(frame, drawX + width, drawY, -width, height, null);
+            } else {
+                g2d.drawImage(frame, drawX, drawY, width, height, null);
+            }
+        });
+    }
+
+    // === Helpers ===
+    private static String buildAssetKey(AbstractEnemy enemy) {
+        CombatState combatState = enemy.getCombatState();
+        CombatState.State state = combatState.getCurrentState();
+        String enemyName = enemy.getName().toLowerCase().replace(" ", "_");
+
+        if (enemy.isDead() || state == CombatState.State.DYING) {
+            return enemyName + "_death";
+        }
+        return switch (state) {
+            case ATTACKING -> enemyName + "_attack" + String.format("%02d", combatState.getAttackType());
+            case MOVING -> enemyName + "_walk";
+            case HURT -> enemyName + "_hurt";
+            default -> enemyName + "_idle";
+        };
+    }
+
+    private static BufferedImage selectFrame(BufferedImage[] frames, boolean isDead) {
+        if (frames.length == 0) return null;
+        return isDead
+                ? frames[frames.length - 1]
+                : frames[(int) ((System.currentTimeMillis() / 120) % frames.length)];
+    }
+
+    private static void drawWithAlpha(Graphics2D g2d, float alpha, Runnable drawAction) {
         Composite original = g2d.getComposite();
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibility));
-
-        int drawX = x - scaledTile / 2;
-        int drawY = y - scaledTile / 2;
-
-        // Flip horizontally if enemy is facing left (via Positionable)
-        if (enemy.isFacingLeft()) {
-            g2d.drawImage(frame, drawX + scaledTile, drawY, -scaledTile, scaledTile, null);
-        } else {
-            g2d.drawImage(frame, drawX, drawY, scaledTile, scaledTile, null);
-        }
-
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+        drawAction.run();
         g2d.setComposite(original);
     }
 
-    // --- Remaining methods unchanged ---
     private static void renderEnemyCircle(Graphics2D g2d, int x, int y,
-                                          Color color, Enemy enemy, float visibility) {
-        Composite original = g2d.getComposite();
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibility));
+                                          Color color, float visibility) {
+        drawWithAlpha(g2d, visibility, () -> {
+            int cx = x - (ENEMY_CIRCLE_SIZE / 2);
+            int cy = y - (ENEMY_CIRCLE_SIZE / 2);
+            Ellipse2D.Double circle = new Ellipse2D.Double(cx, cy, ENEMY_CIRCLE_SIZE, ENEMY_CIRCLE_SIZE);
 
-        int cx = x - (ENEMY_CIRCLE_SIZE / 2);
-        int cy = y - (ENEMY_CIRCLE_SIZE / 2);
-        Ellipse2D.Double circle = new Ellipse2D.Double(cx, cy, ENEMY_CIRCLE_SIZE, ENEMY_CIRCLE_SIZE);
-
-        g2d.setColor(color);
-        g2d.fill(circle);
-        g2d.setColor(Color.BLACK);
-        g2d.setStroke(new BasicStroke(1.5f));
-        g2d.draw(circle);
-
-        if (enemy instanceof AbstractEnemy ae) renderCombatStateIndicator(g2d, x, y, ae, visibility);
-        g2d.setComposite(original);
+            g2d.setColor(color);
+            g2d.fill(circle);
+            g2d.setColor(Color.BLACK);
+            g2d.setStroke(new BasicStroke(1.5f));
+            g2d.draw(circle);
+        });
     }
 
-    private static void renderCombatStateIndicator(Graphics2D g2d, int x, int y, AbstractEnemy enemy, float visibility) {
-        int alpha;
-        switch (enemy.getCombatState().getCurrentState()) {
-            case ATTACKING -> {
-                alpha = (int) (100 * visibility);
-                g2d.setColor(new Color(255, 0, 0, alpha));
-                g2d.setStroke(new BasicStroke(3f));
-                int ringSize = ENEMY_CIRCLE_SIZE + 6;
-                g2d.drawOval(x - ringSize / 2, y - ringSize / 2, ringSize, ringSize);
-            }
-            case HURT -> {
-                alpha = (int) (150 * visibility);
-                g2d.setColor(new Color(255, 255, 0, alpha));
-                g2d.fillOval(x - ENEMY_CIRCLE_SIZE / 2, y - ENEMY_CIRCLE_SIZE / 2, ENEMY_CIRCLE_SIZE, ENEMY_CIRCLE_SIZE);
-            }
-            case DYING -> {
-                alpha = (int) (180 * visibility);
-                g2d.setColor(new Color(128, 128, 128, alpha));
-                g2d.fillOval(x - ENEMY_CIRCLE_SIZE / 2, y - ENEMY_CIRCLE_SIZE / 2, ENEMY_CIRCLE_SIZE, ENEMY_CIRCLE_SIZE);
-            }
-            default -> {}
-        }
+    private static void renderHealthBar(Graphics2D g2d, int x, int y,
+                                        Enemy enemy, float visibility) {
+        drawWithAlpha(g2d, visibility, () -> {
+            int barX = x - (HEALTH_BAR_WIDTH / 2);
+            int barY = y + HEALTH_BAR_OFFSET_Y;
+
+            g2d.setColor(HEALTH_BAR_BACKGROUND);
+            g2d.fillRect(barX, barY, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT);
+
+            double percent = (double) enemy.getHp() / enemy.getMaxHp();
+            int healthWidth = (int) (HEALTH_BAR_WIDTH * percent);
+
+            g2d.setColor(getHealthBarColor(percent));
+            g2d.fillRect(barX, barY, healthWidth, HEALTH_BAR_HEIGHT);
+
+            g2d.setColor(Color.BLACK);
+            g2d.drawRect(barX, barY, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT);
+        });
     }
 
-    private static void renderHealthBar(Graphics2D g2d, int x, int y, Enemy enemy, float visibility) {
-        Composite original = g2d.getComposite();
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibility));
+    private static void renderEnemyName(Graphics2D g2d, int x, int y,
+                                        Enemy enemy, float visibility) {
+        drawWithAlpha(g2d, visibility, () -> {
+            Font font = new Font("Arial", Font.BOLD, 10);
+            g2d.setFont(font);
 
-        int barX = x - (HEALTH_BAR_WIDTH / 2);
-        int barY = y + HEALTH_BAR_OFFSET_Y;
+            FontMetrics fm = g2d.getFontMetrics();
+            int textWidth = fm.stringWidth(enemy.getName());
+            int textX = x - (textWidth / 2);
+            int textY = y + NAME_OFFSET_Y;
 
-        g2d.setColor(HEALTH_BAR_BACKGROUND);
-        g2d.fillRect(barX, barY, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT);
-
-        double percent = (double) enemy.getHp() / enemy.getMaxHp();
-        int healthWidth = (int) (HEALTH_BAR_WIDTH * percent);
-
-        g2d.setColor(getHealthBarColor(percent));
-        g2d.fillRect(barX, barY, healthWidth, HEALTH_BAR_HEIGHT);
-
-        g2d.setColor(Color.BLACK);
-        g2d.drawRect(barX, barY, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT);
-
-        g2d.setComposite(original);
-    }
-
-    private static void renderEnemyName(Graphics2D g2d, int x, int y, Enemy enemy, float visibility) {
-        Composite original = g2d.getComposite();
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibility));
-
-        Font font = new Font("Arial", Font.BOLD, 10);
-        g2d.setFont(font);
-
-        FontMetrics fm = g2d.getFontMetrics();
-        int textWidth = fm.stringWidth(enemy.getName());
-        int textX = x - (textWidth / 2);
-        int textY = y + NAME_OFFSET_Y;
-
-        g2d.setColor(Color.BLACK);
-        g2d.drawString(enemy.getName(), textX + 1, textY + 1);
-        g2d.setColor(Color.WHITE);
-        g2d.drawString(enemy.getName(), textX, textY);
-
-        g2d.setComposite(original);
+            g2d.setColor(Color.BLACK);
+            g2d.drawString(enemy.getName(), textX + 1, textY + 1);
+            g2d.setColor(Color.WHITE);
+            g2d.drawString(enemy.getName(), textX, textY);
+        });
     }
 
     private static Color getEnemyColor(Enemy enemy) {
@@ -243,7 +230,7 @@ public class EnemyRenderer {
             case ARMORED_ORC, ARMORED_SKELETON -> new Color(180, 50, 50);
             case WEREWOLF -> new Color(139, 69, 19);
             case SLIME -> new Color(0, 200, 0);
-            default -> BASIC_COLOR;
+            default -> DEFAULT_ENEMY_COLOR;
         };
     }
 
