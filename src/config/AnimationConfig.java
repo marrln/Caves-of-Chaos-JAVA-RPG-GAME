@@ -75,7 +75,7 @@ public class AnimationConfig {
      * @return The frame number when damage should be dealt
      */
     public static int getDamageFrame(int totalFrames) {
-        return (int) Math.ceil(totalFrames * 0.6);
+        return (int) Math.ceil(totalFrames * 0.8);
     }
     
     /**
@@ -84,6 +84,6 @@ public class AnimationConfig {
      * @return The percentage (0-100)
      */
     public static int getDamageTimingPercent() {
-        return 60; // 60% through the animation
+        return 80; // 80% through the animation
     }
 }

@@ -197,8 +197,17 @@ public final class GameState {
         if (player == null) return;
         player.updateCombat();
 
+
         for (Enemy enemy : currentEnemies) {
+            boolean wasAlive = !enemy.isDead();
             enemy.update(player.getX(), player.getY());
+
+            // Handle Medusa defeat (on transition from alive to dead)
+            if (enemy instanceof enemies.MedusaOfChaos medusa) {
+                if (wasAlive && medusa.isDead()) {
+                    handleMedusaDefeat(medusa.getX(), medusa.getY());
+                }
+            }
 
             if (!enemy.isDead() && enemy instanceof enemies.AbstractEnemy abstractEnemy) {
                 if (abstractEnemy.hasPendingPlayerDamage()) {
