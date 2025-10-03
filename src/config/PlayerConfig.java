@@ -1,166 +1,124 @@
 package config;
 
 /**
- * Configuration class for player progression and combat statistics.
- * Centralizes all player-related balance parameters for easy tweaking.
+ * Central player progression and balance configuration.
  */
 public class PlayerConfig {
-    
-    /**
-     * Configuration data for player stats at each level.
-     */
+
+    // ===== XP & Leveling =====
+    public static final int[] LEVEL_XP_THRESHOLDS = {0, 300, 900, 2700, 6500, 14000};
+    public static final int MAX_LEVEL = LEVEL_XP_THRESHOLDS.length;
+
+    // ===== Base Stats =====
+    private static final int[][] DUELIST_STATS = {
+        {35, 0}, {60, 0}, {80, 0}, {90, 0}, {100, 0}, {140, 0}
+    };
+    private static final int[][] WIZARD_STATS = {
+        {20, 30}, {40, 50}, {50, 70}, {55, 90}, {60, 110}, {80, 140}
+    };
+
+    // ===== Attack Tables =====
+    // [levelIndex][attackIndex] = {diceCount, diceSides, diceBonus, mpCost, cooldown}
+    private static final int[][][] DUELIST_ATTACKS = {
+        {{1, 8, 0, 0, 800}, {1, 8, 0, 0, 1200}},
+        {{2, 6, 0, 0, 700}, {2, 6, 0, 0, 1100}},
+        {{2, 6, 2, 0, 700}, {2, 6, 2, 0, 1100}},
+        {{2, 8, 0, 0, 650}, {2, 8, 0, 0, 1000}},
+        {{3, 6, 2, 0, 600}, {3, 6, 2, 0, 900}},
+        {{3, 8, 0, 0, 600}, {3, 8, 0, 0, 900}}
+    };
+
+    private static final int[][][] WIZARD_ATTACKS = {
+        {{1, 6, 0, 5, 1000}, {1, 6, 0, 5, 1400}},
+        {{2, 6, 0, 8, 900},  {2, 6, 0, 8, 1300}},
+        {{2, 6, 2, 10, 900}, {2, 6, 2, 10, 1300}},
+        {{3, 6, 0, 12, 850}, {3, 6, 0, 12, 1200}},
+        {{3, 8, 0, 15, 800}, {3, 8, 0, 15, 1100}},
+        {{4, 6, 4, 18, 800}, {4, 6, 4, 18, 1100}}
+    };
+
+    // ===== XP Helpers =====
+    public static int getLevelForXp(int xp) {
+        for (int i = LEVEL_XP_THRESHOLDS.length - 1; i >= 0; i--) {
+            if (xp >= LEVEL_XP_THRESHOLDS[i]) return i + 1;
+        }
+        return 1;
+    }
+
+    public static int[] getXpRangeForLevel(int level) {
+        int idx = Math.max(0, Math.min(level - 1, LEVEL_XP_THRESHOLDS.length - 1));
+        int minXp = LEVEL_XP_THRESHOLDS[idx];
+        int maxXp = (idx + 1 < LEVEL_XP_THRESHOLDS.length) ? LEVEL_XP_THRESHOLDS[idx + 1] - 1 : Integer.MAX_VALUE;
+        return new int[]{minXp, maxXp};
+    }
+
+    // ===== Stats Classes =====
     public static class PlayerLevelStats {
-        public final int baseHp;
-        public final int baseMp;
-        public final int baseDamage;
-        public final int criticalChance;      // Percentage chance for critical hits
-        public final int criticalMultiplier;  // Damage multiplier for critical hits
-        public final int expToNextLevel;      // Experience needed to reach next level
-        
-        public PlayerLevelStats(int baseHp, int baseMp, int baseDamage, 
-                               int criticalChance, int criticalMultiplier, int expToNextLevel) {
-            this.baseHp = baseHp;
-            this.baseMp = baseMp;
-            this.baseDamage = baseDamage;
-            this.criticalChance = criticalChance;
-            this.criticalMultiplier = criticalMultiplier;
+        public final int maxHp, maxMp, expToNextLevel;
+        public final AttackConfig[] attacks;
+
+        public PlayerLevelStats(int maxHp, int maxMp, int expToNextLevel, AttackConfig[] attacks) {
+            this.maxHp = maxHp;
+            this.maxMp = maxMp;
             this.expToNextLevel = expToNextLevel;
+            this.attacks = attacks;
         }
     }
-    
-    /**
-     * Configuration for different attack types.
-     */
+
     public static class AttackConfig {
-        public final int baseDamage;
-        public final int mpCost;              // 0 for physical attacks
-        public final int cooldown;            // Milliseconds between uses
-        public final int criticalBonus;       // Additional critical chance for this attack
-        public final String name;
-        
-        public AttackConfig(int baseDamage, int mpCost, int cooldown, int criticalBonus, String name) {
-            this.baseDamage = baseDamage;
+        public final String logicalName, displayName;
+        public final int diceCount, diceSides, diceBonus, mpCost, cooldown;
+
+        public AttackConfig(String logicalName, String displayName, int diceCount, int diceSides, int diceBonus, int mpCost, int cooldown) {
+            this.logicalName = logicalName;
+            this.displayName = displayName;
+            this.diceCount = diceCount;
+            this.diceSides = diceSides;
+            this.diceBonus = diceBonus;
             this.mpCost = mpCost;
             this.cooldown = cooldown;
-            this.criticalBonus = criticalBonus;
-            this.name = name;
         }
     }
-    
-    /**
-     * Gets the base stats for a Duelist at the specified level.
-     * 
-     * @param level The character level (1-based)
-     * @return The level stats
-     */
+
+    // ===== Unified Generator (fixed: accepts level) =====
+    private static PlayerLevelStats buildStats(int[][] baseStats, int[][][] attackTable, int level, String atk1Name, String atk2Name) {
+        int lvl = Math.max(1, Math.min(level, MAX_LEVEL));
+        int idx = Math.max(0, Math.min(lvl - 1, baseStats.length - 1));
+
+        int maxHp = baseStats[idx][0];
+        int maxMp = baseStats[idx][1];
+
+        // expToNext: for last level, define as 0 (no next level)
+        int expToNext;
+        if (idx + 1 < LEVEL_XP_THRESHOLDS.length) {
+            expToNext = LEVEL_XP_THRESHOLDS[idx + 1] - LEVEL_XP_THRESHOLDS[idx];
+        } else {
+            expToNext = 0;
+        }
+
+        int[][] atkData = attackTable[idx];
+        AttackConfig[] attacks = new AttackConfig[] {
+            new AttackConfig("Attack01", atk1Name, atkData[0][0], atkData[0][1], atkData[0][2], atkData[0][3], atkData[0][4]),
+            new AttackConfig("Attack02", atk2Name, atkData[1][0], atkData[1][1], atkData[1][2], atkData[1][3], atkData[1][4])
+        };
+
+        return new PlayerLevelStats(maxHp, maxMp, expToNext, attacks);
+    }
+
+    // ===== Public API =====
     public static PlayerLevelStats getDuelistStats(int level) {
-        int baseHp = 100 + (level - 1) * 15;        // +15 HP per level
-        int baseMp = 0;                             // Duelists don't use mana
-        int baseDamage = 8 + (level - 1) * 2;       // +2 damage per level
-        int criticalChance = 10 + (level - 1) * 2;  // +2% crit per level, starts at 10%
-        int criticalMultiplier = 200;               // 2x damage on crit
-        int expToNextLevel = level * 50;            // Increasing exp requirements
-        
-        return new PlayerLevelStats(baseHp, baseMp, baseDamage, 
-                                   criticalChance, criticalMultiplier, expToNextLevel);
+        return buildStats(DUELIST_STATS, DUELIST_ATTACKS, level, "Quick Strike", "Power Attack");
     }
-    
-    /**
-     * Gets the base stats for a Wizard at the specified level.
-     * 
-     * @param level The character level (1-based)
-     * @return The level stats
-     */
+
     public static PlayerLevelStats getWizardStats(int level) {
-        int baseHp = 80 + (level - 1) * 10;         // +10 HP per level (less than Duelist)
-        int baseMp = 150 + (level - 1) * 20;        // +20 MP per level
-        int baseDamage = 6 + (level - 1) * 2;       // +2 damage per level (lower base)
-        int criticalChance = 8 + (level - 1) * 1;   // +1% crit per level, starts at 8%
-        int criticalMultiplier = 180;               // 1.8x damage on crit (lower than Duelist)
-        int expToNextLevel = level * 50;            // Same exp curve as Duelist
-        
-        return new PlayerLevelStats(baseHp, baseMp, baseDamage, 
-                                   criticalChance, criticalMultiplier, expToNextLevel);
+        return buildStats(WIZARD_STATS, WIZARD_ATTACKS, level, "Fire Spell", "Ice Spell");
     }
-    
-    /**
-     * Gets the attack configuration for Duelist attacks.
-     * 
-     * @param attackType The attack type (1 or 2)
-     * @return The attack configuration
-     */
-    public static AttackConfig getDuelistAttackConfig(int attackType) {
-        return switch (attackType) {
-            case 1 -> new AttackConfig(
-                100,        // baseDamage (100% of player's base damage)
-                0,          // mpCost (no mana cost)
-                800,        // cooldown (0.8 seconds)
-                0,          // criticalBonus (no extra crit chance)
-                "Quick Strike"
-            );
-            case 2 -> new AttackConfig(
-                150,        // baseDamage (150% of player's base damage)
-                0,          // mpCost
-                1200,       // cooldown (1.2 seconds - slower but stronger)
-                5,          // criticalBonus (+5% crit chance)
-                "Power Attack"
-            );
-            default -> throw new IllegalArgumentException("Invalid attack type: " + attackType);
-        };
-    }
-    
-    /**
-     * Gets the attack configuration for Wizard attacks.
-     * 
-     * @param attackType The attack type (1 or 2)
-     * @return The attack configuration
-     */
-    public static AttackConfig getWizardAttackConfig(int attackType) {
-        return switch (attackType) {
-            case 1 -> new AttackConfig(
-                120,        // baseDamage (120% of base - magic is powerful)
-                5,          // mpCost
-                1000,       // cooldown (1.0 seconds)
-                2,          // criticalBonus (+2% crit chance)
-                "Fire Spell"
-            );
-            case 2 -> new AttackConfig(
-                100,        // baseDamage (100% of base but with effects)
-                8,          // mpCost
-                1400,       // cooldown (1.4 seconds)
-                0,          // criticalBonus (no extra crit)
-                "Ice Spell"
-            );
-            default -> throw new IllegalArgumentException("Invalid attack type: " + attackType);
-        };
-    }
-    
-    /**
-     * Calculates the actual damage for a player attack.
-     * 
-     * @param playerBaseDamage The player's base damage stat
-     * @param attackConfig The attack configuration
-     * @param isCritical Whether this is a critical hit
-     * @param criticalMultiplier The critical hit multiplier
-     * @return The calculated damage
-     */
-    public static int calculatePlayerDamage(int playerBaseDamage, AttackConfig attackConfig, 
-                                           boolean isCritical, int criticalMultiplier) {
-        int baseDamage = (playerBaseDamage * attackConfig.baseDamage) / 100;
-        
-        if (isCritical) {
-            return (baseDamage * criticalMultiplier) / 100;
-        }
-        
-        return baseDamage;
-    }
-    
-    /**
-     * Gets the rest configuration values.
-     * 
-     * @return Array containing [hpRestorePercent, mpRestorePercent]
-     */
+
     public static double[] getRestConfiguration() {
         return new double[]{0.05, 0.08}; // 5% HP, 8% MP per rest
+    }
+
+    public static int getMaxLevel() {
+        return MAX_LEVEL;
     }
 }
