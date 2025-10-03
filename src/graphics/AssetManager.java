@@ -109,7 +109,7 @@ public class AssetManager {
 
         // Optional frames attribute (e.g., Medusa of Chaos)
         String framesAttr = sprite.getAttribute("frames");
-        Integer frameCount = framesAttr.isEmpty() ? null : Integer.parseInt(framesAttr);
+        Integer frameCount = framesAttr.isEmpty() ? null : Integer.valueOf(framesAttr);
 
         assetInfos.put(id, new AssetInfo(path, frameCount));
     }
