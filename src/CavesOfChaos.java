@@ -51,22 +51,26 @@ public class CavesOfChaos {
         String playerName  = args[1];
         int startingLevel = 0; // Default to level 1 (0-indexed)
         int max_level = Config.getIntSetting("caveLevelNumber");
+        boolean bossTestMode = false;
+        
         // Parse optional starting level
         if (args.length >= 3) {
             try {
-            int level = Integer.parseInt(args[2]);
-            if (level >= 1 && level <= max_level) {
-                startingLevel = level - 1; // Convert to 0-indexed
-                System.out.println("Starting on level " + level + " (boss mode: " + (level == max_level ? "ON" : "OFF") + ")");
-            } else {
-                System.out.println("Invalid starting level: " + level + " (must be 1-" + max_level + ")");
+                int level = Integer.parseInt(args[2]);
+                if (level >= 1 && level <= max_level) {
+                    startingLevel = level - 1; // Convert to 0-indexed
+                    bossTestMode = (level == max_level); // Boss test if starting at final level
+                    System.out.println("Starting on cave level " + level + " (boss test mode: " + (bossTestMode ? "ON" : "OFF") + ")");
+                } else {
+                    System.out.println("Invalid starting level: " + level + " (must be 1-" + max_level + ")");
+                    System.exit(0);
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid starting level format: " + args[2]);
                 System.exit(0);
             }
-            } catch (NumberFormatException e) {
-            System.out.println("Invalid starting level format: " + args[2]);
-            System.exit(0);
-            }
         }
+        
         AbstractPlayer player;
         switch (playerClass) {
             case "wizard" -> player = new Wizard(0, 0);
@@ -79,6 +83,28 @@ public class CavesOfChaos {
             }
         }
         player.setName(playerName);
+
+        // === Boss test mode: Boost player character level to 6 ===
+        if (bossTestMode) {
+            int targetLevel = 6;
+            System.out.println("BOSS TEST MODE: Boosting player to level " + targetLevel + "...");
+            
+            try {
+                // Give a large amount of XP to reach target level
+                // This avoids edge cases with exact XP calculations
+                int totalXpNeeded = 15000; // More than enough to reach level 6
+                int levelsGained = player.addExperience(totalXpNeeded);
+                
+                System.out.println("Player leveled up " + levelsGained + " times");
+                System.out.println("Final level: " + player.getLevel() + 
+                                 " (HP: " + player.getHp() + "/" + player.getMaxHp() + 
+                                 ", MP: " + player.getMp() + "/" + player.getMaxMp() + ")");
+            } catch (Exception e) {
+                System.err.println("ERROR during player level boost: " + e.getMessage());
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
 
         // === Initialize game ===
         GameState gameState = new GameState(player, startingLevel);
