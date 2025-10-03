@@ -67,7 +67,13 @@ public class StatusPanel extends JPanel {
             addColoredText("MP: " + gameState.getPlayer().getMp() + "/" + gameState.getPlayer().getMaxMp(), getMpColor());
         }
         addText("Level: " + gameState.getPlayer().getLevel() + " / " + gameState.getPlayer().getMaxLevel(), true);
-        addText("EXP: " + gameState.getPlayer().getExp() + "/" + gameState.getPlayer().getExpToNext());
+        
+        // Display "MAX" if player is at max level, otherwise show XP progress
+        if (gameState.getPlayer().getLevel() >= gameState.getPlayer().getMaxLevel()) {
+            addColoredText("EXP: MAX", StyleConfig.getColor("panelHighlight", Color.YELLOW));
+        } else {
+            addText("EXP: " + gameState.getPlayer().getExp() + "/" + gameState.getPlayer().getExpToNext());
+        }
 
         // Cooldowns
         boolean isWizard = gameState.getPlayer().getClass().getSimpleName().equals("Wizard");
@@ -81,7 +87,13 @@ public class StatusPanel extends JPanel {
         
         addSectionTitle("Cave Info");
         addText(gameState.getLevelDisplayString());
-        addText("You can sense the presence of " + gameState.getCurrentEnemies().size() + " enemies.");
+        
+        // Count only alive enemies (not dead)
+        long aliveEnemies = gameState.getCurrentEnemies().stream()
+            .filter(enemy -> !enemy.isDead())
+            .count();
+        addText("You can sense the presence of " + aliveEnemies + " enemies.");
+        
         if (!gameState.canGoToNextLevel()) {
             addColoredText("You have reached the deepest\nparts of the Caves of Chaos!", StyleConfig.getColor("panelHighlight", Color.RED));
         }
@@ -207,8 +219,18 @@ public class StatusPanel extends JPanel {
     }
 
     private String getPotionIconId(Potion potion) {
-        String name = potion.getName().toLowerCase();
-        if (name.contains("mana")) return "mana_potion";
+        int hpRestore = potion.getHpRestore();
+        int mpRestore = potion.getMpRestore();
+        
+        // If potion restores both HP and MP, use the combined icon
+        if (hpRestore > 0 && mpRestore > 0) {
+            return "mana_health_potion";
+        }
+        
+        // Otherwise, use specific icon based on what it restores
+        if (mpRestore > 0) {
+            return "mana_potion";
+        }
         return "health_potion";
     }
 }
