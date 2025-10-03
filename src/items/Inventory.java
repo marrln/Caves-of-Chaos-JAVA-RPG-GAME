@@ -7,11 +7,24 @@ public class Inventory {
 
     private static final int INVENTORY_SIZE = 9;
     private final Item[] slots;
+    
+    // Result information for weapon upgrades
+    private boolean lastAddWasWeaponUpgrade = false;
+    private boolean lastAddWasWeaponDowngrade = false;
 
     public Inventory() { this.slots = new Item[INVENTORY_SIZE]; }
 
+    // Overloaded method for backward compatibility
     public boolean addItem(Item item) {
+        return addItem(item, null);
+    }
+
+    public boolean addItem(Item item, player.AbstractPlayer player) {
         if (item == null) return false;
+        
+        // Reset upgrade flags
+        lastAddWasWeaponUpgrade = false;
+        lastAddWasWeaponDowngrade = false;
 
         // Auto-stack consumables by name
         if (item instanceof ConsumableItem consumable) {
@@ -25,6 +38,11 @@ public class Inventory {
             }
         }
 
+        // Weapon upgrade logic: keep the stronger weapon
+        if (item instanceof Weapon newWeapon) {
+            return handleWeaponAddition(newWeapon, player);
+        }
+
         // Place in first empty slot
         for (int i = 0; i < INVENTORY_SIZE; i++) {
             if (slots[i] == null) {
@@ -35,6 +53,52 @@ public class Inventory {
 
         return false;
     }
+
+    /**
+     * Handles adding a weapon with upgrade logic.
+     * If a weapon with the same name exists, keeps the one with higher damage.
+     * Automatically re-equips if the replaced weapon was equipped.
+     */
+    private boolean handleWeaponAddition(Weapon newWeapon, player.AbstractPlayer player) {
+        // Look for existing weapon with same name
+        for (int i = 0; i < INVENTORY_SIZE; i++) {
+            if (slots[i] instanceof Weapon existingWeapon && 
+                existingWeapon.getName().equals(newWeapon.getName())) {
+                
+                boolean wasEquipped = (player != null && player.getEquippedWeapon() == existingWeapon);
+                
+                // Keep the stronger weapon
+                if (newWeapon.getDamageBonus() > existingWeapon.getDamageBonus()) {
+                    slots[i] = newWeapon;
+                    lastAddWasWeaponUpgrade = true;
+                    
+                    // Re-equip the stronger weapon if the old one was equipped
+                    if (wasEquipped && player != null) {
+                        player.equipWeapon(newWeapon);
+                    }
+                    return true;
+                } else {
+                    // Keep existing stronger weapon, discard new weaker one
+                    lastAddWasWeaponDowngrade = true;
+                    return true; // Return true because we "handled" it (by discarding)
+                }
+            }
+        }
+
+        // No existing weapon with same name, add to empty slot
+        for (int i = 0; i < INVENTORY_SIZE; i++) {
+            if (slots[i] == null) {
+                slots[i] = newWeapon;
+                return true;
+            }
+        }
+
+        return false; // Inventory full
+    }
+    
+    // Query methods for weapon upgrade results
+    public boolean wasLastAddWeaponUpgrade() { return lastAddWasWeaponUpgrade; }
+    public boolean wasLastAddWeaponDowngrade() { return lastAddWasWeaponDowngrade; }
 
     public Item getItem(int slotNumber) { return isValidSlot(slotNumber) ? slots[slotNumber - 1] : null; }
 
