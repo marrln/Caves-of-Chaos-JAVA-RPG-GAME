@@ -33,6 +33,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     // ====== EFFECT TRACKING ======
     private long healingEffectEndTime = 0;
     private long manaEffectEndTime = 0;
+    private long levelUpEffectEndTime = 0;
     private static final int EFFECT_DURATION = 800; // milliseconds
 
     // ====== DIRECTION ======
@@ -122,16 +123,39 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     public boolean isHealingEffectActive() { return System.currentTimeMillis() < healingEffectEndTime; }
     public void triggerManaEffect() { manaEffectEndTime = System.currentTimeMillis() + EFFECT_DURATION; }
     public boolean isManaEffectActive() { return System.currentTimeMillis() < manaEffectEndTime; }
+    public void triggerLevelUpEffect() { levelUpEffectEndTime = System.currentTimeMillis() + EFFECT_DURATION; }
+    public boolean isLevelUpEffectActive() { return System.currentTimeMillis() < levelUpEffectEndTime; }
 
-    public void addExperience(int gained) {
+    public int addExperience(int gained) {
+        int maxLevel = getMaxLevel();
+        
+        // Don't add XP if already at max level
+        if (level >= maxLevel) {
+            return 0;
+        }
+        
         exp += gained;
-        while (exp >= expToNext) levelUp();
+        int levelsGained = 0;
+        
+        // Level up while we have enough XP AND haven't reached max level
+        while (exp >= expToNext && level < maxLevel) {
+            levelUp();
+            levelsGained++;
+        }
+        
+        // If we just reached max level, reset XP for clean display
+        if (level >= maxLevel) {
+            exp = 0;
+        }
+        
+        return levelsGained;
     }
 
     private void levelUp() {
         exp -= expToNext;
         level++;
         updateStatsForLevel();
+        triggerLevelUpEffect();
     }
 
     // ====== COMBAT ======
@@ -205,15 +229,31 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     protected void updateStatsForLevel() {
         PlayerConfig.PlayerLevelStats stats = getLevelStats(level);
-        double hpPercent = maxHp > 0 ? (double) hp / maxHp : 1.0;
-        double mpPercent = maxMp > 0 ? (double) mp / maxMp : 1.0;
-
-        this.maxHp = stats.maxHp;
-        this.maxMp = stats.maxMp;
-        this.expToNext = stats.expToNextLevel;
-
-        this.hp = (int)(maxHp * hpPercent);
-        this.mp = (int)(maxMp * mpPercent);
+        
+        // Check if this is initialization (player has no stats yet)
+        boolean isInitializing = (maxHp == 0 && maxMp == 0);
+        
+        if (isInitializing) {
+            // First time initialization: start at full stats
+            this.maxHp = stats.maxHp;
+            this.maxMp = stats.maxMp;
+            this.hp = maxHp;
+            this.mp = maxMp;
+            this.expToNext = stats.expToNextLevel;
+        } else {
+            // Level up: calculate stat increases
+            int hpIncrease = stats.maxHp - maxHp;
+            int mpIncrease = stats.maxMp - maxMp;
+            
+            // Update max stats
+            this.maxHp = stats.maxHp;
+            this.maxMp = stats.maxMp;
+            this.expToNext = stats.expToNextLevel;
+            
+            // Reward player with half of the gained stats (prevents full heal exploit)
+            this.hp = Math.min(maxHp, hp + (hpIncrease / 2));
+            this.mp = Math.min(maxMp, mp + (mpIncrease / 2));
+        }
     }
 
     protected PlayerConfig.AttackConfig getAttackConfig(int attackType) {
