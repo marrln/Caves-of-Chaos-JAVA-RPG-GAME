@@ -25,8 +25,10 @@ public class PlayerRenderer {
 
     private static BufferedImage[] healFrames = null;
     private static BufferedImage[] manaFrames = null;
+    private static BufferedImage[] levelUpFrames = null;
     private static final String HEAL_EFFECT_ID = "health_potion_effect";
     private static final String MANA_EFFECT_ID = "mana_potion_effect";
+    private static final String LEVEL_UP_EFFECT_ID = "level_up";
 
     public static void renderPlayer(Graphics2D g2d,
                                     AbstractPlayer player,
@@ -99,6 +101,7 @@ public class PlayerRenderer {
 
         renderHealingEffect(g2d, player, drawX, drawY, scaledTile);
         renderManaEffect(g2d, player, drawX, drawY, scaledTile);
+        renderLevelUpEffect(g2d, player, drawX, drawY, scaledTile);
     }
 
     private static String buildAssetId(AbstractPlayer player) {
@@ -130,6 +133,7 @@ public class PlayerRenderer {
 
         if (effectId.equals(HEAL_EFFECT_ID)) healFrames = scaledFrames;
         else if (effectId.equals(MANA_EFFECT_ID)) manaFrames = scaledFrames;
+        else if (effectId.equals(LEVEL_UP_EFFECT_ID)) levelUpFrames = scaledFrames;
     }
 
     private static void renderHealingEffect(Graphics2D g2d, AbstractPlayer player, int drawX, int drawY, int scaledTile) {
@@ -150,6 +154,16 @@ public class PlayerRenderer {
 
         int manaFrameIndex = (int) ((System.currentTimeMillis() / 100) % manaFrames.length);
         g2d.drawImage(manaFrames[manaFrameIndex], drawX, drawY, scaledTile, scaledTile, null);
+    }
+
+    private static void renderLevelUpEffect(Graphics2D g2d, AbstractPlayer player, int drawX, int drawY, int scaledTile) {
+        if (!player.isLevelUpEffectActive()) return;
+
+        if (levelUpFrames == null) loadEffectFrames(LEVEL_UP_EFFECT_ID, scaledTile);
+        if (levelUpFrames.length == 0) return;
+
+        int levelUpFrameIndex = (int) ((System.currentTimeMillis() / 100) % levelUpFrames.length);
+        g2d.drawImage(levelUpFrames[levelUpFrameIndex], drawX, drawY, scaledTile, scaledTile, null);
     }
 
 }
