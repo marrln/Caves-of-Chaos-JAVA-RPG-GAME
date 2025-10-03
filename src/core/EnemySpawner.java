@@ -21,6 +21,8 @@ public class EnemySpawner {
     
     private static final Random random = new Random();
     private static final int MAX_SPAWN_ATTEMPTS = 100; // Max attempts to find a valid spawn position
+    private static final int ENTRANCE_SAFE_RADIUS = 8;  // Keep entrance area clear of enemies
+    private static final double EXIT_PREFERENCE_WEIGHT = 0.7; // 70% chance to prefer exit area
     
     public static List<Enemy> spawnEnemiesForLevel(GameMap gameMap, int level) {
         List<Enemy> spawnedEnemies = new ArrayList<>();
@@ -34,7 +36,13 @@ public class EnemySpawner {
         // Get all available floor tiles for spawning
         List<int[]> floorTiles = getFloorTiles(gameMap);
         
-        if (floorTiles.isEmpty()) {
+        // Get safe floor tiles (away from entrance, prefer near exit)
+        List<int[]> safeFloorTiles = getSafeSpawnTiles(gameMap, floorTiles);
+        
+        // Use safe tiles if available, otherwise fall back to all floor tiles
+        List<int[]> spawnTiles = safeFloorTiles.isEmpty() ? floorTiles : safeFloorTiles;
+        
+        if (spawnTiles.isEmpty()) {
             System.err.println("[ENEMY SPAWNER] No floor tiles available for enemy spawning on level " + level);
             return spawnedEnemies;
         }
@@ -45,7 +53,7 @@ public class EnemySpawner {
             int count = entry.getValue();
             
             for (int i = 0; i < count; i++) {
-                int[] spawnPosition = findValidSpawnPosition(floorTiles, spawnedEnemies);
+                int[] spawnPosition = findValidSpawnPosition(spawnTiles, spawnedEnemies);
                 if (spawnPosition != null) {
                     Enemy enemy = EnemyFactory.createEnemy(enemyType, spawnPosition[0], spawnPosition[1]);
                     spawnedEnemies.add(enemy);
@@ -69,6 +77,62 @@ public class EnemySpawner {
         }
         
         return floorTiles;
+    }
+    
+    /**
+     * Filters floor tiles to create a safe spawn list:
+     * - Excludes tiles too close to entrance (player spawn)
+     * - Prefers tiles closer to exit (stairs down)
+     */
+    private static List<int[]> getSafeSpawnTiles(GameMap gameMap, List<int[]> allFloorTiles) {
+        int entranceX = gameMap.getEntranceX();
+        int entranceY = gameMap.getEntranceY();
+        int exitX = gameMap.getExitX();
+        int exitY = gameMap.getExitY();
+        
+        // If entrance/exit not set, return all tiles
+        if (entranceX < 0 || exitX < 0) {
+            return allFloorTiles;
+        }
+        
+        List<int[]> safeTiles = new ArrayList<>();
+        List<int[]> exitNearTiles = new ArrayList<>();
+        
+        for (int[] tile : allFloorTiles) {
+            int x = tile[0];
+            int y = tile[1];
+            
+            // Calculate distance from entrance
+            double distanceFromEntrance = Math.hypot(x - entranceX, y - entranceY);
+            
+            // Skip tiles too close to entrance (safe zone for player)
+            if (distanceFromEntrance < ENTRANCE_SAFE_RADIUS) {
+                continue;
+            }
+            
+            // Calculate distance from exit
+            double distanceFromExit = Math.hypot(x - exitX, y - exitY);
+            
+            // Tiles closer to exit are preferred
+            if (distanceFromExit < gameMap.getWidth() / 3.0) {
+                exitNearTiles.add(tile);
+            } else {
+                safeTiles.add(tile);
+            }
+        }
+        
+        // Combine lists with preference for exit-near tiles
+        List<int[]> result = new ArrayList<>();
+        
+        // Add exit-near tiles with weighted probability
+        if (!exitNearTiles.isEmpty() && random.nextDouble() < EXIT_PREFERENCE_WEIGHT) {
+            result.addAll(exitNearTiles);
+        }
+        
+        // Always include remaining safe tiles
+        result.addAll(safeTiles);
+        
+        return result;
     }
 
     private static int[] findValidSpawnPosition(List<int[]> floorTiles, List<Enemy> existingEnemies) {
