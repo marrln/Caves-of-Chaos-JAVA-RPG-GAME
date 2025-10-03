@@ -198,7 +198,6 @@ public class AssetManager {
 
     public void clearCache() {
         imageCache.clear();
-        System.out.println("Asset cache cleared");
     }
 
     public String getCacheStats() {
