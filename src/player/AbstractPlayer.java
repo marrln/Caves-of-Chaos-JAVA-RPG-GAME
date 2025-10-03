@@ -8,8 +8,11 @@ import items.Inventory;
 import items.Weapon;
 import utils.CollisionManager;
 
+/**
+ * Base player class containing shared logic for all player types (Duelist, Wizard, etc.).
+ * Handles movement, stats progression, combat state, equipment, and basic attacks.
+ */
 public abstract class AbstractPlayer implements CollisionManager.Positionable {
-
     // ====== CORE STATS ======
     protected int x, y;             // Position
     protected int hp, maxHp;        // Health
@@ -17,7 +20,6 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     protected int level = 1;        // Level
     protected int exp = 0;          // Experience
     protected int expToNext;        // Exp needed for next level
-    protected int baseDamage;       // Base attack damage
     protected String name;          // Character name
 
     // ====== INVENTORY & EQUIPMENT ======
@@ -58,16 +60,10 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     }
 
     public boolean tryMoveTo(int newX, int newY) {
-        if (collisionManager != null && collisionManager.canMoveTo(this, newX, newY)) {
-            setPosition(newX, newY);
-            combatState.setState(CombatState.State.MOVING, AnimationConfig.getPlayerAnimationDuration("walk"));
-            return true;
-        } else if (collisionManager == null) {
-            setPosition(newX, newY);
-            combatState.setState(CombatState.State.MOVING, AnimationConfig.getPlayerAnimationDuration("walk"));
-            return true;
-        }
-        return false;
+        if (collisionManager != null && !collisionManager.canMoveTo(this, newX, newY)) return false;
+        setPosition(newX, newY);
+        combatState.setState(CombatState.State.MOVING, AnimationConfig.getPlayerAnimationDuration("walk"));
+        return true;
     }
 
     public boolean tryMoveDirection(int direction) {
@@ -86,9 +82,9 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     public int getMp() { return mp; }
     public int getMaxMp() { return maxMp; }
     public int getLevel() { return level; }
+    public int getMaxLevel() { return PlayerConfig.getMaxLevel(); }
     public int getExp() { return exp; }
     public int getExpToNext() { return expToNext; }
-    public int getBaseDamage() { return baseDamage; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
@@ -163,10 +159,9 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     public String getCooldownDisplay(int attackType) {
         long remaining = getRemainingCooldown(attackType);
-        if (remaining <= 0) return "Ready";
-        return String.format("%.1fs", remaining / 1000.0);
+        return (remaining <= 0) ? "Ready" : String.format("%.1fs", remaining / 1000.0);
     }
-    
+
     public void updateCombat() { combatState.update(); }
 
     // ====== RESTING ======
@@ -180,10 +175,50 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         return Double.parseDouble(val.trim());
     }
 
+    // ====== ATTACK HANDLING ======
+    public int getAttackDamage(int attackType) {
+        PlayerConfig.AttackConfig atk = getAttackConfig(attackType);
+        return utils.Dice.rolldice(atk.diceCount, atk.diceSides, atk.diceBonus);
+    }
+
+    public int getTotalAttackDamage(int attackType) {
+        int dmg = getAttackDamage(attackType);
+        if (equippedWeapon != null) dmg += equippedWeapon.getDamageBonus();
+        return dmg;
+    }
+
+    public void attack(int attackType) {
+        if (!canAttack(attackType)) return;
+        PlayerConfig.AttackConfig atk = getAttackConfig(attackType);
+
+        mp -= atk.mpCost;
+        combatState.startAttack(attackType, AnimationConfig.getPlayerAnimationDuration("attack"));
+        lastAttackTimes[attackType] = System.currentTimeMillis();
+    }
+
+    public void useItem(int slot) {
+        inventory.useItem(slot, this);
+    }
+
     // ====== ABSTRACT METHODS ======
-    public abstract void attack(int attackType);
-    public abstract void useItem(int slot);
-    protected abstract void updateStatsForLevel();
-    public abstract int getAttackDamage(int attackType);
-    protected abstract PlayerConfig.AttackConfig getAttackConfig(int attackType);
+    protected abstract PlayerConfig.PlayerLevelStats getLevelStats(int level);
+
+    protected void updateStatsForLevel() {
+        PlayerConfig.PlayerLevelStats stats = getLevelStats(level);
+        double hpPercent = maxHp > 0 ? (double) hp / maxHp : 1.0;
+        double mpPercent = maxMp > 0 ? (double) mp / maxMp : 1.0;
+
+        this.maxHp = stats.maxHp;
+        this.maxMp = stats.maxMp;
+        this.expToNext = stats.expToNextLevel;
+
+        this.hp = (int)(maxHp * hpPercent);
+        this.mp = (int)(maxMp * mpPercent);
+    }
+
+    protected PlayerConfig.AttackConfig getAttackConfig(int attackType) {
+        PlayerConfig.PlayerLevelStats stats = getLevelStats(level);
+        int idx = Math.max(0, Math.min(attackType - 1, stats.attacks.length - 1));
+        return stats.attacks[idx];
+    }
 }
