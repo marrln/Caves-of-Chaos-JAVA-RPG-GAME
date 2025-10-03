@@ -2,8 +2,11 @@ package core;
 
 import enemies.Enemy;
 import items.AbstractTrap;
+import items.Inventory;
 import items.Item;
 import items.Potion;
+import items.Weapon;
+import java.util.Optional;
 import map.GameMap;
 import map.Tile;
 import player.AbstractPlayer;
@@ -12,6 +15,8 @@ import ui.GameUIManager;
 import utils.LineUtils;
 
 public class GameController {
+    private static final int ITEM_PICKUP_XP = 50; // XP awarded for picking up items
+    
     private final GameState gameState;
     private GameUIManager uiManager;
     private final ProjectileManager projectileManager;
@@ -131,8 +136,17 @@ public class GameController {
             boolean dead = target.takeDamage(dmg);
             if (dead) {
                 int exp = target.getExpReward();
-                player.addExperience(exp);
+                int levelsGained = player.addExperience(exp);
                 gameState.logMessage(target.getName() + " has been defeated! You gained " + exp + " exp!");
+                
+                // Log level-up message
+                if (levelsGained > 0) {
+                    if (levelsGained == 1) {
+                        gameState.logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")");
+                    } else {
+                        gameState.logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!");
+                    }
+                }
             }
             return; // only one enemy per attack
         }
@@ -157,9 +171,22 @@ public class GameController {
     public void pickupItem() {
         AbstractPlayer player = gameState.getPlayer();
         Tile tile = gameState.getCurrentMap().getTile(player.getX(), player.getY());
+        
         if (!tile.hasItem()) return;
 
-        Item item = tile.getItem().get();
+        Optional<Item> itemOpt = tile.getItem();
+        if (itemOpt.isEmpty()) {
+            tile.removeItem(); // Clear the ghost item
+            gameState.logMessage("You find nothing here...");
+            return;
+        }
+        
+        Item item = itemOpt.get();
+        if (item == null) {
+            tile.removeItem(); // Clear the null item
+            gameState.logMessage("You find nothing here...");
+            return;
+        }
 
         if (item instanceof items.ShardOfJudgement shard) {
             tile.removeItem();
@@ -168,8 +195,30 @@ public class GameController {
             return;
         }
 
-        if (player.getInventory().addItem(item)) {
-            gameState.logMessage("Picked up: " + item.getName());
+        Inventory inventory = player.getInventory();
+        if (inventory.addItem(item, player)) {
+            // Award XP for finding items
+            int levelsGained = player.addExperience(ITEM_PICKUP_XP);
+            
+            // Check if this was a weapon upgrade/downgrade
+            if (inventory.wasLastAddWeaponUpgrade()) {
+                Weapon weapon = (Weapon) item;
+                gameState.logMessage("Upgraded " + weapon.getName() + " (+" + weapon.getDamageBonus() + " dmg)! +" + ITEM_PICKUP_XP + " exp");
+            } else if (inventory.wasLastAddWeaponDowngrade()) {
+                gameState.logMessage("You already have a better " + item.getName() + ". +" + ITEM_PICKUP_XP + " exp");
+            } else {
+                gameState.logMessage("Picked up: " + item.getName() + " (+" + ITEM_PICKUP_XP + " exp)");
+            }
+            
+            // Log level-up message if applicable
+            if (levelsGained > 0) {
+                if (levelsGained == 1) {
+                    gameState.logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")");
+                } else {
+                    gameState.logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!");
+                }
+            }
+            
             tile.removeItem();
         } else {
             gameState.logMessage("Inventory is full!");
@@ -193,17 +242,29 @@ public class GameController {
         Item item = tile.getItem().get();
         if (item instanceof AbstractTrap trap) {
             AbstractPlayer player = gameState.getPlayer();
-            gameState.logMessage(trap.getTriggerMessage());
-
+            
+            // Log trap trigger with damage in a single clear message
             int dmg = trap.getDamage();
-            player.takeDamage(dmg);
-
-            int after = player.getHp();
-            gameState.logMessage(trap.getDamageMessage() + " You lost " + dmg + " HP! (" + after + "/" + player.getMaxHp() + ")");
-            if (after <= 0) {
-                gameState.logMessage("The " + trap.getName() + " was LETHAL! You have died!");
+            boolean isDead = player.takeDamage(dmg);
+            int hpAfter = player.getHp();
+            
+            // Consolidated trap message: trigger + damage in one line
+            gameState.logMessage(trap.getTriggerMessage() + " " + trap.getDamageMessage());
+            gameState.logMessage(player.getName() + "took " + dmg + " damage! (" + hpAfter + "/" + player.getMaxHp() + " HP)");
+            
+            if (isDead && !gameState.isGameOver()) {
+                gameState.setGameOver(true);
+                gameState.logMessage("The " + trap.getName() + " was LETHAL! " + player.getName() + " has been defeated!");
+                // Trigger game over on the event dispatch thread
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    ui.GameOverWindow win = new ui.GameOverWindow(null, player.getName(), gameState.getCurrentLevel());
+                    if (win.showGameOverDialog()) {
+                        gameState.logMessage("Game restart requested - not yet implemented");
+                    } else {
+                        System.exit(0);
+                    }
+                });
             }
-
             tile.removeItem();
         }
     }
