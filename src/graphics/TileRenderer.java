@@ -30,9 +30,9 @@ public class TileRenderer {
     private final Color unknownColor    = StyleConfig.getColor("tileUnknown", Color.MAGENTA);
 
     // ====== FOG OF WAR COLORS ======
-    private final Color fogUndiscovered = StyleConfig.getColor("fogUndiscovered", new Color(0, 0, 0, 240));
-    private final Color fogDiscovered   = StyleConfig.getColor("fogDiscovered", new Color(30, 40, 60));
-    private final Color fogEdge         = StyleConfig.getColor("fogEdge", new Color(20, 30, 50));
+    private final Color fogUndiscovered = StyleConfig.getColor("fogUndiscovered", new Color(0, 0, 0, 255));
+    private final Color fogDiscovered   = StyleConfig.getColor("fogDiscovered", new Color(15, 20, 35));
+    private final Color fogEdge         = StyleConfig.getColor("fogEdge", new Color(10, 15, 25));
 
     public TileRenderer() {
         if (useGraphics) assetManager.preloadTileAssets();
@@ -132,7 +132,7 @@ public class TileRenderer {
                 if (fogOfWar != null) {
                     float strength = fogOfWar.getVisibilityStrength(mapX, mapY);
                     if (strength < 1.0f) {
-                        float fogAlpha = (1.0f - strength) * 0.3f;
+                        float fogAlpha = (1.0f - strength) * 0.6f;
                         if (fogAlpha > 0.05f) {
                             Composite oldComp = g2.getComposite();
                             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fogAlpha));
@@ -144,6 +144,69 @@ public class TileRenderer {
                 }
             }
         }
+    }
+    
+    /**
+     * Renders a warm torch-like glow across the entire visible area.
+     * Creates a warm yellow/orange tint that's strongest near the player and fades with distance.
+     */
+    public void renderTorchGlow(Graphics g, int playerMapX, int playerMapY, Camera camera, 
+                                int panelWidth, int panelHeight, FogOfWar fogOfWar) {
+        if (fogOfWar == null) return;
+        
+        Graphics2D g2 = (Graphics2D) g;
+        Composite oldComp = g2.getComposite();
+        
+        // Torch parameters - covers entire visible area
+        final Color TORCH_COLOR = new Color(255, 180, 60); // Warm orange-yellow
+        final float BASE_ALPHA = 0.12f; // Base warmth for all visible tiles
+        final float MAX_BOOST = 0.20f; // Extra intensity near player
+        final float BOOST_RADIUS = 5.0f; // tiles where boost applies
+        
+        // Get visible area bounds from camera
+        int startX = Math.max(0, camera.getX());
+        int startY = Math.max(0, camera.getY());
+        int endX = camera.getX() + (panelWidth / tileSize) + 2;
+        int endY = camera.getY() + (panelHeight / tileSize) + 2;
+        
+        for (int mapY = startY; mapY < endY; mapY++) {
+            for (int mapX = startX; mapX < endX; mapX++) {
+                // Only render on visible tiles
+                if (!fogOfWar.isVisible(mapX, mapY)) continue;
+                
+                // Calculate distance from player for intensity boost
+                float dx = mapX - playerMapX;
+                float dy = mapY - playerMapY;
+                float distance = (float)Math.sqrt(dx * dx + dy * dy);
+                
+                // Base warmth for all visible tiles, with boost near player
+                float torchAlpha = BASE_ALPHA;
+                if (distance <= BOOST_RADIUS) {
+                    float intensity = 1.0f - (distance / BOOST_RADIUS);
+                    intensity = intensity * intensity; // Squared falloff
+                    torchAlpha += intensity * MAX_BOOST;
+                }
+                
+                // Scale by visibility strength (dimmer at fog edges)
+                float visibilityStrength = fogOfWar.getVisibilityStrength(mapX, mapY);
+                torchAlpha *= visibilityStrength;
+                
+                if (torchAlpha > 0.02f) {
+                    int screenX = (mapX - camera.getX()) * tileSize;
+                    int screenY = (mapY - camera.getY()) * tileSize;
+                    
+                    // Check if tile is on screen
+                    if (screenX >= -tileSize && screenX < panelWidth && 
+                        screenY >= -tileSize && screenY < panelHeight) {
+                        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, torchAlpha));
+                        g2.setColor(TORCH_COLOR);
+                        g2.fillRect(screenX, screenY, tileSize, tileSize);
+                    }
+                }
+            }
+        }
+        
+        g2.setComposite(oldComp);
     }
 
     public void renderTileWithFog(Graphics g, Tile tile, int screenX, int screenY, int mapX, int mapY,
