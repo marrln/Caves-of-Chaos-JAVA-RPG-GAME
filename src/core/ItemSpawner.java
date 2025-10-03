@@ -40,8 +40,17 @@ public class ItemSpawner {
             Tile tile = validTiles.get(tileIndex);
             validTiles.remove(tileIndex);
             
-            Item item = createRandomItem(level, player);
-            tile.setItem(item);
+            try {
+                Item item = createRandomItem(level, player);
+                if (item == null) {
+                    System.err.println("[ITEM SPAWNER] WARNING: createRandomItem returned null!");
+                    continue; // Skip this spawn
+                }
+                tile.setItem(item);
+            } catch (Exception e) {
+                System.err.println("[ITEM SPAWNER] ERROR creating item for level " + level);
+                e.printStackTrace();
+            }
         }
     }
     
@@ -144,25 +153,42 @@ public class ItemSpawner {
     public boolean spawnShardOfJudgement(GameMap map, int x, int y) {
         Tile tile = map.getTile(x, y);
         
-        if (tile.getType() != Tile.FLOOR || tile.isBlocked() || tile.hasItem()) {
-            // Try to find a nearby valid tile
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dy = -1; dy <= 1; dy++) {
-                    if (dx == 0 && dy == 0) continue;
-                    
-                    Tile nearbyTile = map.getTile(x + dx, y + dy);
-                    if (nearbyTile != null) {
-                        if (nearbyTile.getType() == Tile.FLOOR && !nearbyTile.isBlocked() && !nearbyTile.hasItem()) {
-                            nearbyTile.setItem(new items.ShardOfJudgement());
-                            return true;
-                        }
-                    }
+        // PRIORITY 1: Try to spawn on the exact death position (Medusa's coordinates)
+        if (tile.getType() == Tile.FLOOR && !tile.isBlocked() && !tile.hasItem()) {
+            tile.setItem(new items.ShardOfJudgement());
+            return true;
+        }
+        
+        // PRIORITY 2: Try to find a nearby valid tile (3x3 area around death position)
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) continue; // Skip center (already checked)
+                
+                int newX = x + dx;
+                int newY = y + dy;
+                
+                // Bounds check
+                if (newX < 0 || newY < 0 || newX >= map.getWidth() || newY >= map.getHeight()) {
+                    continue;
+                }
+                
+                Tile nearbyTile = map.getTile(newX, newY);
+                if (nearbyTile.getType() == Tile.FLOOR && !nearbyTile.isBlocked() && !nearbyTile.hasItem()) {
+                    nearbyTile.setItem(new items.ShardOfJudgement());
+                    return true;
                 }
             }
-            System.out.println("Could not find valid tile for Shard of Judgement!");
-            return false;
         }
-        tile.setItem(new items.ShardOfJudgement());
-        return true;
+        
+        // PRIORITY 3: Fallback to ANY valid floor tile on the map (last resort)
+        List<Tile> validTiles = findValidSpawnTiles(map);
+        if (!validTiles.isEmpty()) {
+            Tile fallbackTile = validTiles.get(random.nextInt(validTiles.size()));
+            fallbackTile.setItem(new items.ShardOfJudgement());
+            return true;
+        }
+        
+        // CRITICAL FAILURE: No valid spawn location found anywhere on the map!
+        return false;
     }
 }
