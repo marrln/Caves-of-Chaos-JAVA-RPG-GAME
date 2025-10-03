@@ -53,17 +53,17 @@ public class StatusPanel extends JPanel {
         contentPanel.removeAll();
 
         // CHARACTER section
-        addSectionTitle("PLAYER INFO");
+        // addSectionTitle("PLAYER INFO");
         String name = gameState.getPlayer().getName();
         name = name.substring(0, 1).toUpperCase() + name.substring(1);
         
-        addText("Name: " + gameState.getPlayer().getClass().getSimpleName() + name);
+        addText(gameState.getPlayer().getClass().getSimpleName() + " " + name, true);
         addColoredText("HP: " + gameState.getPlayer().getHp() + "/" + gameState.getPlayer().getMaxHp(), getHpColor());
         if (gameState.getPlayer().getMaxMp() > 0) {
-            addText("MP: " + gameState.getPlayer().getMp() + "/" + gameState.getPlayer().getMaxMp());
+            addColoredText("MP: " + gameState.getPlayer().getMp() + "/" + gameState.getPlayer().getMaxMp(), getMpColor());
         }
-        addText("Level: " + gameState.getPlayer().getLevel());
-        addText("EXP: " + gameState.getPlayer().getExp());
+        addText("Level: " + gameState.getPlayer().getLevel() + " / " + gameState.getPlayer().getMaxLevel(), true);
+        addText("EXP: " + gameState.getPlayer().getExp() + "/" + gameState.getPlayer().getExpToNext());
 
         // Cooldowns
         boolean isWizard = gameState.getPlayer().getClass().getSimpleName().equals("Wizard");
@@ -124,12 +124,18 @@ public class StatusPanel extends JPanel {
     }
 
     public void addText(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
-        label.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setBorder(BorderFactory.createEmptyBorder(ITEM_SPACING, 0, ITEM_SPACING, 0));
-        contentPanel.add(label);
+        addText(text, false);
+    }
+
+    public void addText(String text, boolean bold) {
+    JLabel label = new JLabel(text);
+    Font baseFont = StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14));
+    Font finalFont = bold ? baseFont.deriveFont(Font.BOLD, baseFont.getSize()) : baseFont.deriveFont(Font.PLAIN, baseFont.getSize());
+    label.setFont(finalFont);
+    label.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
+    label.setAlignmentX(Component.LEFT_ALIGNMENT);
+    label.setBorder(BorderFactory.createEmptyBorder(ITEM_SPACING, 0, ITEM_SPACING, 0));
+    contentPanel.add(label);
     }
 
     public void addColoredText(String text, Color color) {
@@ -184,7 +190,16 @@ public class StatusPanel extends JPanel {
         double percent = (double) currentHp / maxHp;
         if (percent < 0.25) return Color.RED;
         if (percent < 0.5) return Color.ORANGE;
-        return StyleConfig.getColor("panelText", Color.WHITE);
+        return Color.GREEN;
+    }
+
+    private Color getMpColor() {
+        int currentMp = gameState.getPlayer().getMp();
+        int maxMp = gameState.getPlayer().getMaxMp();
+        double percent = (double) currentMp / maxMp;
+        if (percent < 0.25) return Color.RED;
+        if (percent < 0.5) return Color.ORANGE;
+        return Color.BLUE;
     }
 
     private String getPotionIconId(Potion potion) {
