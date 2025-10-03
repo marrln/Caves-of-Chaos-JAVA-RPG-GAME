@@ -206,7 +206,16 @@ public class Projectile {
     }
 
     private void hitTarget(Enemy enemy) {
-        enemy.takeDamage(type.getBaseDamage());
+        player.AbstractPlayer player = core.GameState.getInstance().getPlayer();
+        int dmg = player.getTotalAttackDamage(type == ProjectileType.FIRE_SPELL ? 1 : 2);
+        boolean dead = enemy.takeDamage(dmg);
+        core.GameState.getInstance().logMessage(player.getName() + " attacks " + enemy.getName() + " for " + dmg + " damage!");
+        // Award XP if enemy is killed
+        if (dead) {
+            int exp = enemy.getExpReward();
+            player.addExperience(exp);
+            core.GameState.getInstance().logMessage(enemy.getName() + " has been defeated! You gained " + exp + " exp!");
+        }
         // Optional: add effects for FIRE_SPELL or ICE_SPELL
     }
 
