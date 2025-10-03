@@ -213,8 +213,17 @@ public class Projectile {
         // Award XP if enemy is killed
         if (dead) {
             int exp = enemy.getExpReward();
-            player.addExperience(exp);
+            int levelsGained = player.addExperience(exp);
             core.GameState.getInstance().logMessage(enemy.getName() + " has been defeated! You gained " + exp + " exp!");
+            
+            // Log level-up message
+            if (levelsGained > 0) {
+                if (levelsGained == 1) {
+                    core.GameState.getInstance().logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")");
+                } else {
+                    core.GameState.getInstance().logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!");
+                }
+            }
         }
         // Optional: add effects for FIRE_SPELL or ICE_SPELL
     }
