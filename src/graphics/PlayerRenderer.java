@@ -138,8 +138,8 @@ public class PlayerRenderer {
         if (healFrames == null) loadEffectFrames(HEAL_EFFECT_ID, scaledTile);
         if (healFrames.length == 0) return;
 
-        int frameIndex = (int) ((System.currentTimeMillis() / 100) % healFrames.length);
-        g2d.drawImage(healFrames[frameIndex], drawX, drawY, scaledTile, scaledTile, null);
+        int healFrameIndex = (int) ((System.currentTimeMillis() / 100) % healFrames.length);
+        g2d.drawImage(healFrames[healFrameIndex], drawX, drawY, scaledTile, scaledTile, null);
     }
 
     private static void renderManaEffect(Graphics2D g2d, AbstractPlayer player, int drawX, int drawY, int scaledTile) {
@@ -148,8 +148,8 @@ public class PlayerRenderer {
         if (manaFrames == null) loadEffectFrames(MANA_EFFECT_ID, scaledTile);
         if (manaFrames.length == 0) return;
 
-        int frameIndex = (int) ((System.currentTimeMillis() / 100) % manaFrames.length);
-        g2d.drawImage(manaFrames[frameIndex], drawX, drawY, scaledTile, scaledTile, null);
+        int manaFrameIndex = (int) ((System.currentTimeMillis() / 100) % manaFrames.length);
+        g2d.drawImage(manaFrames[manaFrameIndex], drawX, drawY, scaledTile, scaledTile, null);
     }
 
 }
