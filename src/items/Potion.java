@@ -54,4 +54,13 @@ public class Potion extends ConsumableItem {
         copy.quantity = this.quantity;
         return copy;
     }
+    
+    // Getters for external access (e.g., UI icon selection)
+    public int getHpRestore() {
+        return hpRestore;
+    }
+    
+    public int getMpRestore() {
+        return mpRestore;
+    }
 }
