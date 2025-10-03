@@ -43,9 +43,11 @@ public class LogPanel extends JPanel {
         setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
         setPreferredSize(new Dimension(800, PANEL_HEIGHT));
         setBorder(BorderFactory.createLineBorder(StyleConfig.getColor("panelBorder", Color.DARK_GRAY), 1));
+        setFocusable(false); // Prevent stealing focus from GamePanel
 
         logTextArea = new JTextArea();
         logTextArea.setEditable(false);
+        logTextArea.setFocusable(false); // Prevent stealing focus from GamePanel
         logTextArea.setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
         logTextArea.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
         logTextArea.setFont(StyleConfig.getFont("log", new Font("Monospaced", Font.PLAIN, 12)));
@@ -57,11 +59,13 @@ public class LogPanel extends JPanel {
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setBorder(null);
+        scrollPane.setFocusable(false); // Prevent scrollbar from stealing focus
         scrollPane.getViewport().setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
 
         JScrollBar bar = scrollPane.getVerticalScrollBar();
         bar.setPreferredSize(new Dimension(SCROLLBAR_WIDTH, 0));
         bar.setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
+        bar.setFocusable(false); // Prevent scrollbar buttons from stealing focus
         bar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
             @Override protected void configureScrollBarColors() {
                 this.thumbColor = StyleConfig.getColor("panelText", Color.LIGHT_GRAY);

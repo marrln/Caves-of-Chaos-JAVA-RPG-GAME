@@ -26,15 +26,19 @@ public class StatusPanel extends JPanel {
         setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
         setPreferredSize(new Dimension(250, 600));
         setBorder(BorderFactory.createLineBorder(StyleConfig.getColor("panelBorder", Color.DARK_GRAY), 1));
+        setFocusable(false); // Prevent stealing focus from GamePanel
 
         contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBackground(getBackground());
+        contentPanel.setFocusable(false); // Prevent stealing focus
 
         scrollPane = new JScrollPane(contentPanel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setBorder(null);
+        scrollPane.setFocusable(false); // Prevent scrollbar from stealing focus
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.getVerticalScrollBar().setFocusable(false); // Prevent scrollbar buttons from stealing focus
         add(scrollPane, BorderLayout.CENTER);
     }
 

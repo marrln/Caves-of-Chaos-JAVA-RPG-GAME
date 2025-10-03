@@ -30,13 +30,14 @@ public class GamePanel extends JPanel {
     private int lastKnownLevel = -1;
 
     private Timer gameTimer;
-    private static final int GAME_UPDATE_DELAY = 50; // 50ms for smoother gameplay and consistent physics 
+    private static final int GAME_UPDATE_DELAY = 50; 
 
     public GamePanel(GameState gameState, GameController controller) {
         this.gameState = gameState;
         this.controller = controller;
         setBackground(StyleConfig.getColor("gameBackground", Color.BLACK));
         setFocusable(true);
+        setRequestFocusEnabled(true); // Ensure panel can request focus
 
         GameMap map = gameState.getCurrentMap();
         AbstractPlayer player = gameState.getPlayer();
@@ -48,6 +49,14 @@ public class GamePanel extends JPanel {
 
         setupInputHandler();
         setupGameLoop();
+        
+        // Request focus after component is added to hierarchy
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                requestFocusInWindow();
+            }
+        });
     }
 
     public void centerCameraOnPlayer() {
@@ -72,6 +81,12 @@ public class GamePanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        
+        // Reclaim focus if lost (defensive)
+        if (!isFocusOwner()) {
+            requestFocusInWindow();
+        }
+        
         AbstractPlayer player = gameState.getPlayer();
         GameMap map = gameState.getCurrentMap();
 
@@ -91,7 +106,7 @@ public class GamePanel extends JPanel {
         int tileSize = getTileSize();
 
         // Render enemies
-        double enemySpriteScale = 6; // Match player scale or adjust as needed
+        double enemySpriteScale = 6; 
         EnemyRenderer.renderEnemies(
             g2d,
             gameState.getCurrentEnemies(),
@@ -112,7 +127,7 @@ public class GamePanel extends JPanel {
             2.0 
             );
 
-        // Render player (new PlayerRenderer)
+        // Render player 
         double spriteScale = 5.5;
         PlayerRenderer.renderPlayer(
             g2d,
@@ -140,6 +155,7 @@ public class GamePanel extends JPanel {
     public void setUIManager(GameUIManager uiManager) {
         this.uiManager = uiManager;
         inputHandler.setUIManager(uiManager);
+        requestFocusInWindow(); // Ensure focus after UI setup
     }
 
     public void setVisibleArea(int width, int height) {
