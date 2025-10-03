@@ -16,7 +16,6 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     protected EnemyType type;               // Enemy classification
     protected String name;                  // Display name
     protected int hp, maxHp;                // Health
-    protected int attackDamage;             // Base attack damage
     protected int expReward;                // Experience reward
     protected EnemyConfig.EnemyStats stats; // Config stats
     
@@ -51,7 +50,6 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
         name = type.getDisplayName();
         maxHp = stats.baseHp;
         hp = maxHp;
-        attackDamage = stats.baseDamage;
         expReward = stats.expReward;
     }
 
@@ -96,10 +94,14 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     @Override
     public int getAttackDamage() {
-        int attackType = combatState.getAttackType();
-        if (attackType < 0 || attackType >= stats.attackDamageMultipliers.length) attackType = 0;
-        int base = (stats.baseDamage * stats.attackDamageMultipliers[attackType]) / 100;
-        return Dice.calculateDamage(base, stats.diceSides, stats.variationPercent);
+        int attackType = combatState.getAttackType(); 
+        int index = attackType - 1;
+
+        return Dice.calculateDamage(
+            stats.attackDice[index],      // number of dice
+            stats.attackDiceSides[index], // sides per die
+            stats.attackModifiers[index]  // modifier
+        );
     }
 
     private boolean isAdjacent(int px, int py) {
@@ -125,11 +127,11 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     private int selectAttackType() {
         int roll = random.nextInt(100), cumulative = 0;
-        for (int i = 1; i < stats.attackChances.length; i++) { // Start from 1
+        for (int i = 0; i < stats.attackChances.length; i++) { // use 0-based index
             cumulative += stats.attackChances[i];
-            if (roll < cumulative) return i;
+            if (roll < cumulative) return i + 1; // return 1-based for getAttackDamage()
         }
-        return 1; 
+        return 1; // fallback
     }
 
     // ====== MOVEMENT ======
