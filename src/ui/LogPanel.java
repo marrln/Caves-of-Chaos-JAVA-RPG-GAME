@@ -2,11 +2,13 @@ package ui;
 
 import config.StyleConfig;
 import java.awt.*;
+import java.util.LinkedList;
+import java.util.Queue;
 import javax.swing.*;
 
 /**
  * Panel for displaying game logs and messages at the bottom of the screen.
- * Messages have typewriter effect but instantly complete if a new message arrives.
+ * Messages have typewriter effect with proper queueing to prevent race conditions.
  */
 public class LogPanel extends JPanel {
 
@@ -27,6 +29,10 @@ public class LogPanel extends JPanel {
     private int typingIndex = 0;
     private boolean isTyping = false;
     private Timer typewriterTimer;
+    
+    // ====== MESSAGE QUEUE ======
+    private final Queue<String> messageQueue = new LinkedList<>();
+    private boolean processingQueue = false;
 
     // ====== INITIAL MESSAGES ======
     private final String initialMessage = """
@@ -82,16 +88,31 @@ public class LogPanel extends JPanel {
         });
 
         add(scrollPane, BorderLayout.CENTER);
-        SwingUtilities.invokeLater(() -> addMessage(initialMessage));
+        
+        // Add initial message directly to avoid queue race condition
+        baseText = initialMessage.trim();
+        logTextArea.setText(baseText);
+        autoScrollToBottom();
     }
 
     // ====== PUBLIC API ======
     public void addMessage(String message) {
         SwingUtilities.invokeLater(() -> {
-            String msg = message.trim(); // <-- use a new local variable
+            String msg = message.trim();
             if (msg.isEmpty()) return;
-            if (isTyping) completeCurrentMessageInstantly();
-            startTypingMessage(msg);
+            
+            // If currently typing, instantly complete it to keep up with game events
+            if (isTyping) {
+                instantCompleteCurrentMessage();
+            }
+            
+            // Add to queue
+            messageQueue.offer(msg);
+            
+            // Process queue if not already processing
+            if (!processingQueue) {
+                processNextMessage();
+            }
         });
     }
 
@@ -99,17 +120,42 @@ public class LogPanel extends JPanel {
     public void clearLog() {
         SwingUtilities.invokeLater(() -> {
             stopTyping();
+            messageQueue.clear();
             logTextArea.setText("");
             baseText = "";
+            processingQueue = false;
         });
     }
 
     public String getLogText() { return logTextArea.getText(); }
     public int getMaxMessages() { return MAX_MESSAGES; }
     public boolean isTyping() { return isTyping; }
+    public int getQueueSize() { return messageQueue.size(); }
+
+    // ====== QUEUE PROCESSING ======
+    private void processNextMessage() {
+        // If already typing or no messages, stop
+        if (isTyping || messageQueue.isEmpty()) {
+            processingQueue = false;
+            return;
+        }
+        
+        processingQueue = true;
+        String nextMessage = messageQueue.poll();
+        if (nextMessage != null) {
+            startTypingMessage(nextMessage);
+        } else {
+            processingQueue = false;
+        }
+    }
 
     // ====== TYPEWRITER LOGIC ======
     private void startTypingMessage(String message) {
+        // Guard: ensure clean state
+        if (isTyping) {
+            return; // Should not happen with queue, but defensive
+        }
+        
         currentMessage = message;
         typingIndex = 0;
         isTyping = true;
@@ -119,9 +165,9 @@ public class LogPanel extends JPanel {
     }
 
     private void typeNextCharacter() {
-        if (typingIndex >= currentMessage.length()) {
-            stopTyping();
-            appendToBaseText(currentMessage);
+        // Guard: check if we should still be typing
+        if (!isTyping || typingIndex >= currentMessage.length()) {
+            finishCurrentMessage();
             return;
         }
 
@@ -130,18 +176,50 @@ public class LogPanel extends JPanel {
         autoScrollToBottom();
     }
 
-    private void completeCurrentMessageInstantly() {
-        if (!isTyping) return;
+    private void finishCurrentMessage() {
+        if (!isTyping) return; // Already finished
+        
         stopTyping();
-        appendToBaseText(currentMessage);
-    }
-
-    private void appendToBaseText(String message) {
+        
+        // Append complete message to base text
         if (!baseText.isEmpty()) baseText += "\n";
-        baseText += message;
+        baseText += currentMessage;
         cleanupOldMessages();
         logTextArea.setText(baseText);
         autoScrollToBottom();
+        
+        // Reset state
+        currentMessage = "";
+        typingIndex = 0;
+        
+        // Process next message in queue
+        SwingUtilities.invokeLater(this::processNextMessage);
+    }
+    
+    private void instantCompleteCurrentMessage() {
+        if (!isTyping) return; // Not typing, nothing to complete
+        
+        // Stop the timer immediately
+        if (typewriterTimer != null) {
+            typewriterTimer.stop();
+            typewriterTimer = null;
+        }
+        
+        // Complete the message instantly without animation
+        if (!baseText.isEmpty()) baseText += "\n";
+        baseText += currentMessage;
+        cleanupOldMessages();
+        logTextArea.setText(baseText);
+        autoScrollToBottom();
+        
+        // Reset state
+        currentMessage = "";
+        typingIndex = 0;
+        isTyping = false;
+        
+        // CRITICAL FIX: Must process next message in queue, otherwise queue gets stuck!
+        // This was causing the LogPanel to freeze after the first enemy notice
+        SwingUtilities.invokeLater(this::processNextMessage);
     }
 
     private void stopTyping() {
@@ -154,16 +232,16 @@ public class LogPanel extends JPanel {
 
     // ====== MESSAGE MANAGEMENT ======
     private void cleanupOldMessages() {
-        String[] lines = logTextArea.getText().split("\n");
+        String[] lines = baseText.split("\n");
         if (lines.length <= MAX_MESSAGES) return;
 
         StringBuilder sb = new StringBuilder();
-        for (int i = lines.length - MAX_MESSAGES; i < lines.length; i++) {
-            if (i > lines.length - MAX_MESSAGES) sb.append("\n");
+        int startIndex = lines.length - MAX_MESSAGES;
+        for (int i = startIndex; i < lines.length; i++) {
+            if (i > startIndex) sb.append("\n");
             sb.append(lines[i]);
         }
-        logTextArea.setText(sb.toString());
-        baseText = logTextArea.getText();
+        baseText = sb.toString();
     }
 
     private void autoScrollToBottom() {
