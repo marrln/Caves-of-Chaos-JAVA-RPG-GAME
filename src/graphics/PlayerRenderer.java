@@ -131,9 +131,13 @@ public class PlayerRenderer {
             g.dispose();
         }
 
-        if (effectId.equals(HEAL_EFFECT_ID)) healFrames = scaledFrames;
-        else if (effectId.equals(MANA_EFFECT_ID)) manaFrames = scaledFrames;
-        else if (effectId.equals(LEVEL_UP_EFFECT_ID)) levelUpFrames = scaledFrames;
+        switch (effectId) {
+            case HEAL_EFFECT_ID -> healFrames = scaledFrames;
+            case MANA_EFFECT_ID -> manaFrames = scaledFrames;
+            case LEVEL_UP_EFFECT_ID -> levelUpFrames = scaledFrames;
+            default -> {
+            }
+        }
     }
 
     private static void renderHealingEffect(Graphics2D g2d, AbstractPlayer player, int drawX, int drawY, int scaledTile) {
