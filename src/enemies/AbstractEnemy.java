@@ -182,9 +182,17 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
         // Handle movement
         if (combatState.canPerformAction(CombatState.ActionType.MOVE)) {
             double dist = Math.hypot(px - x, py - y);
+            
+            // Notice player if within notice radius
             if (dist <= stats.noticeRadius && !hasNoticedPlayer) {
                 hasNoticedPlayer = true;
                 if (combatLogger != null) combatLogger.accept(getNoticeMessage());
+            }
+            
+            // Lose track of player if they get too far away
+            if (hasNoticedPlayer && dist > stats.noticeRadius * 1.5) {
+                hasNoticedPlayer = false;
+                if (combatLogger != null) combatLogger.accept(name + " seems to have lost your tracks!");
             }
 
             if (hasNoticedPlayer) {
