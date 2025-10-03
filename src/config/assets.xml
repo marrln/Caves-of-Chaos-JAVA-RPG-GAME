@@ -133,6 +133,8 @@
                 <sprite id="health_potion_effect" path="src/assets/items/consumables/HealthPotion_Effect.png"/>
                 <sprite id="mana_potion" path="src/assets/items/consumables/ManaPotion.png"/>
                 <sprite id="mana_potion_effect" path="src/assets/items/consumables/ManaPotion_Effect.png"/>
+                <sprite id="mana_health_potion" path="src/assets/items/consumables/ManaHealthPotion.png"/>
+                <sprite id="level_up" path="src/assets/items/consumables/LevelUp_Effect.png"/>
             </consumables>
             <projectiles>
                 <sprite id="fire_spell" path="src/assets/items/projectiles/FireSpell.png"/>
