@@ -16,7 +16,7 @@ public class ItemConfig {
     private static final int WEAPON_DISABLED_LEVELS = MAX_LEVEL / 2; 
 
     // ===== LEVEL SCALING =====
-    private static final int BASE_ITEMS_PER_LEVEL = 3;
+    private static final int BASE_ITEMS_PER_LEVEL = 8;
     private static final int ITEMS_PER_LEVEL_DIVISOR = 2;  // +1 item every 2 levels
     private static final int RANDOM_ITEMS_VARIANCE = 3;    // +0 to 2 random items
 
