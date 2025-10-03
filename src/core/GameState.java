@@ -27,6 +27,9 @@ public final class GameState {
     private FogOfWar fogOfWar;                  
     private final List<Enemy> currentEnemies;   
     private boolean gameOver;
+    
+    // ====== DEBUG FLAGS ======
+    private boolean medusaDeathHandled = false; // Tracks if we handled Medusa's death
 
     // ====== SYSTEM REFERENCES ======
     private GameUIManager uiManager;        
@@ -208,20 +211,11 @@ public final class GameState {
     }
 
     public void updateEnemies() {
-        if (player == null) return;
+        if (player == null || gameOver) return; // Stop all enemy updates if game is over
         player.updateCombat();
 
-
         for (Enemy enemy : currentEnemies) {
-            boolean wasAlive = !enemy.isDead();
             enemy.update(player.getX(), player.getY());
-
-            // Handle Medusa defeat (on transition from alive to dead)
-            if (enemy instanceof enemies.MedusaOfChaos medusa) {
-                if (wasAlive && medusa.isDead()) {
-                    handleMedusaDefeat(medusa.getX(), medusa.getY());
-                }
-            }
 
             if (!enemy.isDead() && enemy instanceof enemies.AbstractEnemy abstractEnemy) {
                 if (abstractEnemy.hasPendingPlayerDamage()) {
@@ -233,6 +227,7 @@ public final class GameState {
                             gameOver = true;
                             logMessage(player.getName() + " has been defeated!");
                             handlePlayerDeath();
+                            return; // CRITICAL: Stop processing immediately after player death
                         }
                     }
                 }
@@ -242,6 +237,37 @@ public final class GameState {
         // Ensure collision entities are updated so dead enemies are no longer blocking
         updateCollisionEntities();
         musicManager.updateForCombatState(currentEnemies);
+    }
+    
+    /**
+     * Checks if Medusa died this game tick and handles the death event.
+     * MUST be called AFTER combat resolution (melee, projectiles) but BEFORE next frame.
+     * This is separate from updateEnemies() to handle death detection across multiple damage sources.
+     * Only runs on the final level where Medusa spawns.
+     */
+    public void checkMedusaDeath() {
+        // Skip if not on final level (Medusa only spawns on final level)
+        if (currentLevel != CAVE_MAX_LEVEL - 1) return;
+        
+        // Skip if game is over or no enemies
+        if (gameOver || currentEnemies.isEmpty()) return;
+        
+        // Find Medusa and check if she just died
+        for (Enemy enemy : currentEnemies) {
+            if (enemy instanceof enemies.MedusaOfChaos medusa) {
+                // Check if Medusa is dead
+                if (medusa.isDead()) {
+                    // Handle death only once
+                    if (!medusaDeathHandled) {
+                        updateCollisionEntities();
+                        handleMedusaDeath(medusa.getX(), medusa.getY());
+                        medusaDeathHandled = true;
+                    }
+                    return;
+                }
+                return;
+            }
+        }
     }
 
     // ====== PLAYER DEATH & BOSS ======
@@ -256,11 +282,19 @@ public final class GameState {
         });
     }
 
-    private void handleMedusaDefeat(int x, int y) {
+    /**
+     * Handles Medusa defeat and spawns the Shard of Judgement.
+     * Called from checkMedusaDeath() when Medusa is killed by any damage source.
+     */
+    public void handleMedusaDeath(int x, int y) {
         logMessage("The Medusa of Chaos has been defeated! The evil presence lifts...");
         logMessage("A brilliant shard of light materializes where the beast fell!");
-        if (itemSpawner.spawnShardOfJudgement(getCurrentMap(), x, y)) logMessage("The legendary Shard of Judgement awaits your claim!");
-        else logMessage("The Shard of Judgement failed to spawn, in any case you have won!");
+        boolean spawned = itemSpawner.spawnShardOfJudgement(getCurrentMap(), x, y);
+        if (spawned) {
+            logMessage("The legendary Shard of Judgement awaits your claim!");
+        } else {
+            logMessage("The Shard of Judgement failed to spawn, but you have still won!");
+        }
     }
 
     // ====== CONVINIENCE ======
