@@ -17,6 +17,8 @@ import ui.GameUIManager;
  * - Collision handling, music, and level progression
  */
 public final class GameState {
+    // ====== SINGLETON INSTANCE ======
+    private static GameState instance;
 
     // ====== CORE GAME STATE ======
     private final List<GameMap> maps;
@@ -40,8 +42,20 @@ public final class GameState {
     private static final int CAVE_MAX_LEVEL = Config.getIntSetting("caveLevelNumber");
     private static final int VISION_RADIUS = Config.getIntSetting("visionRadius");
 
+    /** Returns the singleton instance of GameState */
+    public static GameState getInstance() {
+        if (instance == null) {
+            throw new IllegalStateException("GameState has not been initialized!");
+        }
+        return instance;
+    }
+
     // ====== CONSTRUCTOR ======
     public GameState(AbstractPlayer player, int startingLevel) {
+        if (instance != null) {
+            throw new IllegalStateException("GameState instance already exists!");
+        }
+        instance = this;
         this.maps = new ArrayList<>();
         this.currentEnemies = new ArrayList<>();
         this.currentLevel = Math.max(0, Math.min(startingLevel, CAVE_MAX_LEVEL - 1));
