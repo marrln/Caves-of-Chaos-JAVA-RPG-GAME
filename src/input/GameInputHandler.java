@@ -18,8 +18,8 @@ import ui.GameUIManager;
  * - WASD/Arrow Keys: Player movement
  * - SPACE: Pick up item
  * - R: Rest/Wait
- * - E: Primary attack
- * - Q: Secondary attack
+ * - Q: Primary attack (faster cooldown)
+ * - E: Secondary attack (longer cooldown)
  * - 1-9: Use inventory items
  * - C: Debug - Center camera on player
  * - F: Debug - Toggle fog of war
@@ -32,10 +32,10 @@ public class GameInputHandler extends KeyAdapter {
     private GameUIManager uiManager;
     
     // Input throttling to prevent spam and game slowdown
-    private static final long MOVEMENT_COOLDOWN_MS = 150; // Minimum time between movements
-    private static final long ACTION_COOLDOWN_MS = 200;   // Minimum time between actions
+    private static final long MOVEMENT_COOLDOWN_MS = 200; // Minimum time between movements
+    private static final long ITEM_ACTION_COOLDOWN_MS = 300; // Prevent accidental double-use of items
     private long lastMovementTime = 0;
-    private long lastActionTime = 0;
+    private long lastItemActionTime = 0;
     
     public GameInputHandler(GameState gameState, GameController controller, GamePanel gamePanel) {
         this.gameState = gameState;
@@ -53,7 +53,6 @@ public class GameInputHandler extends KeyAdapter {
         int dx = 0, dy = 0;
         boolean shouldUpdate = false;
         boolean isMovement = false;
-        boolean isAction = false;
         
         switch (e.getKeyCode()) {
             // Movement controls
@@ -74,100 +73,91 @@ public class GameInputHandler extends KeyAdapter {
                 isMovement = true;
             }
             
-            // Action controls
+            // Action controls (cooldowns handled by GameController)
             case KeyEvent.VK_R -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
-                    controller.rest(); 
-                    shouldUpdate = true;
-                    isAction = true;
-                }
-            }
-            case KeyEvent.VK_E -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
-                    controller.attack(1); 
-                    shouldUpdate = true;
-                    isAction = true;
-                }
+                controller.rest(); 
+                shouldUpdate = true;
             }
             case KeyEvent.VK_Q -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
-                    controller.attack(2); 
-                    shouldUpdate = true;
-                    isAction = true;
-                }
+                controller.attack(1); 
+                shouldUpdate = true;
+            }
+            case KeyEvent.VK_E -> { 
+                controller.attack(2); 
+                shouldUpdate = true;
             }
             
-            // Item interaction controls
+            // Item interaction controls (throttled to prevent accidental spam)
             case KeyEvent.VK_SPACE -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.pickupItem(); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             
-            // Inventory controls (1-9)
+            // Inventory controls (1-9) - throttled to prevent accidental double-use
             case KeyEvent.VK_1 -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.useItem(1); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             case KeyEvent.VK_2 -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.useItem(2); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             case KeyEvent.VK_3 -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.useItem(3); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             case KeyEvent.VK_4 -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.useItem(4); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             case KeyEvent.VK_5 -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.useItem(5); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             case KeyEvent.VK_6 -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.useItem(6); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             case KeyEvent.VK_7 -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.useItem(7); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             case KeyEvent.VK_8 -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.useItem(8); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             case KeyEvent.VK_9 -> { 
-                if (currentTime - lastActionTime >= ACTION_COOLDOWN_MS) {
+                if (currentTime - lastItemActionTime >= ITEM_ACTION_COOLDOWN_MS) {
                     controller.useItem(9); 
                     shouldUpdate = true;
-                    isAction = true;
+                    lastItemActionTime = currentTime;
                 }
             }
             
@@ -177,11 +167,11 @@ public class GameInputHandler extends KeyAdapter {
             //     gamePanel.centerCameraOnPlayer();
             //     return; // Don't process further
             // }
-            case KeyEvent.VK_F -> {
-                // Debug key: toggle fog of war
-                gamePanel.toggleFogOfWar();
-                return; // Don't process further
-            }
+            // case KeyEvent.VK_F -> {
+            //     // Debug key: toggle fog of war
+            //     gamePanel.toggleFogOfWar();
+            //     return; // Don't process further
+            // }
             
             default -> { 
                 return; // Unknown key, do nothing
@@ -195,11 +185,6 @@ public class GameInputHandler extends KeyAdapter {
                 shouldUpdate = true;
                 lastMovementTime = currentTime;
             }
-        }
-        
-        // Update action timestamp if an action was performed
-        if (isAction) {
-            lastActionTime = currentTime;
         }
         
         // Update the game view if needed
