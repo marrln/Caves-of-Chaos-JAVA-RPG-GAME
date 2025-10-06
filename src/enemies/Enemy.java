@@ -91,4 +91,11 @@ public interface Enemy {
      * @return The attack damage
      */
     int getAttackDamage();
+    
+    /**
+     * Checks if the enemy has noticed the player.
+     * 
+     * @return true if the enemy has noticed the player, false otherwise
+     */
+    boolean hasNoticedPlayer();
 }
