@@ -75,5 +75,6 @@ public class GameUIManager {
     public int getVisibleMapHeight() { return visibleMapHeight; }
     public void centerCameraOnPlayer() { gamePanel.centerCameraOnPlayer(); }
     public void addMessage(String message) { logPanel.addMessage(message); }
+    public void addMessage(String message, java.awt.Color color) { logPanel.addMessage(message, color); }
     public LogPanel getLogPanel() { return logPanel; }
 }
