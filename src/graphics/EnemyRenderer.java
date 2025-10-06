@@ -27,7 +27,7 @@ public class EnemyRenderer {
     private static final int ENEMY_CIRCLE_SIZE = 28;
     private static final int HEALTH_BAR_WIDTH = 32;
     private static final int HEALTH_BAR_HEIGHT = 4;
-    private static final int HEALTH_BAR_OFFSET_Y = -12;
+    private static final int HEALTH_BAR_OFFSET_Y = -25;
     private static final int NAME_OFFSET_Y = -30;
 
     // Enemy colors (fallback)
@@ -37,9 +37,9 @@ public class EnemyRenderer {
 
     // Health bar colors
     private static final Color HEALTH_BAR_BACKGROUND = Color.DARK_GRAY;
-    private static final Color HEALTH_BAR_FULL = Color.GREEN;
-    private static final Color HEALTH_BAR_MEDIUM = Color.YELLOW;
-    private static final Color HEALTH_BAR_LOW = Color.RED;
+    private static final Color HEALTH_BAR_FULL = config.StyleConfig.getColor("statHigh", new Color(0x4EE39A));
+    private static final Color HEALTH_BAR_MEDIUM = config.StyleConfig.getColor("statMedium", new Color(0xE39A4E));
+    private static final Color HEALTH_BAR_LOW = config.StyleConfig.getColor("statLow", new Color(0xE04E4E));
 
     // === Sprite management ===
     private static final SpriteSheetLoader sheetLoader = new SpriteSheetLoader();
@@ -52,8 +52,14 @@ public class EnemyRenderer {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         for (Enemy enemy : enemies) {
-            if (fogOfWar == null || fogOfWar.isVisible(enemy.getX(), enemy.getY())) {
-                renderEnemy(g2d, enemy, tileSize, cameraX, cameraY, fogOfWar, scale);
+            float fogAlpha = 1.0f;
+            boolean visible = true;
+            if (fogOfWar != null) {
+                fogAlpha = fogOfWar.getVisibilityStrength(enemy.getX(), enemy.getY());
+                visible = fogAlpha > 0.05f; // Only skip if fully hidden
+            }
+            if (visible) {
+                renderEnemy(g2d, enemy, tileSize, cameraX, cameraY, fogOfWar, scale, fogAlpha);
             }
         }
     }
@@ -61,13 +67,13 @@ public class EnemyRenderer {
     // === Internal rendering per enemy ===
     private static void renderEnemy(Graphics2D g2d, Enemy enemy,
                                     int tileSize, int cameraX, int cameraY,
-                                    FogOfWar fogOfWar, double scale) {
+                                    FogOfWar fogOfWar, double scale, float fogAlpha) {
 
         int scaledTile = (int) (tileSize * scale);
         int screenX = (enemy.getX() * tileSize) - cameraX + (tileSize / 2);
         int screenY = (enemy.getY() * tileSize) - cameraY + (tileSize / 2);
 
-        float visibility = fogOfWar != null ? fogOfWar.getVisibilityStrength(enemy.getX(), enemy.getY()) : 1.0f;
+        float visibility = fogAlpha;
 
         boolean isMedusa = (enemy instanceof AbstractEnemy ae) && ae.getType() == EnemyType.MEDUSA_OF_CHAOS;
         int medusaYOffset = 0;
@@ -206,8 +212,8 @@ public class EnemyRenderer {
     private static void renderEnemyName(Graphics2D g2d, int x, int y,
                                         Enemy enemy, float visibility) {
         drawWithAlpha(g2d, visibility, () -> {
-            Font font = new Font("Arial", Font.BOLD, 10);
-            g2d.setFont(font);
+            Font styledFont = config.StyleConfig.getFont("EbGaramond", new Font("Serif", Font.PLAIN, 12));
+            g2d.setFont(styledFont);
 
             FontMetrics fm = g2d.getFontMetrics();
             int textWidth = fm.stringWidth(enemy.getName());
