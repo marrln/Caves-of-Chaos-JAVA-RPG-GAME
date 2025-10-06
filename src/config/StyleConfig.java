@@ -2,6 +2,7 @@ package config;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +13,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 /**
- * Utility for loading and accessing styling settings (colors, fonts, etc.).
+ * Utility for loading and accessing styling settings (colors, fonts, textures, effects, typography).
  */
 public class StyleConfig {
 
@@ -33,7 +34,7 @@ public class StyleConfig {
         }
     }
 
-    public static void loadStyling(String stylingPath) {
+        public static void loadStyling(String stylingPath) {
         try {
             File file = new File(stylingPath);
             if (!file.exists()) throw new RuntimeException("Styling file not found: " + stylingPath);
@@ -71,6 +72,41 @@ public class StyleConfig {
             case "bold-italic", "bolditalic" -> Font.BOLD | Font.ITALIC;
             default -> Font.PLAIN;
         };
+    }
+    public static class EffectInfo {
+        public final String name;
+        public final String type;
+        public final Map<String, String> parameters;
+
+        public EffectInfo(String name, String type, Map<String, String> parameters) {
+            this.name = name;
+            this.type = type;
+            this.parameters = parameters;
+        }
+
+        public float getFloatParam(String key, float defaultValue) {
+            String value = parameters.get(key);
+            if (value == null) return defaultValue;
+            try {
+                return Float.parseFloat(value);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+
+        public int getIntParam(String key, int defaultValue) {
+            String value = parameters.get(key);
+            if (value == null) return defaultValue;
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+
+        public String getStringParam(String key, String defaultValue) {
+            return parameters.getOrDefault(key, defaultValue);
+        }
     }
 
     public static Color getColor(String name) {
@@ -127,7 +163,27 @@ public class StyleConfig {
         if (info == null) return cacheFont(name, defaultFont);
 
         try {
-            Font font = new Font(info.family, info.style, info.size);
+            // Parse comma-separated font families (e.g., "Cinzel, Trajan Pro, Serif")
+            String[] fontFamilies = info.family.split(",");
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            String[] availableFonts = ge.getAvailableFontFamilyNames();
+            
+            // Try each font family in order until one is found
+            for (String family : fontFamilies) {
+                String trimmedFamily = family.trim();
+                
+                // Check if this font family is available
+                for (String availableFont : availableFonts) {
+                    if (availableFont.equalsIgnoreCase(trimmedFamily)) {
+                        Font font = new Font(trimmedFamily, info.style, info.size);
+                        return cacheFont(name, font);
+                    }
+                }
+            }
+            
+            // If no fonts from the list are available, use the first one as fallback
+            // (Java will substitute with a default font)
+            Font font = new Font(fontFamilies[0].trim(), info.style, info.size);
             return cacheFont(name, font);
         } catch (Exception e) {
             return cacheFont(name, defaultFont);
@@ -145,6 +201,7 @@ public class StyleConfig {
     }
 
     public static String[] getAvailableColorNames() {
-        return colorValues.keySet().toArray(new String[0]);
+        return colorValues.keySet().toArray(String[]::new);
     }
+
 }

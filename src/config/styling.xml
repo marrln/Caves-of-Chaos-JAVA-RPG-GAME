@@ -1,61 +1,124 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Styling configuration for Caves of Chaos RPG.
-    Define font and color settings here for easy maintenance and consistency.
+    Atmospheric styling configuration for Caves of Chaos RPG.
+    Use serif & decorative fonts, warm parchment colors, and optional textures/effects
+    to achieve an old-scroll, mythic tone.
 -->
 <styling>
+
     <!-- Font settings -->
     <fonts>
-        <!-- Default font for general UI -->
-        <font name="default" family="Consolas" size="16" style="plain"/>
-        
+        <!-- Default font for general UI (warmer serif for atmosphere; fallbacks to Serif) -->
+        <font name="default" family="Garamond, Georgia, Serif" size="16" style="plain"/>
+        <font name="displayTitle" family="Cinzel, Trajan Pro, Serif" size="28" style="bold"/>
+
         <!-- Status panel fonts -->
-        <font name="statusTitle" family="SansSerif" size="16" style="bold"/>
-        <font name="statusNormal" family="SansSerif" size="14" style="plain"/>
-        
-        <!-- Log panel font -->
-        <font name="log" family="Monospaced" size="14" style="plain"/>
-        
+        <font name="statusTitle" family="Garamond, Serif" size="15" style="bold"/>
+        <font name="statusNormal" family="Garamond, Serif" size="14" style="plain"/>
+
+        <!-- Button font (clear but slightly condensed) -->
+        <font name="button" family="SansSerif" size="14" style="bold"/>
+
+        <!-- Log panel font (monospaced, slightly smaller) -->
+        <font name="log" family="Monospaced" size="13" style="plain"/>
+
         <!-- Game UI fonts -->
-        <font name="gameUI" family="Arial" size="12" style="plain"/>
-        <font name="gameTitle" family="Arial" size="18" style="bold"/>
+        <font name="gameUI" family="Arial, SansSerif" size="12" style="plain"/>
+        <font name="gameTitle" family="displayTitle" size="22" style="bold"/>
+
+        <!-- Game Over / Victory windows -->
+        <font name="gameOverTitle" family="displayTitle" size="36" style="bold"/>
+        <font name="gameOverText" family="Garamond, Serif" size="18" style="plain"/>
+        <font name="gameOverFlavor" family="Garamond, Serif" size="16" style="italic"/>
+
+        <font name="victoryTitle" family="displayTitle" size="36" style="bold"/>
+        <font name="victoryText" family="Garamond, Serif" size="18" style="bold"/>
+        <font name="victorySubtext" family="Garamond, Serif" size="16" style="plain"/>
+        <font name="victoryFlavor" family="Garamond, Serif" size="14" style="italic"/>
+
+        <!-- Button label -->
+        <font name="buttonText" family="SansSerif" size="15" style="bold"/>
+
+        <!-- Game Controls Window fonts -->
+        <font name="controlsTitle" family="displayTitle" size="22" style="bold"/>
+        <font name="controlsSection" family="Garamond, Serif" size="16" style="bold"/>
+        <font name="controlsText" family="Garamond, Serif" size="14" style="plain"/>
+        <font name="controlsNote" family="Garamond, Serif" size="13" style="italic"/>
+        <font name="controlsFinal" family="Garamond, Serif" size="15" style="bold-italic"/>
+        <font name="controlsFlourish" family="Garamond, Serif" size="12" style="plain"/>
     </fonts>
 
-    <!-- Color palette -->
+    <!-- Color palette: warmer, earthy, parchment-forward -->
     <colors>
-        <!-- General UI Colors -->
-        <color name="primary">#22223B</color>       <!-- Main background: dark blue-gray -->
-        <color name="secondary">#4A4E69</color>     <!-- Secondary background: muted indigo -->
-        <color name="accent">#9A8C98</color>        <!-- Accent color for highlights: soft mauve -->
-        <color name="text">#F2E9E4</color>          <!-- Main text color: off-white -->
-        <color name="danger">#C9ADA7</color>        <!-- For warnings/errors: pale rose -->
-        <color name="success">#A3C9A8</color>       <!-- For success messages: light green -->
-        
-        <!-- Game Panel Colors -->
-        <color name="gameBackground">#000000</color>      <!-- Game panel background: black -->
-        
-        <!-- Tile Colors -->
-        <color name="tileWall">#555555</color>            <!-- Wall tiles: dark gray -->
-        <color name="tileFloor">#CCCCCC</color>           <!-- Floor tiles: light gray -->
-        <color name="tileStairsDown">#FFFF00</color>      <!-- Down stairs: yellow -->
-        <color name="tileStairsUp">#FFA500</color>        <!-- Up stairs: orange -->
-        <color name="tileEntrance">#FFC0CB</color>        <!-- Entrance marker: pink -->
-        <color name="tileUnknown">#FF00FF</color>         <!-- Unknown tile types: magenta -->
-        
-        <!-- Player Colors -->
-        <color name="playerBody">#00FFFF</color>          <!-- Player character: cyan -->
-        <color name="playerBorder">#FFFFFF</color>        <!-- Player border: white -->
-        
-        <!-- Fog of War Colors -->
-        <color name="fogUndiscovered">#000000F0</color>   <!-- Undiscovered areas: near-black with alpha -->
-        <color name="fogDiscovered">#1E283C</color>       <!-- Discovered but not visible: blue-gray -->
-        <color name="fogEdge">#14203E</color>             <!-- Edge of vision gradient: darker blue -->
-        
-        <!-- UI Panel Colors -->
-        <color name="panelBackground">#000000</color>     <!-- Panel backgrounds: black -->
-        <color name="panelBorder">#555555</color>         <!-- Panel borders: dark gray -->
-        <color name="panelText">#FFFFFF</color>           <!-- Panel text: white -->
-        <color name="panelHighlight">#FFFF00</color>      <!-- Panel highlights: yellow -->
-        
+        <!-- Global UI -->
+        <color name="primary">#1B1510</color>        <!-- deep ink / near-black -->
+        <color name="secondary">#3B2E23</color>      <!-- warm dark brown -->
+        <color name="accent">#C9A55B</color>         <!-- antique gold / brass -->
+        <color name="text">#F6EDD9</color>           <!-- parchment-ink (off-white) -->
+
+        <!-- Alerts & feedback -->
+        <color name="danger">#8C2E2E</color>         <!-- dried-blood / seal red -->
+        <color name="success">#7BBF9F</color>        <!-- muted jade (healing/positive) -->
+
+        <!-- Game panel / tiles (earth tones) -->
+        <color name="gameBackground">#0A0A08</color> <!-- deep cave black -->
+        <color name="tileWall">#4B3B2A</color>       <!-- stone/brown -->
+        <color name="tileFloor">#BDAE94</color>      <!-- dusty floor -->
+        <color name="tileStairsDown">#CFA75B</color> <!-- tarnished brass -->
+        <color name="tileStairsUp">#9EB1A1</color>   <!-- mossy stone -->
+        <color name="tileEntrance">#D6B48A</color>   <!-- warm entrance glow -->
+        <color name="tileUnknown">#8B4983</color>    <!-- arcane magenta -->
+
+        <!-- Player -->
+        <color name="playerBody">#A7FFF1</color>     <!-- pale shard cyan (glowy) -->
+        <color name="playerBorder">#E8F7F4</color>   <!-- soft highlight -->
+
+        <!-- Fog of War -->
+        <color name="fogUndiscovered">#000000E6</color>
+        <color name="fogDiscovered">#2A2F34</color>
+        <color name="fogEdge">#1B2328</color>
+
+        <!-- Panels -->
+        <color name="panelBackground">#100C08</color>
+        <color name="panelBorder">#473522</color>
+        <color name="panelText">#F7EEDB</color>
+        <color name="panelHighlight">#E6CFA3</color>
+
+        <!-- Window / Button -->
+        <color name="windowBackground">#0F0B09</color>
+        <color name="windowText">#F7EEDB</color>
+        <color name="buttonBackground">#2E241A</color>
+        <color name="buttonText">#F6EDD9</color>
+
+        <!-- Flavor / special -->
+        <color name="deathRed">#B02A2A</color>
+        <color name="victoryGold">#D4AF37</color>
+        <color name="flavorGray">#8C8476</color>
+        <color name="shardCyan">#00B6A1</color>
+
+        <!-- Stat / cooldown -->
+        <color name="statHigh">#4EE39A</color>
+        <color name="statMedium">#E39A4E</color>
+        <color name="statLow">#E04E4E</color>
+        <color name="statMP">#5A75F7</color>
+        <color name="cooldownReady">#3BD46C</color>
+        <color name="cooldownNotReady">#FF7A59</color>
+
+        <!-- Scroll / parchment specifics -->
+        <color name="scrollBackground">#F3EBD3</color>   <!-- warmer parchment -->
+        <color name="scrollEdge">#E1CFA8</color>         <!-- torn/aged edge -->
+        <color name="scrollBorder">#8B5A2B</color>
+        <color name="scrollShadow">#C9BFA6</color>
+        <color name="scrollTitleText">#4C2F1A</color>    <!-- deep brown ink -->
+        <color name="scrollSectionText">#5E3F22</color>
+        <color name="scrollText">#3B2A19</color>
+        <color name="scrollNoteText">#594431</color>
+        <color name="scrollFinalText">#8B5A2B</color>
+        <color name="scrollFlourishText">#8B5A2B</color>
+
+        <color name="scrollButtonBackground">#8B5A2B</color>
+        <color name="scrollButtonText">#F3EBD3</color>
+        <color name="scrollThumb">#8B5A2B</color>
+        <color name="scrollTrack">#E6DCC3</color>
     </colors>
 </styling>
