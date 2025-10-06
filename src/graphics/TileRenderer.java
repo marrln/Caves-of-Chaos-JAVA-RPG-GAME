@@ -159,7 +159,7 @@ public class TileRenderer {
         
         // Torch parameters - covers entire visible area
         final Color TORCH_COLOR = new Color(255, 180, 60); // Warm orange-yellow
-        final float BASE_ALPHA = 0.12f; // Base warmth for all visible tiles
+        final float BASE_ALPHA = 0.08f; // Base warmth for all visible tiles
         final float MAX_BOOST = 0.20f; // Extra intensity near player
         final float BOOST_RADIUS = 5.0f; // tiles where boost applies
         
@@ -183,7 +183,7 @@ public class TileRenderer {
                 float torchAlpha = BASE_ALPHA;
                 if (distance <= BOOST_RADIUS) {
                     float intensity = 1.0f - (distance / BOOST_RADIUS);
-                    intensity = intensity * intensity; // Squared falloff
+                    intensity = (float)((1 - Math.cos(intensity * Math.PI)) / 2); // Cosine falloff for smooth glow
                     torchAlpha += intensity * MAX_BOOST;
                 }
                 
