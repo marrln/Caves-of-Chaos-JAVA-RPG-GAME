@@ -188,6 +188,10 @@ public class AssetManager {
         return null;
     }
 
+    public static BufferedImage getAppIcon() {
+        return getInstance().loadImage("appIcon");
+    }
+
     // Preload all assets defined as tiles in assets.xml
     public void preloadTileAssets() {
         for (String id : tileAssetIds) {
