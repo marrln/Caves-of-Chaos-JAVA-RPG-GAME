@@ -128,7 +128,20 @@ public class MusicManager {
     // ====== SETTINGS & STATE ======
     public void setMusicEnabled(boolean enabled) {
         isMusicEnabled = enabled;
-        if (!enabled) stopMusic();
+        if (!enabled) {
+            stopMusic();
+        } else {
+            // Restart appropriate music when re-enabled
+            if (wasCombatMusicPlaying) {
+                startCombatMusic();
+            } else {
+                startExplorationMusic();
+            }
+        }
+    }
+    
+    public void toggleMusic() {
+        setMusicEnabled(!isMusicEnabled);
     }
 
     public boolean isMusicEnabled() {
