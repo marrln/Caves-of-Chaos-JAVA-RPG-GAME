@@ -1,236 +1,275 @@
 package ui;
 
+import audio.MusicManager;
 import config.StyleConfig;
 import core.GameState;
-import items.Inventory;
-import items.Item;
-import items.Potion;
-import items.Weapon;
+import items.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import player.AbstractPlayer;
 
 /**
- * Scrollable status panel with compact item spacing and refresh support.
+ * Compact, scrollable status panel showing player info, inventory, and equipment.
+ * Uses HTML selectively for text wrapping where needed.
  */
 public class StatusPanel extends JPanel {
+
+    // ====== CONFIGURATION ======
+    private static final int SCROLLBAR_WIDTH = 8;  // Slim scrollbar for compact status panel
+    private static final int SECTION_SPACING = 10;
+    private static final int ITEM_SPACING = 0;
+    private static final int CONTENT_PADDING = 10;
+
+    // ====== FIELDS ======
     private GameState gameState;
-    private final JPanel contentPanel;
+    private final JPanel contentPanel = new JPanel();
     private final JScrollPane scrollPane;
+    private JButton musicButton;
 
-    private static final int SECTION_SPACING = 10; // Between sections
-    private static final int ITEM_SPACING = 0;     // Between items in the same section
-
+    // ====== CONSTRUCTOR ======
     public StatusPanel() {
         setLayout(new BorderLayout());
         setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
-        setPreferredSize(new Dimension(250, 600));
+        setPreferredSize(new Dimension(230, 600));
         setBorder(BorderFactory.createLineBorder(StyleConfig.getColor("panelBorder", Color.DARK_GRAY), 1));
-        setFocusable(false); // Prevent stealing focus from GamePanel
+        setFocusable(false);
 
-        contentPanel = new JPanel();
+        // Content panel
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBackground(getBackground());
-        contentPanel.setFocusable(false); // Prevent stealing focus
+        contentPanel.setFocusable(false);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(CONTENT_PADDING, CONTENT_PADDING, CONTENT_PADDING, CONTENT_PADDING));
 
+        // Scroll pane with custom scrollbar styling
         scrollPane = new JScrollPane(contentPanel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setBorder(null);
-        scrollPane.setFocusable(false); // Prevent scrollbar from stealing focus
+        scrollPane.setFocusable(false);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        scrollPane.getVerticalScrollBar().setFocusable(false); // Prevent scrollbar buttons from stealing focus
+        scrollPane.getVerticalScrollBar().setFocusable(false);
+        customizeScrollBar(scrollPane.getVerticalScrollBar());
+
         add(scrollPane, BorderLayout.CENTER);
+        add(createButtonPanel(), BorderLayout.SOUTH);
     }
 
+    // ====== SETTERS ======
     public void setGameState(GameState gameState) {
         this.gameState = gameState;
-        refresh(); // Rebuild content immediately
+        refresh();
     }
 
-    /**
-     * Refreshes the panel based on the current gameState.
-     * Call this whenever game stats, inventory, or cooldowns change.
-     */
+    // ====== PUBLIC METHODS ======
     public void refresh() {
         if (gameState == null) return;
-
         contentPanel.removeAll();
 
-        // CHARACTER section
-        // addSectionTitle("PLAYER INFO");
-        String name = gameState.getPlayer().getName();
-        name = name.substring(0, 1).toUpperCase() + name.substring(1);
-        
-        addText(gameState.getPlayer().getClass().getSimpleName() + " " + name, true);
-        addColoredText("HP: " + gameState.getPlayer().getHp() + "/" + gameState.getPlayer().getMaxHp(), getHpColor());
-        if (gameState.getPlayer().getMaxMp() > 0) {
-            addColoredText("MP: " + gameState.getPlayer().getMp() + "/" + gameState.getPlayer().getMaxMp(), getMpColor());
-        }
-        addText("Level: " + gameState.getPlayer().getLevel() + " / " + gameState.getPlayer().getMaxLevel(), true);
-        
-        // Display "MAX" if player is at max level, otherwise show XP progress
-        if (gameState.getPlayer().getLevel() >= gameState.getPlayer().getMaxLevel()) {
-            addColoredText("EXP: MAX", StyleConfig.getColor("panelHighlight", Color.YELLOW));
-        } else {
-            addText("EXP: " + gameState.getPlayer().getExp() + "/" + gameState.getPlayer().getExpToNext());
-        }
+        AbstractPlayer player = gameState.getPlayer();
+        String playerName = capitalize(player.getName());
 
-        // Cooldowns
-        boolean isWizard = gameState.getPlayer().getClass().getSimpleName().equals("Wizard");
-        String attack1 = isWizard ? "Fire Spell:" : "Quick Strike:";
-        String attack2 = isWizard ? "Ice Spell:" : "Power Attack:";
-        addText("");
-        addColoredText(attack1 + " " + gameState.getPlayer().getCooldownDisplay(1),
-                "Ready".equals(gameState.getPlayer().getCooldownDisplay(1)) ? Color.GREEN : Color.RED);
-        addColoredText(attack2 + " " + gameState.getPlayer().getCooldownDisplay(2),
-                "Ready".equals(gameState.getPlayer().getCooldownDisplay(2)) ? Color.GREEN : Color.RED);
-        
-        addSectionTitle("Cave Info");
-        addText(gameState.getLevelDisplayString());
-        
-        // Count only alive enemies (not dead)
-        long aliveEnemies = gameState.getCurrentEnemies().stream()
-            .filter(enemy -> !enemy.isDead())
-            .count();
-        addText("You can sense the presence of " + aliveEnemies + " enemies.");
-        
-        if (!gameState.canGoToNextLevel()) {
-            addColoredText("You have reached the deepest\nparts of the Caves of Chaos!", StyleConfig.getColor("panelHighlight", Color.RED));
-        }
-
-        // INVENTORY section
-        addSectionTitle("INVENTORY");
-        Inventory inventory = gameState.getPlayer().getInventory();
-        for (int i = 0; i < 9; i++) {
-            addItemSlot(i + 1, inventory.getItem(i + 1));
-        }
-
-        // EQUIPMENT section
-        addSectionTitle("EQUIPMENT");
-        Weapon weapon = gameState.getPlayer().getEquippedWeapon();
-        if (weapon != null) {
-            addText("Weapon: " + weapon.getName());
-            addText("  +" + weapon.getDamageBonus() + " damage");
-        } else {
-            addText("Weapon: None");
-        }
-
-        // CONTROLS section
-        addSectionTitle("CONTROLS");
-        addText("WASD: Move");
-        addText("SPACE: Pick up");
-        addText("Q/E: Attack");
-        addText("R: Rest");
-        addText("1-9: Use Item");
+        refreshPlayerStats(player, playerName);
+        refreshCaveInfo();
+        refreshInventoryAndEquipment(player);
 
         contentPanel.revalidate();
         contentPanel.repaint();
-        scrollPane.getVerticalScrollBar().setValue(0); // Scroll to top
+        // Preserve scroll position on refresh for better UX
     }
 
-    // --------------------- Helper Methods ---------------------
+    // ====== REFRESH HELPERS ======
+    private void refreshPlayerStats(AbstractPlayer player, String playerName) {
+        addBoldText(player.getClass().getSimpleName() + " " + playerName);
+        addColoredText("HP: " + player.getHp() + "/" + player.getMaxHp(),
+                getStatColor(player.getHp(), player.getMaxHp(), true));
+        if (player.getMaxMp() > 0)
+            addColoredText("MP: " + player.getMp() + "/" + player.getMaxMp(),
+                    getStatColor(player.getMp(), player.getMaxMp(), false));
+        addText("Level: " + player.getLevel() + " / " + player.getMaxLevel());
+        addText(player.getLevel() >= player.getMaxLevel() ? "EXP: MAX"
+                : "EXP: " + player.getExp() + "/" + player.getExpToNext());
 
-    public void addSectionTitle(String text) {
+        for (int i = 1; i <= 2; i++) {
+            String cd = player.getCooldownDisplay(i);
+            addColoredText(player.getAttackDisplayName(i) + ": " + cd,
+                    "Ready".equals(cd)
+                            ? StyleConfig.getColor("cooldownReady", Color.GREEN)
+                            : StyleConfig.getColor("cooldownNotReady", Color.RED));
+        }
+
+        // Rest cooldown display
+        String restCd = player.getRestCooldownDisplay();
+        addColoredText("Rest: " + restCd,
+                "Ready".equals(restCd)
+                        ? StyleConfig.getColor("cooldownReady", Color.GREEN)
+                        : StyleConfig.getColor("cooldownNotReady", Color.RED));
+    }
+
+    private void refreshCaveInfo() {
+        addSectionTitle("CAVE INFO");
+        addText(gameState.getLevelDisplayString());
+        int aliveEnemies = gameState.getAliveEnemyCount();
+
+        switch (aliveEnemies) {
+            case 0 -> addText("You are alone… for now.");
+            case 1 -> addText("A single presence lingers, watching.");
+            default -> {
+                addText("There are " + aliveEnemies + " enemies lurking here,"); 
+                addText("each waiting for their moment.");
+            }
+        }
+    }
+
+    private void refreshInventoryAndEquipment(AbstractPlayer player) {
+        addSectionTitle("INVENTORY");
+        Inventory inv = player.getInventory();
+        for (int i = 1; i <= 9; i++) addItemSlot(i, inv.getItem(i));
+
+        addSectionTitle("EQUIPMENT");
+        addWeaponDisplay(player.getEquippedWeapon());
+    }
+
+    // ====== BUTTON PANEL ======
+    private JPanel createButtonPanel() {
+        JPanel panel = new JPanel(new GridLayout(2, 1, 0, 5));
+        panel.setBackground(getBackground());
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 5, 5, 5));
+        panel.setFocusable(false);
+
+        musicButton = createButton(getMusicButtonText(), e -> {
+            MusicManager.getInstance().toggleMusic();
+            musicButton.setText(getMusicButtonText());
+        });
+        panel.add(musicButton);
+        panel.add(createButton("Game Controls", e -> GameControlsWindow.showControls(getParentFrame())));
+        return panel;
+    }
+
+    /**
+     * Creates a themed button with scroll aesthetic colors and fonts.
+     * Uses plain font to preserve emoji rendering without forced bold.
+     */
+    private JButton createButton(String text, java.awt.event.ActionListener action) {
+        JButton btn = new JButton(text);
+
+        // Use styled font from StyleConfig ("statusButton" style preferred)
+        Font styledFont = StyleConfig.getFont("Cinzel");
+        btn.setFont(styledFont);
+        btn.setBackground(StyleConfig.getColor("buttonBackground", new Color(139, 90, 43)));
+        btn.setForeground(StyleConfig.getColor("buttonText", new Color(243, 235, 211)));
+
+        btn.setFocusable(false);
+        btn.addActionListener(action);
+        return btn;
+    }
+
+    private String getMusicButtonText() {
+        return MusicManager.getInstance().isMusicEnabled() ? "🔊 Toggle Music" : "🔇 Toggle Music";
+    }
+
+    private Frame getParentFrame() {
+        return (Frame) SwingUtilities.getWindowAncestor(this);
+    }
+
+    // ====== LABEL / DISPLAY HELPERS ======
+    private void addSectionTitle(String text) { addLabel(text, null, true, 16, SECTION_SPACING); }
+    private void addText(String text) { addLabel(text, null, false, 14, ITEM_SPACING); }
+    private void addBoldText(String text) { addLabel(text, null, true, 14, ITEM_SPACING); }
+    private void addColoredText(String text, Color color) { addLabel(text, color, false, 14, ITEM_SPACING); }
+
+    private void addWeaponDisplay(Weapon weapon) {
+        if (weapon == null) { addText("Weapon: None"); return; }
+        String name = "Weapon: " + weapon.getName();
+        String damage = "  +" + weapon.getDamageBonus() + " damage";
+        if ((name + damage).length() <= 35) addText(name + damage);
+        else { addText(name); addText(damage); }
+    }
+
+    private void addLabel(String text, Color color, boolean bold, int size, int topSpacing) {
         JLabel label = new JLabel(text);
-        label.setFont(StyleConfig.getFont("statusTitle", new Font("SansSerif", Font.BOLD, 16)));
-        label.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
+        Font font = StyleConfig.getFont(bold ? "statusTitle" : "statusNormal",
+                new Font("SansSerif", bold ? Font.BOLD : Font.PLAIN, size));
+        label.setFont(font);
+        label.setForeground(color != null ? color : StyleConfig.getColor("panelText", Color.WHITE));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setBorder(BorderFactory.createEmptyBorder(SECTION_SPACING, 0, ITEM_SPACING, 0));
+        label.setBorder(BorderFactory.createEmptyBorder(topSpacing, 0, ITEM_SPACING, 0));
         contentPanel.add(label);
     }
 
-    public void addText(String text) {
-        addText(text, false);
-    }
-
-    public void addText(String text, boolean bold) {
-    JLabel label = new JLabel(text);
-    Font baseFont = StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14));
-    Font finalFont = bold ? baseFont.deriveFont(Font.BOLD, baseFont.getSize()) : baseFont.deriveFont(Font.PLAIN, baseFont.getSize());
-    label.setFont(finalFont);
-    label.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
-    label.setAlignmentX(Component.LEFT_ALIGNMENT);
-    label.setBorder(BorderFactory.createEmptyBorder(ITEM_SPACING, 0, ITEM_SPACING, 0));
-    contentPanel.add(label);
-    }
-
-    public void addColoredText(String text, Color color) {
-        JLabel label = new JLabel(text);
-        label.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
-        label.setForeground(color);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setBorder(BorderFactory.createEmptyBorder(ITEM_SPACING, 0, ITEM_SPACING, 0));
-        contentPanel.add(label);
-    }
-
-    public void addItemSlot(int slot, Item item) {
-        JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0)); // hgap=2, vgap=0
-        itemPanel.setBackground(getBackground());
-        itemPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // Slot number and item name
-        String text = "[" + slot + "] " + (item != null ? item.getDisplayName() : "--");
-        JLabel textLabel = new JLabel(text);
-        textLabel.setFont(StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14)));
-        textLabel.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
-        itemPanel.add(textLabel);
-
-        // Potion icon after text
+    private void addItemSlot(int slot, Item item) {
+        // Add icon inline for potions after slot number
         if (item instanceof Potion potion) {
             Icon icon = getPotionIcon(potion);
             if (icon != null) {
-                JLabel iconLabel = new JLabel(icon);
-                itemPanel.add(iconLabel);
+                JLabel label = new JLabel("[" + slot + "] ");
+                label.setIcon(icon);
+                label.setHorizontalTextPosition(SwingConstants.LEFT);
+                label.setText("[" + slot + "] " + item.getDisplayName());
+                label.setIconTextGap(4);
+                Font font = StyleConfig.getFont("statusNormal", new Font("SansSerif", Font.PLAIN, 14));
+                label.setFont(font);
+                label.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
+                label.setAlignmentX(Component.LEFT_ALIGNMENT);
+                contentPanel.add(label);
+                return;
             }
         }
-
-        // Add small spacing below each slot
-        itemPanel.setBorder(BorderFactory.createEmptyBorder(ITEM_SPACING, 0, ITEM_SPACING, 0));
-
-        contentPanel.add(itemPanel);
+        
+        String text = "[" + slot + "] " + (item != null ? item.getDisplayName() : "--");
+        addText(text);
     }
 
+    // ====== UTILITY METHODS ======
+
+    private Color getStatColor(int current, int max, boolean isHP) {
+        double pct = (double) current / max;
+        if (pct < 0.25) return StyleConfig.getColor("statLow", Color.RED);
+        if (pct < 0.5) return StyleConfig.getColor("statMedium", Color.ORANGE);
+        return isHP ? StyleConfig.getColor("statHigh", Color.GREEN) : StyleConfig.getColor("statMP", Color.BLUE);
+    }
 
     private Icon getPotionIcon(Potion potion) {
-        String iconId = getPotionIconId(potion);
-        BufferedImage image = graphics.AssetManager.getInstance().loadImage(iconId);
-        if (image != null) {
-            return new ImageIcon(image.getScaledInstance(16, 16, Image.SCALE_SMOOTH));
-        }
-        return null;
+        String id = (potion.getHpRestore() > 0 && potion.getMpRestore() > 0) ? "mana_health_potion"
+                : potion.getMpRestore() > 0 ? "mana_potion" : "health_potion";
+        BufferedImage img = graphics.AssetManager.getInstance().loadImage(id);
+        return img != null ? new ImageIcon(img.getScaledInstance(16, 16, Image.SCALE_SMOOTH)) : null;
     }
 
-    private Color getHpColor() {
-        int currentHp = gameState.getPlayer().getHp();
-        int maxHp = gameState.getPlayer().getMaxHp();
-        double percent = (double) currentHp / maxHp;
-        if (percent < 0.25) return Color.RED;
-        if (percent < 0.5) return Color.ORANGE;
-        return Color.GREEN;
-    }
+    private String capitalize(String s) { return s.substring(0, 1).toUpperCase() + s.substring(1); }
 
-    private Color getMpColor() {
-        int currentMp = gameState.getPlayer().getMp();
-        int maxMp = gameState.getPlayer().getMaxMp();
-        double percent = (double) currentMp / maxMp;
-        if (percent < 0.25) return Color.RED;
-        if (percent < 0.5) return Color.ORANGE;
-        return Color.BLUE;
-    }
+    /**
+     * Customizes scrollbar to match medieval scroll aesthetic.
+     * Uses slim 8px width and LogPanel-compatible color scheme.
+     */
+    private void customizeScrollBar(JScrollBar bar) {
+        bar.setPreferredSize(new Dimension(SCROLLBAR_WIDTH, 0));
+        bar.setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
+        bar.setFocusable(false);
+        bar.setUI(new BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                // Match LogPanel scrollbar colors: thumb = panelText, track = panelBorder
+                this.thumbColor = StyleConfig.getColor("panelText", Color.LIGHT_GRAY);
+                this.trackColor = StyleConfig.getColor("panelBorder", Color.DARK_GRAY);
+            }
 
-    private String getPotionIconId(Potion potion) {
-        int hpRestore = potion.getHpRestore();
-        int mpRestore = potion.getMpRestore();
-        
-        // If potion restores both HP and MP, use the combined icon
-        if (hpRestore > 0 && mpRestore > 0) {
-            return "mana_health_potion";
-        }
-        
-        // Otherwise, use specific icon based on what it restores
-        if (mpRestore > 0) {
-            return "mana_potion";
-        }
-        return "health_potion";
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                return createStyledButton();
+            }
+
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                return createStyledButton();
+            }
+
+            private JButton createStyledButton() {
+                JButton btn = new JButton();
+                btn.setBackground(StyleConfig.getColor("panelBorder", Color.DARK_GRAY));
+                btn.setForeground(StyleConfig.getColor("panelText", Color.LIGHT_GRAY));
+                return btn;
+            }
+        });
     }
 }
