@@ -1,5 +1,6 @@
 package core;
 
+import config.StyleConfig;
 import enemies.Enemy;
 import items.AbstractTrap;
 import items.Inventory;
@@ -73,19 +74,48 @@ public class GameController {
     // ====== RESTING ======
     public void rest() {
         AbstractPlayer player = gameState.getPlayer();
+        
+        // Silently reject if on cooldown (no log spam)
+        if (!player.canRest()) {
+            return;
+        }
+        
+        // Check if any enemy has noticed the player
+        boolean isBeingChased = gameState.getCurrentEnemies().stream()
+                .anyMatch(enemy -> !enemy.isDead() && enemy.hasNoticedPlayer());
+        
+        if (isBeingChased) {
+            gameState.logMessage("You cannot rest while enemies are chasing you!");
+            return;
+        }
+        
         int oldHp = player.getHp();
         int oldMp = player.getMp();
 
-        player.rest();
-        logRestoration("Rested", player, player.getHp() - oldHp, player.getMp() - oldMp);
+        player.rest(); // This already records the rest cooldown timestamp
+        
+        // Trigger visual effects for rest if player actually recovered
+        int hpRestored = player.getHp() - oldHp;
+        int mpRestored = player.getMp() - oldMp;
+        
+        if (hpRestored > 0) {
+            player.triggerHealingEffect();
+        }
+        if (mpRestored > 0) {
+            player.triggerManaEffect();
+        }
+        
+        logRestoration("Rested", player, hpRestored, mpRestored);
     }
 
     private void logRestoration(String source, AbstractPlayer player, int hpRestored, int mpRestored) {
         if (hpRestored > 0) {
-            gameState.logMessage(source + ": Restored " + hpRestored + " HP (" + player.getHp() + "/" + player.getMaxHp() + " HP)");
+            gameState.logMessage(source + ": Restored " + hpRestored + " HP (" + player.getHp() + "/" + player.getMaxHp() + " HP)", 
+                StyleConfig.getColor("success")); // Green for healing
         }
         if (mpRestored > 0) {
-            gameState.logMessage(source + ": Restored " + mpRestored + " MP (" + player.getMp() + "/" + player.getMaxMp() + " MP)");
+            gameState.logMessage(source + ": Restored " + mpRestored + " MP (" + player.getMp() + "/" + player.getMaxMp() + " MP)", 
+                StyleConfig.getColor("success")); // Green for restoration
         }
         if (hpRestored == 0 && mpRestored == 0) {
             gameState.logMessage(source + ": No effect, already at full stats.");
@@ -95,6 +125,20 @@ public class GameController {
     // ====== ATTACKING ======
     public void attack(int attackType) {
         AbstractPlayer player = gameState.getPlayer();
+        
+        // Check if attack is off cooldown and player has enough MP
+        if (!player.canAttack(attackType)) {
+            long remainingCooldown = player.getRemainingCooldown(attackType);
+            
+            // Only log if insufficient MP (not cooldown spam)
+            if (remainingCooldown == 0) {
+                String attackName = player.getAttackDisplayName(attackType);
+                gameState.logMessage("Not enough MP for " + attackName + "!");
+            }
+            // Silently ignore cooldown - no log spam
+            return;
+        }
+        
         player.updateCombat();
 
         int mpBefore = player.getMp();
@@ -137,14 +181,17 @@ public class GameController {
             if (dead) {
                 int exp = target.getExpReward();
                 int levelsGained = player.addExperience(exp);
-                gameState.logMessage(target.getName() + " has been defeated! You gained " + exp + " exp!");
+                gameState.logMessage(target.getName() + " has been defeated! You gained " + exp + " exp!", 
+                    StyleConfig.getColor("accent")); // Gold for XP gains
                 
                 // Log level-up message
                 if (levelsGained > 0) {
                     if (levelsGained == 1) {
-                        gameState.logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")");
+                        gameState.logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")", 
+                            StyleConfig.getColor("victoryGold")); // Bright gold for level up!
                     } else {
-                        gameState.logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!");
+                        gameState.logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!", 
+                            StyleConfig.getColor("victoryGold")); // Bright gold for multiple levels!
                     }
                 }
             }
@@ -190,7 +237,8 @@ public class GameController {
 
         if (item instanceof items.ShardOfJudgement shard) {
             tile.removeItem();
-            gameState.logMessage("You found the legendary " + shard.getName() + "!");
+            gameState.logMessage("You found the legendary " + shard.getName() + "!", 
+                StyleConfig.getColor("shardCyan")); // Cyan for the legendary victory item
             shard.use(player);
             return;
         }
@@ -203,19 +251,24 @@ public class GameController {
             // Check if this was a weapon upgrade/downgrade
             if (inventory.wasLastAddWeaponUpgrade()) {
                 Weapon weapon = (Weapon) item;
-                gameState.logMessage("Upgraded " + weapon.getName() + " (+" + weapon.getDamageBonus() + " dmg)! +" + ITEM_PICKUP_XP + " exp");
+                gameState.logMessage("Upgraded " + weapon.getName() + " (+" + weapon.getDamageBonus() + " dmg)! +" + ITEM_PICKUP_XP + " exp", 
+                    StyleConfig.getColor("accent")); // Gold for XP
             } else if (inventory.wasLastAddWeaponDowngrade()) {
-                gameState.logMessage("You already have a better " + item.getName() + ". +" + ITEM_PICKUP_XP + " exp");
+                gameState.logMessage("You already have a better " + item.getName() + ". +" + ITEM_PICKUP_XP + " exp", 
+                    StyleConfig.getColor("accent")); // Gold for XP
             } else {
-                gameState.logMessage("Picked up: " + item.getName() + " (+" + ITEM_PICKUP_XP + " exp)");
+                gameState.logMessage("Picked up: " + item.getName() + " (+" + ITEM_PICKUP_XP + " exp)", 
+                    StyleConfig.getColor("accent")); // Gold for XP
             }
             
             // Log level-up message if applicable
             if (levelsGained > 0) {
                 if (levelsGained == 1) {
-                    gameState.logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")");
+                    gameState.logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")", 
+                        StyleConfig.getColor("victoryGold")); // Bright gold for level up!
                 } else {
-                    gameState.logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!");
+                    gameState.logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!", 
+                        StyleConfig.getColor("victoryGold")); // Bright gold for multiple levels!
                 }
             }
             
@@ -250,11 +303,13 @@ public class GameController {
             
             // Consolidated trap message: trigger + damage in one line
             gameState.logMessage(trap.getTriggerMessage() + " " + trap.getDamageMessage());
-            gameState.logMessage(player.getName() + "took " + dmg + " damage! (" + hpAfter + "/" + player.getMaxHp() + " HP)");
+            gameState.logMessage(player.getName() + "took " + dmg + " damage! (" + hpAfter + "/" + player.getMaxHp() + " HP)", 
+                StyleConfig.getColor("danger")); // Red for player taking damage
             
             if (isDead && !gameState.isGameOver()) {
                 gameState.setGameOver(true);
-                gameState.logMessage("The " + trap.getName() + " was LETHAL! " + player.getName() + " has been defeated!");
+                gameState.logMessage("The " + trap.getName() + " was LETHAL! " + player.getName() + " has been defeated!", 
+                    StyleConfig.getColor("deathRed")); // Bright red for death
                 // Trigger game over on the event dispatch thread
                 javax.swing.SwingUtilities.invokeLater(() -> {
                     ui.GameOverWindow win = new ui.GameOverWindow(null, player.getName(), gameState.getCurrentLevel());
