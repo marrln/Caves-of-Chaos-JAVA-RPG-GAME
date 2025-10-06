@@ -125,6 +125,7 @@
             <sprite id="stairs_up" path="src/assets/tiles/entrance.png"/>
             <sprite id="stairs_down" path="src/assets/tiles/stairs.png"/>
             <sprite id="spawn_point" path="src/assets/tiles/start.png"/>
+            <sprite id="appIcon" path="src/assets/tiles/stairs.png"/>
         </tiles>
 
         <items>
