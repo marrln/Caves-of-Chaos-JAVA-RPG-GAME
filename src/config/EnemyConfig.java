@@ -88,7 +88,7 @@ public class EnemyConfig {
                 new int[]{5, 10, 0}   // attackModifiers
             );
             case WEREBEAR -> new EnemyStats(
-                100, 1000, 1, 
+                100, 1000, 3, 
                 2000, 8,
                 new int[]{40, 40, 20}, // attackChances
                 new int[]{2, 3, 4},    // attackDice
@@ -96,7 +96,7 @@ public class EnemyConfig {
                 new int[]{10, 0, 15}   // attackModifiers
             );
             case ELITE_ORC -> new EnemyStats(
-                200, 1500, 1, 
+                200, 1500, 2, 
                 2000, 8,
                 new int[]{40, 40, 20}, // attackChances
                 new int[]{5, 4, 4},    // attackDice
@@ -104,7 +104,7 @@ public class EnemyConfig {
                 new int[]{10, 0, 5}    // attackModifiers
             );
             case ORC_RIDER -> new EnemyStats(
-                280, 1500, 2, 
+                280, 1500, 3, 
                 2000, 8,
                 new int[]{40, 40, 20}, // attackChances
                 new int[]{5, 4, 4},    // attackDice
@@ -112,8 +112,8 @@ public class EnemyConfig {
                 new int[]{10, 2, 5}    // attackModifiers
             );
             case MEDUSA_OF_CHAOS -> new EnemyStats(
-                1500, 10000, 1, 
-                2000, 10,
+                1500, 10000, 4, 
+                1000, 10,
                 new int[]{100, 0, 0}, // attackChances
                 new int[]{10, 0, 0},  // attackDice
                 new int[]{6, 0, 0},   // attackDiceSides
