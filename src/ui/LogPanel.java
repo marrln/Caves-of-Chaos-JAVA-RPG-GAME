@@ -2,37 +2,29 @@ package ui;
 
 import config.StyleConfig;
 import java.awt.*;
-import java.util.LinkedList;
-import java.util.Queue;
 import javax.swing.*;
+import javax.swing.text.*;
 
 /**
  * Panel for displaying game logs and messages at the bottom of the screen.
- * Messages have typewriter effect with proper queueing to prevent race conditions.
+ * Messages have a typewriter effect with proper queueing (FIFO) to prevent race conditions.
+ * Supports colored messages via method overloading.
  */
 public class LogPanel extends JPanel {
 
     // ====== CONFIGURATION ======
-    private static final int MAX_MESSAGES      = 50;
-    private static final int PANEL_HEIGHT      = 160;
-    private static final int SCROLLBAR_WIDTH   = 12;
-    private static final int MARGIN_SIZE       = 8;
-    private static final int TYPEWRITER_DELAY  = 20; // ms per character
+    private static final int MAX_MESSAGES    = 50;
+    private static final int PANEL_HEIGHT    = 160;
+    private static final int SCROLLBAR_WIDTH = 8;
+    private static final int MARGIN_SIZE     = 12;
 
     // ====== UI COMPONENTS ======
-    private final JTextArea logTextArea;
+    private final JTextPane logTextPane;
+    private final StyledDocument styledDoc;
     private final JScrollPane scrollPane;
 
-    // ====== TYPEWRITER STATE ======
-    private String baseText = "";          // All completed messages
-    private String currentMessage = "";    // Message being typed
-    private int typingIndex = 0;
-    private boolean isTyping = false;
-    private Timer typewriterTimer;
-    
-    // ====== MESSAGE QUEUE ======
-    private final Queue<String> messageQueue = new LinkedList<>();
-    private boolean processingQueue = false;
+    // ====== ANIMATION ======
+    private final TypewriterAnimator animator;
 
     // ====== INITIAL MESSAGES ======
     private final String initialMessage = """
@@ -42,36 +34,52 @@ public class LogPanel extends JPanel {
     Slaying the monster and acquiring the Shard of Judgement will end your quest.
     """;
 
-
     // ====== CONSTRUCTOR ======
     public LogPanel() {
+        initializePanel();
+        logTextPane = createTextPane();
+        styledDoc = logTextPane.getStyledDocument();
+        scrollPane = createScrollPane(logTextPane);
+        animator = new TypewriterAnimator(styledDoc, this::updateDisplay, this::autoScrollToBottom);
+        add(scrollPane, BorderLayout.CENTER);
+        addMessage(initialMessage);
+    }
+
+    // ====== INITIALIZATION HELPERS ======
+    private void initializePanel() {
         setLayout(new BorderLayout());
         setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
         setPreferredSize(new Dimension(800, PANEL_HEIGHT));
         setBorder(BorderFactory.createLineBorder(StyleConfig.getColor("panelBorder", Color.DARK_GRAY), 1));
-        setFocusable(false); // Prevent stealing focus from GamePanel
+        setFocusable(false);
+    }
 
-        logTextArea = new JTextArea();
-        logTextArea.setEditable(false);
-        logTextArea.setFocusable(false); // Prevent stealing focus from GamePanel
-        logTextArea.setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
-        logTextArea.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
-        logTextArea.setFont(StyleConfig.getFont("log", new Font("Monospaced", Font.PLAIN, 12)));
-        logTextArea.setLineWrap(true);
-        logTextArea.setWrapStyleWord(true);
-        logTextArea.setMargin(new Insets(MARGIN_SIZE, MARGIN_SIZE, MARGIN_SIZE, MARGIN_SIZE));
+    private JTextPane createTextPane() {
+        JTextPane textPane = new JTextPane();
+        textPane.setEditable(false);
+        textPane.setFocusable(false);
+        textPane.setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
+        textPane.setForeground(StyleConfig.getColor("panelText", Color.WHITE));
+        textPane.setFont(StyleConfig.getFont("log", new Font("Monospaced", Font.PLAIN, 12)));
+        textPane.setMargin(new Insets(MARGIN_SIZE, MARGIN_SIZE, MARGIN_SIZE, MARGIN_SIZE));
+        return textPane;
+    }
 
-        scrollPane = new JScrollPane(logTextArea);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setBorder(null);
-        scrollPane.setFocusable(false); // Prevent scrollbar from stealing focus
-        scrollPane.getViewport().setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
+    private JScrollPane createScrollPane(JTextPane textPane) {
+        JScrollPane scroll = new JScrollPane(textPane);
+        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setBorder(null);
+        scroll.setFocusable(false);
+        scroll.getViewport().setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
+        customizeScrollBar(scroll.getVerticalScrollBar());
+        return scroll;
+    }
 
-        JScrollBar bar = scrollPane.getVerticalScrollBar();
+    private void customizeScrollBar(JScrollBar bar) {
         bar.setPreferredSize(new Dimension(SCROLLBAR_WIDTH, 0));
         bar.setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
-        bar.setFocusable(false); // Prevent scrollbar buttons from stealing focus
+        bar.setFocusable(false);
         bar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
             @Override protected void configureScrollBarColors() {
                 this.thumbColor = StyleConfig.getColor("panelText", Color.LIGHT_GRAY);
@@ -86,162 +94,76 @@ public class LogPanel extends JPanel {
                 return b;
             }
         });
-
-        add(scrollPane, BorderLayout.CENTER);
-        
-        // Add initial message directly to avoid queue race condition
-        baseText = initialMessage.trim();
-        logTextArea.setText(baseText);
-        autoScrollToBottom();
     }
 
     // ====== PUBLIC API ======
     public void addMessage(String message) {
-        SwingUtilities.invokeLater(() -> {
-            String msg = message.trim();
-            if (msg.isEmpty()) return;
-            
-            // If currently typing, instantly complete it to keep up with game events
-            if (isTyping) {
-                instantCompleteCurrentMessage();
-            }
-            
-            // Add to queue
-            messageQueue.offer(msg);
-            
-            // Process queue if not already processing
-            if (!processingQueue) {
-                processNextMessage();
-            }
-        });
+        addMessage(message, StyleConfig.getColor("panelText", Color.WHITE));
     }
 
+    public void addMessage(String message, Color color) {
+        SwingUtilities.invokeLater(() -> animator.queueMessage(message, color));
+    }
 
     public void clearLog() {
         SwingUtilities.invokeLater(() -> {
-            stopTyping();
-            messageQueue.clear();
-            logTextArea.setText("");
-            baseText = "";
-            processingQueue = false;
+            animator.clear();
+            try {
+                styledDoc.remove(0, styledDoc.getLength());
+            } catch (BadLocationException e) {
+                e.printStackTrace();
+            }
         });
     }
 
-    public String getLogText() { return logTextArea.getText(); }
+    public String getLogText() { return logTextPane.getText(); }
     public int getMaxMessages() { return MAX_MESSAGES; }
-    public boolean isTyping() { return isTyping; }
-    public int getQueueSize() { return messageQueue.size(); }
+    public boolean isTyping() { return animator.isTyping(); }
+    public int getQueueSize() { return animator.getQueueSize(); }
 
-    // ====== QUEUE PROCESSING ======
-    private void processNextMessage() {
-        // If already typing or no messages, stop
-        if (isTyping || messageQueue.isEmpty()) {
-            processingQueue = false;
-            return;
-        }
-        
-        processingQueue = true;
-        String nextMessage = messageQueue.poll();
-        if (nextMessage != null) {
-            startTypingMessage(nextMessage);
-        } else {
-            processingQueue = false;
+    // ====== DISPLAY / UPDATE HELPERS ======
+    private void updateDisplay() {
+        try {
+            styledDoc.remove(0, styledDoc.getLength());
+            
+            // Retrieve completed messages and cleanup if needed
+            java.util.List<TypewriterAnimator.ColoredMessage> messages = animator.getCompletedMessages();
+            messages = cleanupOldMessages(messages);
+            
+            // Insert all completed messages with their original colors
+            for (TypewriterAnimator.ColoredMessage msg : messages) {
+                if (styledDoc.getLength() > 0) {
+                    styledDoc.insertString(styledDoc.getLength(), "\n", createStyle(Color.WHITE));
+                }
+                Color color = msg.color != null ? msg.color : StyleConfig.getColor("panelText", Color.WHITE);
+                styledDoc.insertString(styledDoc.getLength(), msg.text, createStyle(color));
+            }
+
+            // Insert currently-typing partial message with its color
+            if (animator.hasPartialMessage()) {
+                if (styledDoc.getLength() > 0) {
+                    styledDoc.insertString(styledDoc.getLength(), "\n", createStyle(Color.WHITE));
+                }
+                styledDoc.insertString(styledDoc.getLength(), animator.getPartialMessage(),
+                        createStyle(animator.getCurrentColor()));
+            }
+        } catch (BadLocationException e) {
+            e.printStackTrace();
         }
     }
 
-    // ====== TYPEWRITER LOGIC ======
-    private void startTypingMessage(String message) {
-        // Guard: ensure clean state
-        if (isTyping) {
-            return; // Should not happen with queue, but defensive
+    private java.util.List<TypewriterAnimator.ColoredMessage> cleanupOldMessages(
+            java.util.List<TypewriterAnimator.ColoredMessage> messages) {
+        if (messages.size() <= MAX_MESSAGES) {
+            return messages;
         }
         
-        currentMessage = message;
-        typingIndex = 0;
-        isTyping = true;
-
-        typewriterTimer = new Timer(TYPEWRITER_DELAY, e -> typeNextCharacter());
-        typewriterTimer.start();
-    }
-
-    private void typeNextCharacter() {
-        // Guard: check if we should still be typing
-        if (!isTyping || typingIndex >= currentMessage.length()) {
-            finishCurrentMessage();
-            return;
-        }
-
-        logTextArea.setText(baseText + (baseText.isEmpty() ? "" : "\n") + currentMessage.substring(0, typingIndex + 1));
-        typingIndex++;
-        autoScrollToBottom();
-    }
-
-    private void finishCurrentMessage() {
-        if (!isTyping) return; // Already finished
-        
-        stopTyping();
-        
-        // Append complete message to base text
-        if (!baseText.isEmpty()) baseText += "\n";
-        baseText += currentMessage;
-        cleanupOldMessages();
-        logTextArea.setText(baseText);
-        autoScrollToBottom();
-        
-        // Reset state
-        currentMessage = "";
-        typingIndex = 0;
-        
-        // Process next message in queue
-        SwingUtilities.invokeLater(this::processNextMessage);
-    }
-    
-    private void instantCompleteCurrentMessage() {
-        if (!isTyping) return; // Not typing, nothing to complete
-        
-        // Stop the timer immediately
-        if (typewriterTimer != null) {
-            typewriterTimer.stop();
-            typewriterTimer = null;
-        }
-        
-        // Complete the message instantly without animation
-        if (!baseText.isEmpty()) baseText += "\n";
-        baseText += currentMessage;
-        cleanupOldMessages();
-        logTextArea.setText(baseText);
-        autoScrollToBottom();
-        
-        // Reset state
-        currentMessage = "";
-        typingIndex = 0;
-        isTyping = false;
-        
-        // CRITICAL FIX: Must process next message in queue, otherwise queue gets stuck!
-        // This was causing the LogPanel to freeze after the first enemy notice
-        SwingUtilities.invokeLater(this::processNextMessage);
-    }
-
-    private void stopTyping() {
-        if (typewriterTimer != null) {
-            typewriterTimer.stop();
-            typewriterTimer = null;
-        }
-        isTyping = false;
-    }
-
-    // ====== MESSAGE MANAGEMENT ======
-    private void cleanupOldMessages() {
-        String[] lines = baseText.split("\n");
-        if (lines.length <= MAX_MESSAGES) return;
-
-        StringBuilder sb = new StringBuilder();
-        int startIndex = lines.length - MAX_MESSAGES;
-        for (int i = startIndex; i < lines.length; i++) {
-            if (i > startIndex) sb.append("\n");
-            sb.append(lines[i]);
-        }
-        baseText = sb.toString();
+        // Keep only the last MAX_MESSAGES - create a new list to avoid subList view issues
+        java.util.List<TypewriterAnimator.ColoredMessage> trimmed = new java.util.ArrayList<>(
+            messages.subList(messages.size() - MAX_MESSAGES, messages.size())
+        );
+        animator.setCompletedMessages(trimmed);
+        return trimmed;
     }
 
     private void autoScrollToBottom() {
@@ -249,5 +171,12 @@ public class LogPanel extends JPanel {
             JScrollBar bar = scrollPane.getVerticalScrollBar();
             bar.setValue(bar.getMaximum());
         });
+    }
+
+    // ====== STYLED DOCUMENT HELPERS ======
+    private AttributeSet createStyle(Color color) {
+        SimpleAttributeSet style = new SimpleAttributeSet();
+        StyleConstants.setForeground(style, color);
+        return style;
     }
 }
