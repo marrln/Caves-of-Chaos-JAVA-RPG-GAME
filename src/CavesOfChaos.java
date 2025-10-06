@@ -4,6 +4,7 @@ import config.StyleConfig;
 import core.GameController;
 import core.GameDebugger;
 import core.GameState;
+import graphics.AssetManager;
 import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -16,6 +17,7 @@ import ui.GamePanel;
 import ui.GameUIManager;
 import ui.LogPanel;
 import ui.StatusPanel;
+import utils.FontLoader;
 
 /**
  * Main entry point for Caves of Chaos.
@@ -30,6 +32,9 @@ public class CavesOfChaos {
     private static final String STYLING_PATH = "bin/config/styling.xml";
 
     public static void main(String[] args) {
+
+        // === Load custom fonts ===
+        int fontsLoaded = FontLoader.loadCustomFonts();
 
         // === Load configuration (must exist, no fallbacks) ===
         try {
@@ -114,8 +119,8 @@ public class CavesOfChaos {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame(GAME_TITLE);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setIconImage(AssetManager.getAppIcon());
             frame.setLayout(new BorderLayout());
-
             frame.addWindowListener(new WindowAdapter() {
                 @Override
                 public void windowClosing(WindowEvent e) {
