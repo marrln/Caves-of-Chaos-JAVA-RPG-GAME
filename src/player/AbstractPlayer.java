@@ -29,6 +29,8 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     // ====== COMBAT ======
     protected CombatState combatState = new CombatState();
     protected long[] lastAttackTimes = new long[3]; // Index 0 unused, 1 and 2 for attack types
+    protected long lastRestTime = 0;
+    private static final long REST_COOLDOWN = 15000; // 15 seconds in milliseconds
 
     // ====== EFFECT TRACKING ======
     private long healingEffectEndTime = 0;
@@ -54,13 +56,16 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     @Override public int getX() { return x; }
     @Override public int getY() { return y; }
     public void setPosition(int x, int y) {
-        int dx = x - this.x;
-        if (dx != 0) setFacingDirection(dx > 0 ? 1 : 3); // 1=E, 3=W
         this.x = x;
         this.y = y;
     }
 
     public boolean tryMoveTo(int newX, int newY) {
+        // Update facing direction BEFORE collision check for more responsive feel
+        int dx = newX - this.x;
+        if (dx != 0) setFacingDirection(dx > 0 ? 1 : 3); // 1=E, 3=W
+        
+        // Check collision and actually move if allowed
         if (collisionManager != null && !collisionManager.canMoveTo(this, newX, newY)) return false;
         setPosition(newX, newY);
         combatState.setState(CombatState.State.MOVING, AnimationConfig.getPlayerAnimationDuration("walk"));
@@ -185,13 +190,36 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         long remaining = getRemainingCooldown(attackType);
         return (remaining <= 0) ? "Ready" : String.format("%.1fs", remaining / 1000.0);
     }
+    
+    public String getAttackDisplayName(int attackType) {
+        PlayerConfig.AttackConfig atk = getAttackConfig(attackType);
+        return atk.displayName;
+    }
 
     public void updateCombat() { combatState.update(); }
 
     // ====== RESTING ======
+    public boolean canRest() {
+        long now = System.currentTimeMillis();
+        return (now - lastRestTime) >= REST_COOLDOWN;
+    }
+
+    public long getRemainingRestCooldown() {
+        long now = System.currentTimeMillis();
+        long elapsed = now - lastRestTime;
+        return Math.max(0, REST_COOLDOWN - elapsed);
+    }
+
+    public String getRestCooldownDisplay() {
+        long remaining = getRemainingRestCooldown();
+        return (remaining <= 0) ? "Ready" : String.format("%.1fs", remaining / 1000.0);
+    }
+
     public void rest() {
+        if (!canRest()) return;
         hp = Math.min(maxHp, hp + (int)(maxHp * getRestPercent("restHpPercent")));
         mp = Math.min(maxMp, mp + (int)(maxMp * getRestPercent("restMpPercent")));
+        lastRestTime = System.currentTimeMillis();
     }
 
     private double getRestPercent(String key) {
