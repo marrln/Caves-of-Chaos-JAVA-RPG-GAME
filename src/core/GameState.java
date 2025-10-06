@@ -2,6 +2,7 @@ package core;
 
 import audio.MusicManager;
 import config.Config;
+import config.StyleConfig;
 import enemies.Enemy;
 import java.util.ArrayList;
 import java.util.List;
@@ -220,12 +221,14 @@ public final class GameState {
             if (!enemy.isDead() && enemy instanceof enemies.AbstractEnemy abstractEnemy) {
                 if (abstractEnemy.hasPendingPlayerDamage()) {
                     int dmg = abstractEnemy.getPendingPlayerDamage();
-                    logMessage(player.getName() + " takes " + dmg + " damage!");
+                    logMessage(player.getName() + " takes " + dmg + " damage!", 
+                        StyleConfig.getColor("danger")); // Red for player taking damage
 
                     if (player.takeDamage(dmg)) {
                         if (!gameOver) {
                             gameOver = true;
-                            logMessage(player.getName() + " has been defeated!");
+                            logMessage(player.getName() + " has been defeated!", 
+                                StyleConfig.getColor("deathRed")); // Bright red for death
                             handlePlayerDeath();
                             return; // CRITICAL: Stop processing immediately after player death
                         }
@@ -287,13 +290,17 @@ public final class GameState {
      * Called from checkMedusaDeath() when Medusa is killed by any damage source.
      */
     public void handleMedusaDeath(int x, int y) {
-        logMessage("The Medusa of Chaos has been defeated! The evil presence lifts...");
-        logMessage("A brilliant shard of light materializes where the beast fell!");
+        logMessage("The Medusa of Chaos has been defeated! The evil presence lifts...", 
+            StyleConfig.getColor("victoryGold")); // Victory gold for boss defeat
+        logMessage("A brilliant shard of light materializes where the beast fell!", 
+            StyleConfig.getColor("shardCyan")); // Cyan for the magical shard
         boolean spawned = itemSpawner.spawnShardOfJudgement(getCurrentMap(), x, y);
         if (spawned) {
-            logMessage("The legendary Shard of Judgement awaits your claim!");
+            logMessage("The legendary Shard of Judgement awaits your claim!", 
+                StyleConfig.getColor("shardCyan")); // Cyan for the legendary item
         } else {
-            logMessage("The Shard of Judgement failed to spawn, but you have still won!");
+            logMessage("The Shard of Judgement failed to spawn, but you have still won!", 
+                StyleConfig.getColor("victoryGold")); // Gold - still a victory!
         }
     }
 
@@ -303,10 +310,12 @@ public final class GameState {
     public AbstractPlayer getPlayer() { return player; }
     public FogOfWar getFogOfWar() { return fogOfWar; }
     public List<Enemy> getCurrentEnemies() { return currentEnemies; }
+    public int getAliveEnemyCount() { return (int) currentEnemies.stream().filter(enemy -> !enemy.isDead()).count(); }
     public int getCurrentLevel() { return currentLevel; }
     public boolean isGameOver() { return gameOver; }
     public void setGameOver(boolean val) { this.gameOver = val; }
     public boolean canGoToNextLevel() { return currentLevel < (CAVE_MAX_LEVEL - 1); }
     public String getLevelDisplayString() { return "Cave Floor: " + (currentLevel + 1) + " of " + CAVE_MAX_LEVEL; }
     public void logMessage(String msg) { uiManager.addMessage(msg); }
+    public void logMessage(String msg, java.awt.Color color) { uiManager.addMessage(msg, color); }
 }
