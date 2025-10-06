@@ -56,7 +56,7 @@ public class CongratulationWindow extends JDialog {
         // Victory crown icon (using text as fallback)
         JLabel crownLabel = new JLabel("👑", SwingConstants.CENTER);
         crownLabel.setFont(new Font("SansSerif", Font.BOLD, 48));
-        crownLabel.setForeground(new Color(255, 215, 0)); // Gold color
+        crownLabel.setForeground(StyleConfig.getColor("victoryGold", new Color(255, 215, 0)));
         gbc.gridx = 0;
         gbc.gridy = 0;
         panel.add(crownLabel, gbc);
@@ -64,7 +64,7 @@ public class CongratulationWindow extends JDialog {
         // "Congratulations!" message
         JLabel victoryLabel = new JLabel("Congratulations!", SwingConstants.CENTER);
         victoryLabel.setFont(StyleConfig.getFont("victoryTitle", new Font("SansSerif", Font.BOLD, 36)));
-        victoryLabel.setForeground(new Color(255, 215, 0)); // Gold color
+        victoryLabel.setForeground(StyleConfig.getColor("victoryGold", new Color(255, 215, 0)));
         gbc.gridy = 1;
         panel.add(victoryLabel, gbc);
         
@@ -85,14 +85,14 @@ public class CongratulationWindow extends JDialog {
         // Shard message
         JLabel shardLabel = new JLabel("You have claimed the Shard of Judgement!", SwingConstants.CENTER);
         shardLabel.setFont(StyleConfig.getFont("victorySubtext", new Font("SansSerif", Font.ITALIC, 16)));
-        shardLabel.setForeground(Color.CYAN);
+        shardLabel.setForeground(StyleConfig.getColor("shardCyan", Color.CYAN));
         gbc.gridy = 4;
         panel.add(shardLabel, gbc);
         
         // Final flavor text
         JLabel flavorLabel = new JLabel("The darkness lifts, and light returns to the realm...", SwingConstants.CENTER);
         flavorLabel.setFont(StyleConfig.getFont("victoryFlavor", new Font("SansSerif", Font.ITALIC, 14)));
-        flavorLabel.setForeground(Color.GRAY);
+        flavorLabel.setForeground(StyleConfig.getColor("flavorGray", Color.GRAY));
         gbc.gridy = 5;
         panel.add(flavorLabel, gbc);
         
@@ -107,7 +107,7 @@ public class CongratulationWindow extends JDialog {
         JButton playAgainButton = new JButton("Play Again");
         playAgainButton.setFont(StyleConfig.getFont("buttonText", new Font("SansSerif", Font.BOLD, 16)));
         playAgainButton.setBackground(StyleConfig.getColor("buttonBackground", Color.DARK_GRAY));
-        playAgainButton.setForeground(new Color(255, 215, 0)); // Gold color
+        playAgainButton.setForeground(StyleConfig.getColor("victoryGold", new Color(255, 215, 0)));
         playAgainButton.setFocusPainted(false);
         playAgainButton.setBorderPainted(false);
         playAgainButton.addActionListener(unused -> {
