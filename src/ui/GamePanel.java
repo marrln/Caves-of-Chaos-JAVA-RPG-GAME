@@ -101,12 +101,6 @@ public class GamePanel extends JPanel {
 
         FogOfWar fogOfWar = gameState.getFogOfWar();
         tileRenderer.renderVisibleArea(g, map, camera, fogOfWar, debugNoFog, getWidth(), getHeight());
-        
-        // Render torch glow around player (after tiles, before entities)
-        if (!debugNoFog && fogOfWar != null) {
-            tileRenderer.renderTorchGlow(g, player.getX(), player.getY(), camera, 
-                                        getWidth(), getHeight(), fogOfWar);
-        }
 
         Graphics2D g2d = (Graphics2D) g;
         int tileSize = getTileSize();
@@ -144,6 +138,12 @@ public class GamePanel extends JPanel {
             fogOfWar,
             spriteScale
         );
+        
+        // Render torch glow AFTER all entities (overlay effect)
+        if (!debugNoFog && fogOfWar != null) {
+            tileRenderer.renderTorchGlow(g, player.getX(), player.getY(), camera, 
+                                        getWidth(), getHeight(), fogOfWar);
+        }
 
     }
 
