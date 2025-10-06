@@ -214,14 +214,17 @@ public class Projectile {
         if (dead) {
             int exp = enemy.getExpReward();
             int levelsGained = player.addExperience(exp);
-            core.GameState.getInstance().logMessage(enemy.getName() + " has been defeated! You gained " + exp + " exp!");
+            core.GameState.getInstance().logMessage(enemy.getName() + " has been defeated! You gained " + exp + " exp!", 
+                config.StyleConfig.getColor("accent")); // Gold for XP gains
             
             // Log level-up message
             if (levelsGained > 0) {
                 if (levelsGained == 1) {
-                    core.GameState.getInstance().logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")");
+                    core.GameState.getInstance().logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")", 
+                        config.StyleConfig.getColor("victoryGold")); // Bright gold for level up!
                 } else {
-                    core.GameState.getInstance().logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!");
+                    core.GameState.getInstance().logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!", 
+                        config.StyleConfig.getColor("victoryGold")); // Bright gold for multiple levels!
                 }
             }
         }
