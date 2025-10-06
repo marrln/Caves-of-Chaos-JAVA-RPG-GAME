@@ -47,9 +47,9 @@ public class PlayerRenderer {
         if (!USE_GRAPHICS) {
             // fallback circle
             g2d.setColor(Color.CYAN);
-            g2d.fillOval(screenX, screenY, scaledTile, scaledTile);
+            g2d.fillOval(screenX, screenY, tileSize, tileSize);
             g2d.setColor(Color.WHITE);
-            g2d.drawOval(screenX, screenY, scaledTile, scaledTile);
+            g2d.drawOval(screenX, screenY, tileSize, tileSize);
             return;
         }
 
