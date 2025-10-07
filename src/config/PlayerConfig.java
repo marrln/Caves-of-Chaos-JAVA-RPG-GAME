@@ -6,7 +6,7 @@ package config;
 public class PlayerConfig {
 
     // ===== XP & Leveling =====
-    public static final int[] LEVEL_XP_THRESHOLDS = {0, 300, 900, 2700, 6500, 14000};
+    public static final int[] LEVEL_XP_THRESHOLDS = {0, 700, 1500, 2700, 6500, 14000};
     public static final int MAX_LEVEL = LEVEL_XP_THRESHOLDS.length;
 
     // ===== Base Stats =====
@@ -20,21 +20,21 @@ public class PlayerConfig {
     // ===== Attack Tables =====
     // [levelIndex][attackIndex] = {diceCount, diceSides, diceBonus, mpCost, cooldown}
     private static final int[][][] DUELIST_ATTACKS = {
-        {{1, 8, 0, 0, 800}, {1, 8, 0, 0, 1200}},
-        {{2, 6, 0, 0, 700}, {2, 6, 0, 0, 1100}},
-        {{2, 6, 2, 0, 700}, {2, 6, 2, 0, 1100}},
-        {{2, 8, 0, 0, 650}, {2, 8, 0, 0, 1000}},
-        {{3, 6, 2, 0, 600}, {3, 6, 2, 0, 900}},
-        {{3, 8, 0, 0, 600}, {3, 8, 0, 0, 900}}
+        {{1, 8, 0, 0, 3000}, {1, 8, 5, 0, 6000}},
+        {{2, 6, 1, 0, 2800}, {2, 6, 6, 0, 5500}},
+        {{2, 6, 2, 0, 2600}, {2, 6, 7, 0, 5000}},
+        {{2, 8, 3, 0, 2400}, {2, 8, 8, 0, 4500}},
+        {{3, 6, 4, 0, 2200}, {3, 6, 9, 0, 4200}},
+        {{3, 8, 5, 0, 2000}, {3, 8, 10, 0, 4000}}
     };
 
     private static final int[][][] WIZARD_ATTACKS = {
-        {{1, 6, 0, 5, 1000}, {1, 6, 0, 5, 1400}},
-        {{2, 6, 0, 8, 900},  {2, 6, 0, 8, 1300}},
-        {{2, 6, 2, 10, 900}, {2, 6, 2, 10, 1300}},
-        {{3, 6, 0, 12, 850}, {3, 6, 0, 12, 1200}},
-        {{3, 8, 0, 15, 800}, {3, 8, 0, 15, 1100}},
-        {{4, 6, 4, 18, 800}, {4, 6, 4, 18, 1100}}
+        {{1, 6, 0, 5, 3000}, {1, 6, 5, 7, 6000}},
+        {{2, 6, 1, 7, 2800},  {2, 6, 6, 8, 5500}},
+        {{2, 6, 2, 8, 2600},  {2, 6, 7, 10, 5000}},
+        {{3, 6, 3, 9, 2400},  {3, 6, 8, 12, 4500}},
+        {{4, 8, 4, 12, 2200}, {4, 8, 9, 15, 4200}},
+        {{4, 6, 5, 14, 2000}, {4, 6, 10, 18, 4000}}
     };
 
     // ===== XP Helpers =====
@@ -115,7 +115,7 @@ public class PlayerConfig {
     }
 
     public static double[] getRestConfiguration() {
-        return new double[]{0.05, 0.08}; // 5% HP, 8% MP per rest
+        return new double[]{0.05, 0.05}; // 5% HP, 8% MP per rest
     }
 
     public static int getMaxLevel() {
