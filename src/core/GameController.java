@@ -16,8 +16,9 @@ import ui.GameUIManager;
 import utils.LineUtils;
 
 public class GameController {
-    private static final int ITEM_PICKUP_XP = 20; // XP awarded for picking up items (reduced from 50)
-    
+
+    private static final int ITEM_PICKUP_XP = 20;
+
     private final GameState gameState;
     private GameUIManager uiManager;
     private final ProjectileManager projectileManager;
@@ -32,139 +33,110 @@ public class GameController {
     // ====== PLAYER MOVEMENT ======
     public boolean movePlayer(int dx, int dy) {
         AbstractPlayer player = gameState.getPlayer();
-        int newX = player.getX() + dx;
-        int newY = player.getY() + dy;
+        int newX = player.getX() + dx, newY = player.getY() + dy;
         GameMap map = gameState.getCurrentMap();
 
-        // Boundaries and visibility
-        if (newX < 0 || newY < 0 || newX >= map.getWidth() || newY >= map.getHeight()) return false;
-        if (uiManager != null && !uiManager.isPositionVisible(newX, newY)) return false;
+        if (!isMoveValid(newX, newY, map)) return false;
 
         Tile tile = map.getTile(newX, newY);
 
         return switch (tile.getType()) {
-            case Tile.FLOOR -> {
-                if (player.tryMoveTo(newX, newY)) {
-                    gameState.updateFogOfWar();
-                    checkForTraps(newX, newY);
-                    yield true;
-                }
-                yield false;
-            }
-            case Tile.STAIRS_DOWN -> {
-                if (gameState.canGoToNextLevel()) {
-                    gameState.goToNextLevel();
-                    gameState.logMessage("You descend to floor " + (gameState.getCurrentLevel() + 1) + ".");
-                    yield true;
-                }
-                yield false;
-            }
-            case Tile.STAIRS_UP -> {
-                if (gameState.getCurrentLevel() > 0) {
-                    gameState.goToPreviousLevel();
-                    gameState.logMessage("You climb back to floor " + (gameState.getCurrentLevel() + 1) + ".");
-                    yield true;
-                }
-                yield false;
-            }
+            case Tile.FLOOR -> moveToFloor(player, newX, newY);
+            case Tile.STAIRS_DOWN -> handleStairsDown();
+            case Tile.STAIRS_UP -> handleStairsUp();
             default -> false;
         };
+    }
+
+    private boolean isMoveValid(int x, int y, GameMap map) {
+        if (x < 0 || y < 0 || x >= map.getWidth() || y >= map.getHeight()) return false;
+        return uiManager == null || uiManager.isPositionVisible(x, y);
+    }
+
+    private boolean moveToFloor(AbstractPlayer player, int x, int y) {
+        if (!player.tryMoveTo(x, y)) return false;
+        gameState.updateFogOfWar();
+        checkForTraps(x, y);
+        return true;
+    }
+
+    private boolean handleStairsDown() {
+        if (!gameState.canGoToNextLevel()) return false;
+        gameState.goToNextLevel();
+        gameState.logMessage("You descend to floor " + (gameState.getCurrentLevel() + 1) + ".");
+        return true;
+    }
+
+    private boolean handleStairsUp() {
+        if (gameState.getCurrentLevel() <= 0) return false;
+        gameState.goToPreviousLevel();
+        gameState.logMessage("You climb back to floor " + (gameState.getCurrentLevel() + 1) + ".");
+        return true;
     }
 
     // ====== RESTING ======
     public void rest() {
         AbstractPlayer player = gameState.getPlayer();
-        
-        // Silently reject if on cooldown (no log spam)
-        if (!player.canRest()) {
-            return;
-        }
-        
-        // Check if any enemy has noticed the player
-        boolean isBeingChased = gameState.getCurrentEnemies().stream()
-                .anyMatch(enemy -> !enemy.isDead() && enemy.hasNoticedPlayer());
-        
-        if (isBeingChased) {
+        if (!player.canRest()) return;
+        if (isBeingChased()) {
             gameState.logMessage("You cannot rest while enemies are chasing you!");
             return;
         }
-        
-        int oldHp = player.getHp();
-        int oldMp = player.getMp();
 
-        player.rest(); // This already records the rest cooldown timestamp
-        
-        // Trigger visual effects for rest if player actually recovered
-        int hpRestored = player.getHp() - oldHp;
-        int mpRestored = player.getMp() - oldMp;
-        
-        if (hpRestored > 0) {
-            player.triggerHealingEffect();
-        }
-        if (mpRestored > 0) {
-            player.triggerManaEffect();
-        }
-        
+        int oldHp = player.getHp(), oldMp = player.getMp();
+        player.rest();
+        triggerRestEffects(player, oldHp, oldMp);
+    }
+
+    private boolean isBeingChased() {
+        return gameState.getCurrentEnemies().stream()
+                .anyMatch(e -> !e.isDead() && e.hasNoticedPlayer());
+    }
+
+    private void triggerRestEffects(AbstractPlayer player, int oldHp, int oldMp) {
+        int hpRestored = player.getHp() - oldHp, mpRestored = player.getMp() - oldMp;
+        if (hpRestored > 0) player.triggerHealingEffect();
+        if (mpRestored > 0) player.triggerManaEffect();
         logRestoration("Rested", player, hpRestored, mpRestored);
     }
 
-    private void logRestoration(String source, AbstractPlayer player, int hpRestored, int mpRestored) {
-        if (hpRestored > 0) {
-            gameState.logMessage(source + ": Restored " + hpRestored + " HP (" + player.getHp() + "/" + player.getMaxHp() + " HP)", 
-                StyleConfig.getColor("success")); // Green for healing
-        }
-        if (mpRestored > 0) {
-            gameState.logMessage(source + ": Restored " + mpRestored + " MP (" + player.getMp() + "/" + player.getMaxMp() + " MP)", 
-                StyleConfig.getColor("success")); // Green for restoration
-        }
-        if (hpRestored == 0 && mpRestored == 0) {
-            gameState.logMessage(source + ": No effect, already at full stats.");
-        }
+    private void logRestoration(String source, AbstractPlayer player, int hp, int mp) {
+        if (hp > 0) logMessage(source + ": Restored " + hp + " HP (" + player.getHp() + "/" + player.getMaxHp() + " HP)", "success");
+        if (mp > 0) logMessage(source + ": Restored " + mp + " MP (" + player.getMp() + "/" + player.getMaxMp() + " MP)", "success");
+        if (hp == 0 && mp == 0) logMessage(source + ": No effect, already at full stats.");
     }
+
+    private void logMessage(String msg) { gameState.logMessage(msg); }
+    private void logMessage(String msg, String colorKey) { gameState.logMessage(msg, StyleConfig.getColor(colorKey)); }
 
     // ====== ATTACKING ======
     public void attack(int attackType) {
         AbstractPlayer player = gameState.getPlayer();
-        
-        // Check if attack is off cooldown and player has enough MP
         if (!player.canAttack(attackType)) {
-            long remainingCooldown = player.getRemainingCooldown(attackType);
-            
-            // Only log if insufficient MP (not cooldown spam)
-            if (remainingCooldown == 0) {
-                String attackName = player.getAttackDisplayName(attackType);
-                gameState.logMessage("Not enough MP for " + attackName + "!");
-            }
-            // Silently ignore cooldown - no log spam
+            if (player.getRemainingCooldown(attackType) == 0)
+                logMessage("Not enough MP for " + player.getAttackDisplayName(attackType) + "!");
             return;
         }
 
         int mpBefore = player.getMp();
         player.attack(attackType);
-        int mpAfter = player.getMp();
+        if (!isAttackSuccessful(player, mpBefore)) return;
 
-        boolean success = !(player instanceof Wizard) || mpAfter < mpBefore;
-        if (!success) return;
+        if (player instanceof Wizard wizard) handleWizardAttack(wizard, attackType);
+        else handleMeleeAttack(player, attackType);
+    }
 
-        if (player instanceof Wizard wizard) {
-            handleWizardAttack(wizard, attackType);
-        } else {
-            handleMeleeAttack(player, attackType);
-        }
+    private boolean isAttackSuccessful(AbstractPlayer player, int mpBefore) {
+        return !(player instanceof Wizard) || player.getMp() < mpBefore;
     }
 
     private void handleWizardAttack(Wizard wizard, int attackType) {
-        Projectile projectile = wizard.createProjectile(
-            attackType, gameState.getCurrentEnemies(), gameState.getFogOfWar()
-        );
-
-        if (projectile != null) {
-            addProjectile(projectile);
+        Projectile proj = wizard.createProjectile(attackType, gameState.getCurrentEnemies(), gameState.getFogOfWar());
+        if (proj != null) {
+            addProjectile(proj);
             String spell = attackType == 1 ? "Fire Spell" : "Ice Spell";
-            gameState.logMessage(wizard.getName() + " casts " + spell + "!");
-        } else {
-            gameState.logMessage("No targets in sight. The spell fizzles.");
-        }
+            logMessage(wizard.getName() + " casts " + spell + "!");
+        } else logMessage("No targets in sight. The spell fizzles.");
     }
 
     private void handleMeleeAttack(AbstractPlayer player, int attackType) {
@@ -173,34 +145,27 @@ public class GameController {
             if (!LineUtils.isCardinallyAdjacent(player.getX(), player.getY(), target.getX(), target.getY())) continue;
 
             int dmg = player.getAttackDamage(attackType);
-            gameState.logMessage(player.getName() + " attacks " + target.getName() + " for " + dmg + " damage!");
-
+            logMessage(player.getName() + " attacks " + target.getName() + " for " + dmg + " damage!");
             boolean dead = target.takeDamage(dmg);
-            
-            // Apply weapon on-hit effects (like lifesteal)
-            if (player.getEquippedWeapon() != null) {
-                player.getEquippedWeapon().applyOnHitEffect(player, dmg);
-            }
-            
-            if (dead) {
-                int exp = target.getExpReward();
-                int levelsGained = player.addExperience(exp);
-                gameState.logMessage(target.getName() + " has been defeated! You gained " + exp + " exp!", 
-                    StyleConfig.getColor("accent")); // Gold for XP gains
-                
-                // Log level-up message
-                if (levelsGained > 0) {
-                    if (levelsGained == 1) {
-                        gameState.logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")", 
-                            StyleConfig.getColor("victoryGold")); // Bright gold for level up!
-                    } else {
-                        gameState.logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!", 
-                            StyleConfig.getColor("victoryGold")); // Bright gold for multiple levels!
-                    }
-                }
-            }
+
+            if (player.getEquippedWeapon() != null) player.getEquippedWeapon().applyOnHitEffect(player, dmg);
+            if (dead) handleEnemyDefeat(player, target);
             return; // only one enemy per attack
         }
+    }
+
+    private void handleEnemyDefeat(AbstractPlayer player, Enemy target) {
+        int exp = target.getExpReward();
+        int levels = player.addExperience(exp);
+        logMessage(target.getName() + " has been defeated! You gained " + exp + " exp!", "accent");
+        if (levels > 0) logLevelUp(player, levels);
+    }
+
+    private void logLevelUp(AbstractPlayer player, int levelsGained) {
+        if (levelsGained == 1)
+            logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")", "victoryGold");
+        else
+            logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!", "victoryGold");
     }
 
     // ====== ITEMS ======
@@ -210,76 +175,53 @@ public class GameController {
         if (item == null) return;
 
         if (item instanceof Potion potion) {
-            int oldHp = player.getHp();
-            int oldMp = player.getMp();
+            int oldHp = player.getHp(), oldMp = player.getMp();
             player.useItem(slot);
             logRestoration("Used " + potion.getName(), player, player.getHp() - oldHp, player.getMp() - oldMp);
-        } else {
-            player.useItem(slot);
-        }
+        } else player.useItem(slot);
     }
 
     public void pickupItem() {
         AbstractPlayer player = gameState.getPlayer();
         Tile tile = gameState.getCurrentMap().getTile(player.getX(), player.getY());
-        
         if (!tile.hasItem()) return;
 
         Optional<Item> itemOpt = tile.getItem();
-        if (itemOpt.isEmpty()) {
-            tile.removeItem(); // Clear the ghost item
-            gameState.logMessage("You find nothing here...");
+        if (itemOpt.isEmpty() || itemOpt.get() == null) {
+            tile.removeItem();
+            logMessage("You find nothing here...");
             return;
         }
-        
+
         Item item = itemOpt.get();
-        if (item == null) {
-            tile.removeItem(); // Clear the null item
-            gameState.logMessage("You find nothing here...");
-            return;
-        }
+        if (handleLegendaryItem(item, player, tile)) return;
+        handleInventoryAdd(item, player, tile);
+    }
 
-        if (item instanceof items.ShardOfJudgement shard) {
-            tile.removeItem();
-            gameState.logMessage("You found the legendary " + shard.getName() + "!", 
-                StyleConfig.getColor("shardCyan")); // Cyan for the legendary victory item
-            shard.use(player);
-            return;
-        }
+    private boolean handleLegendaryItem(Item item, AbstractPlayer player, Tile tile) {
+        if (!(item instanceof items.ShardOfJudgement shard)) return false;
+        tile.removeItem();
+        logMessage("You found the legendary " + shard.getName() + "!", "shardCyan");
+        shard.use(player);
+        return true;
+    }
 
-        Inventory inventory = player.getInventory();
-        if (inventory.addItem(item, player)) {
-            // Award XP for finding items
-            int levelsGained = player.addExperience(ITEM_PICKUP_XP);
-            
-            // Check if this was a weapon upgrade/downgrade
-            if (inventory.wasLastAddWeaponUpgrade()) {
-                Weapon weapon = (Weapon) item;
-                gameState.logMessage("Upgraded " + weapon.getName() + " (+" + weapon.getDamageBonus() + " dmg)! +" + ITEM_PICKUP_XP + " exp", 
-                    StyleConfig.getColor("accent")); // Gold for XP
-            } else if (inventory.wasLastAddWeaponDowngrade()) {
-                gameState.logMessage("You already have a better " + item.getName() + ". +" + ITEM_PICKUP_XP + " exp", 
-                    StyleConfig.getColor("accent")); // Gold for XP
-            } else {
-                gameState.logMessage("Picked up: " + item.getName() + " (+" + ITEM_PICKUP_XP + " exp)", 
-                    StyleConfig.getColor("accent")); // Gold for XP
-            }
-            
-            // Log level-up message if applicable
-            if (levelsGained > 0) {
-                if (levelsGained == 1) {
-                    gameState.logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")", 
-                        StyleConfig.getColor("victoryGold")); // Bright gold for level up!
-                } else {
-                    gameState.logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!", 
-                        StyleConfig.getColor("victoryGold")); // Bright gold for multiple levels!
-                }
-            }
-            
-            tile.removeItem();
+    private void handleInventoryAdd(Item item, AbstractPlayer player, Tile tile) {
+        Inventory inv = player.getInventory();
+        if (!inv.addItem(item, player)) { logMessage("Inventory is full!"); return; }
+
+        int levels = player.addExperience(ITEM_PICKUP_XP);
+        if (inv.wasLastAddWeaponUpgrade()) {
+            Weapon w = (Weapon) item;
+            logMessage("Upgraded " + w.getName() + " (+" + w.getDamageBonus() + " dmg)! +" + ITEM_PICKUP_XP + " exp", "accent");
+        } else if (inv.wasLastAddWeaponDowngrade()) {
+            logMessage("You already have a better " + item.getName() + ". +" + ITEM_PICKUP_XP + " exp", "accent");
         } else {
-            gameState.logMessage("Inventory is full!");
+            logMessage("Picked up: " + item.getName() + " (+" + ITEM_PICKUP_XP + " exp)", "accent");
         }
+
+        if (levels > 0) logLevelUp(player, levels);
+        tile.removeItem();
     }
 
     // ====== PROJECTILES ======
@@ -297,34 +239,30 @@ public class GameController {
         if (!tile.hasItem()) return;
 
         Item item = tile.getItem().get();
-        if (item instanceof AbstractTrap trap) {
-            AbstractPlayer player = gameState.getPlayer();
-            
-            // Log trap trigger with damage in a single clear message
-            int dmg = trap.getDamage();
-            boolean isDead = player.takeDamage(dmg);
-            int hpAfter = player.getHp();
-            
-            // Consolidated trap message: trigger + damage in one line
-            gameState.logMessage(trap.getTriggerMessage() + " " + trap.getDamageMessage());
-            gameState.logMessage(player.getName() + "took " + dmg + " damage! (" + hpAfter + "/" + player.getMaxHp() + " HP)", 
-                StyleConfig.getColor("danger")); // Red for player taking damage
-            
-            if (isDead && !gameState.isGameOver()) {
-                gameState.setGameOver(true);
-                gameState.logMessage("The " + trap.getName() + " was LETHAL! " + player.getName() + " has been defeated!", 
-                    StyleConfig.getColor("deathRed")); // Bright red for death
-                // Trigger game over on the event dispatch thread
-                javax.swing.SwingUtilities.invokeLater(() -> {
-                    ui.GameOverWindow win = new ui.GameOverWindow(null, player.getName(), gameState.getCurrentLevel());
-                    if (win.showGameOverDialog()) {
-                        gameState.logMessage("Game restart requested - not yet implemented");
-                    } else {
-                        System.exit(0);
-                    }
-                });
-            }
-            tile.removeItem();
-        }
+        if (!(item instanceof AbstractTrap trap)) return;
+
+        AbstractPlayer player = gameState.getPlayer();
+        int dmg = trap.getDamage();
+        boolean dead = player.takeDamage(dmg);
+        logMessage(trap.getTriggerMessage() + " " + trap.getDamageMessage());
+        logDamage(player.getName(), dmg, player.getHp(), player.getMaxHp());
+
+        if (dead && !gameState.isGameOver()) handlePlayerDeath(player, trap);
+        tile.removeItem();
+    }
+
+    private void logDamage(String source, int damage, int hp, int maxHp) {
+        logMessage(source + " took " + damage + " damage! (" + hp + "/" + maxHp + " HP)", "danger");
+    }
+
+    private void handlePlayerDeath(AbstractPlayer player, AbstractTrap trap) {
+        gameState.setGameOver(true);
+        logMessage("The " + trap.getName() + " was LETHAL! " + player.getName() + " has been defeated!", "deathRed");
+
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            ui.GameOverWindow win = new ui.GameOverWindow(null, player.getName(), gameState.getCurrentLevel());
+            if (win.showGameOverDialog()) logMessage("Game restart requested - not yet implemented");
+            else System.exit(0);
+        });
     }
 }
