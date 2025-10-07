@@ -2,7 +2,6 @@ package player;
 
 import config.AnimationUtil;
 import config.Config;
-import config.PlayerConfig;
 import core.CombatState;
 import items.Inventory;
 import items.Weapon;
@@ -13,6 +12,47 @@ import utils.CollisionManager;
  * Handles movement, stats progression, combat state, equipment, and basic attacks.
  */
 public abstract class AbstractPlayer implements CollisionManager.Positionable {
+    
+    // ===== XP & LEVELING CONFIGURATION =====
+    private static final int[] LEVEL_XP_THRESHOLDS = {0, 700, 1500, 2700, 6500, 14000};
+    private static final int MAX_LEVEL = LEVEL_XP_THRESHOLDS.length;
+
+    // ===== STATS DATA STRUCTURES =====
+    
+    /**
+     * Contains all stat information for a player at a specific level.
+     */
+    public static class PlayerLevelStats {
+        public final int maxHp, maxMp, expToNextLevel;
+        public final AttackConfig[] attacks;
+
+        public PlayerLevelStats(int maxHp, int maxMp, int expToNextLevel, AttackConfig[] attacks) {
+            this.maxHp = maxHp;
+            this.maxMp = maxMp;
+            this.expToNextLevel = expToNextLevel;
+            this.attacks = attacks;
+        }
+    }
+
+    /**
+     * Configuration for a single attack/ability.
+     */
+    public static class AttackConfig {
+        public final String logicalName, displayName;
+        public final int diceCount, diceSides, diceBonus, mpCost, cooldown;
+
+        public AttackConfig(String logicalName, String displayName, int diceCount, int diceSides, 
+                          int diceBonus, int mpCost, int cooldown) {
+            this.logicalName = logicalName;
+            this.displayName = displayName;
+            this.diceCount = diceCount;
+            this.diceSides = diceSides;
+            this.diceBonus = diceBonus;
+            this.mpCost = mpCost;
+            this.cooldown = cooldown;
+        }
+    }
+    
     // ====== CORE STATS ======
     protected int x, y;             // Position
     protected int hp, maxHp;        // Health
@@ -88,7 +128,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     public int getMp() { return mp; }
     public int getMaxMp() { return maxMp; }
     public int getLevel() { return level; }
-    public int getMaxLevel() { return PlayerConfig.getMaxLevel(); }
+    public int getMaxLevel() { return MAX_LEVEL; }
     public int getExp() { return exp; }
     public int getExpToNext() { return expToNext; }
     public String getName() { return name; }
@@ -215,13 +255,13 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     public boolean canAttack(int attackType) {
         if (!combatState.canPerformAction(CombatState.ActionType.ATTACK)) return false;
-        PlayerConfig.AttackConfig atk = getAttackConfig(attackType);
+        AttackConfig atk = getAttackConfig(attackType);
         long now = System.currentTimeMillis();
         return (now - lastAttackTimes[attackType]) >= atk.cooldown && mp >= atk.mpCost;
     }
 
     public long getRemainingCooldown(int attackType) {
-        PlayerConfig.AttackConfig atk = getAttackConfig(attackType);
+        AttackConfig atk = getAttackConfig(attackType);
         long now = System.currentTimeMillis();
         long elapsed = now - lastAttackTimes[attackType];
         return Math.max(0, atk.cooldown - elapsed);
@@ -233,7 +273,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     }
     
     public String getAttackDisplayName(int attackType) {
-        PlayerConfig.AttackConfig atk = getAttackConfig(attackType);
+        AttackConfig atk = getAttackConfig(attackType);
         return atk.displayName;
     }
 
@@ -270,7 +310,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     // ====== ATTACK HANDLING ======
     public int getAttackDamage(int attackType) {
-        PlayerConfig.AttackConfig atk = getAttackConfig(attackType);
+        AttackConfig atk = getAttackConfig(attackType);
         return utils.Dice.rolldice(atk.diceCount, atk.diceSides, atk.diceBonus);
     }
 
@@ -282,7 +322,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     public void attack(int attackType) {
         if (!canAttack(attackType)) return;
-        PlayerConfig.AttackConfig atk = getAttackConfig(attackType);
+        AttackConfig atk = getAttackConfig(attackType);
 
         mp -= atk.mpCost;
         combatState.startAttack(attackType, AnimationUtil.getPlayerAnimationDuration("attack", getPlayerClass(), attackType));
@@ -294,10 +334,10 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     }
 
     // ====== ABSTRACT METHODS ======
-    protected abstract PlayerConfig.PlayerLevelStats getLevelStats(int level);
+    protected abstract PlayerLevelStats getLevelStats(int level);
 
     protected void updateStatsForLevel() {
-        PlayerConfig.PlayerLevelStats stats = getLevelStats(level);
+        PlayerLevelStats stats = getLevelStats(level);
         
         // Check if this is initialization (player has no stats yet)
         boolean isInitializing = (maxHp == 0 && maxMp == 0);
@@ -325,9 +365,24 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         }
     }
 
-    protected PlayerConfig.AttackConfig getAttackConfig(int attackType) {
-        PlayerConfig.PlayerLevelStats stats = getLevelStats(level);
+    protected AttackConfig getAttackConfig(int attackType) {
+        PlayerLevelStats stats = getLevelStats(level);
         int idx = Math.max(0, Math.min(attackType - 1, stats.attacks.length - 1));
         return stats.attacks[idx];
+    }
+
+    // ====== XP HELPER METHODS ======
+    
+    /**
+     * Calculates XP needed to reach the next level from current level.
+     * @param currentLevel The current player level
+     * @return XP needed for next level, or 0 if at max level
+     */
+    protected int getExpToNextLevel(int currentLevel) {
+        int idx = Math.max(0, Math.min(currentLevel - 1, LEVEL_XP_THRESHOLDS.length - 1));
+        if (idx + 1 < LEVEL_XP_THRESHOLDS.length) {
+            return LEVEL_XP_THRESHOLDS[idx + 1] - LEVEL_XP_THRESHOLDS[idx];
+        }
+        return 0; // Max level reached
     }
 }

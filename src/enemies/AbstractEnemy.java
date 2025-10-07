@@ -22,6 +22,10 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     // ====== COMBAT ======
     protected CombatState combatState = new CombatState();
 
+    // ====== MOVEMENT ======
+    /** Base movement cooldown in milliseconds (divided by movementSpeed stat) */
+    private static final int BASE_MOVEMENT_COOLDOWN = 800;
+
     // ====== DIRECTION ======
     protected int facingDirection = 1; // Default facing right
 
@@ -110,7 +114,7 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     private boolean canMove() {
         long now = System.currentTimeMillis();
-        return combatState.canPerformAction(CombatState.ActionType.MOVE) && now - lastMoveTime >= (EnemyConfig.getBaseMovementCooldown() / stats.movementSpeed);
+        return combatState.canPerformAction(CombatState.ActionType.MOVE) && now - lastMoveTime >= (BASE_MOVEMENT_COOLDOWN / stats.movementSpeed);
     }
 
     private boolean canAttack() {
@@ -164,7 +168,7 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     private boolean isCurrentlyMoving() {
         long now = System.currentTimeMillis();
-        return now - lastMoveTime < (EnemyConfig.getBaseMovementCooldown() / stats.movementSpeed);
+        return now - lastMoveTime < (BASE_MOVEMENT_COOLDOWN / stats.movementSpeed);
     }
 
     // ====== AI LOOP ======

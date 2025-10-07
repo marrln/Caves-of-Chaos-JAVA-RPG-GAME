@@ -121,8 +121,4 @@ public class EnemyConfig {
             );
         };
     }
-
-    public static int getBaseMovementCooldown() {
-        return 800;
-    }
 }
