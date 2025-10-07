@@ -75,7 +75,7 @@ public class Projectile {
         path = LineUtils.getProjectilePath(
             (int)Math.round(startX), (int)Math.round(startY),
             (int)Math.round(targetX), (int)Math.round(targetY),
-            (x, y) -> x < 0 || y < 0 || x >= map.getWidth() || y >= map.getHeight() || map.getTile(x, y).getType() == Tile.WALL
+            (tileX, tileY) -> tileX < 0 || tileY < 0 || tileX >= map.getWidth() || tileY >= map.getHeight() || map.getTile(tileX, tileY).getType() == Tile.WALL
         );
         pathIndex = 0;
     }
