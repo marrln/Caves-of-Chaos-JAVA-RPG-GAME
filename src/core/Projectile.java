@@ -120,18 +120,6 @@ public class Projectile {
         for (Enemy e : enemies) if (!e.isDead() && isHitting(e)) { hitTarget(e); active = false; return; }
     }
 
-    private void findNewTarget(List<Enemy> enemies, map.FogOfWar fogOfWar) {
-        Enemy closest = null; double closestDist = Double.MAX_VALUE;
-        for (Enemy e : enemies) {
-            if (!e.isDead() && isEnemyVisible(e, fogOfWar)) {
-                double dist = (e.getX()-x)*(e.getX()-x) + (e.getY()-y)*(e.getY()-y);
-                if (dist < closestDist) { closestDist = dist; closest = e; }
-            }
-        }
-        if (closest != null) { lockedTarget = closest; targetX = closest.getX(); targetY = closest.getY(); updateDirection(); }
-        else lockedTarget = null;
-    }
-
     private boolean isEnemyVisible(Enemy e, map.FogOfWar fogOfWar) { return fogOfWar == null || fogOfWar.isVisible(e.getX(), e.getY()); }
     private boolean isHitting(Enemy e) { return LineUtils.isCardinallyAdjacent((int)Math.round(x), (int)Math.round(y), e.getX(), e.getY()); }
 
