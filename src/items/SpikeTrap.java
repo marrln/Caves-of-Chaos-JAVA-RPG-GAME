@@ -6,7 +6,7 @@ package items;
  */
 public class SpikeTrap extends AbstractTrap {
     
-    private static final int LIGHT_DAMAGE = 3;
+    private static final int LIGHT_DAMAGE = 5; // Increased from 3 to 5
     private static final String TRAP_NAME = "Spike Trap";
     private static final String DESCRIPTION = "Hidden spikes in the floor that emerge when stepped on. Causes minor injuries.";
     private static final String TRIGGER_MSG = "Sharp spikes emerge from the floor beneath your feet!";

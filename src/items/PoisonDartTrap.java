@@ -6,7 +6,7 @@ package items;
  */
 public class PoisonDartTrap extends AbstractTrap {
     
-    private static final int MODERATE_DAMAGE = 7;
+    private static final int MODERATE_DAMAGE = 10; // Increased from 7 to 10
     private static final String TRAP_NAME = "Poison Dart Trap";
     private static final String DESCRIPTION = "Ancient mechanisms hidden in the walls that shoot poisoned darts when triggered.";
     private static final String TRIGGER_MSG = "A poisoned dart shoots out from the wall and strikes you!";

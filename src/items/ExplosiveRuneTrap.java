@@ -6,7 +6,7 @@ package items;
  */
 public class ExplosiveRuneTrap extends AbstractTrap {
     
-    private static final int SEVERE_DAMAGE = 12;
+    private static final int SEVERE_DAMAGE = 18; // Increased from 12 to 18
     private static final String TRAP_NAME = "Explosive Rune Trap";
     private static final String DESCRIPTION = "Magical runes carved into the floor that explode with destructive force when disturbed.";
     private static final String TRIGGER_MSG = "Ancient runes flare to life beneath your feet and explode!";
