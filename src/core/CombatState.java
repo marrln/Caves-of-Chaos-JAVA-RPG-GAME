@@ -11,8 +11,9 @@ public class CombatState {
     private long stateStartTime, stateDuration;
     private int attackType;
     private boolean damageDealt;
-
-    public CombatState() { setState(State.IDLE, 0); }
+    private void setIdle() { setState(State.IDLE, 0); }
+    
+    public CombatState() { setIdle(); }
 
     public State getCurrentState() { return currentState; }
     public int getAttackType() { return attackType; }
@@ -52,7 +53,7 @@ public class CombatState {
         this.attackType = attackType; 
         setState(State.ATTACKING, duration); 
     }
-
+    
     public void finishState() { stateStartTime = stateDuration = 0; }
-    public void update() { if (isStateFinished() && currentState != State.IDLE) setState(State.IDLE, 0); }
+    public void update() { if (isStateFinished() && currentState != State.IDLE) setIdle(); }
 }
