@@ -1,6 +1,6 @@
 package player;
 
-import config.AnimationConfig;
+import config.AnimationUtil;
 import config.Config;
 import config.PlayerConfig;
 import core.CombatState;
@@ -68,7 +68,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         // Check collision and actually move if allowed
         if (collisionManager != null && !collisionManager.canMoveTo(this, newX, newY)) return false;
         setPosition(newX, newY);
-        combatState.setState(CombatState.State.MOVING, AnimationConfig.getPlayerAnimationDuration("walk"));
+        combatState.setState(CombatState.State.MOVING, AnimationUtil.getPlayerAnimationDuration("walk", getPlayerClass()));
         return true;
     }
 
@@ -93,6 +93,16 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     public int getExpToNext() { return expToNext; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    
+    /**
+     * Gets the player class name for sprite lookups (e.g., "Duelist", "Wizard").
+     * <p>This is different from {@link #getName()} which returns the custom character name.</p>
+     * 
+     * @return simple class name (e.g., "Duelist" for player.Duelist)
+     */
+    public String getPlayerClass() {
+        return this.getClass().getSimpleName();
+    }
 
     // ====== INVENTORY & EQUIPMENT ======
     public Inventory getInventory() { return inventory; }
@@ -100,7 +110,16 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     public boolean equipWeapon(Weapon weapon) {
         if (weapon != null && weapon.canUse(this)) {
+            // Remove old weapon effects if any
+            if (equippedWeapon != null) {
+                equippedWeapon.removeEquipEffect(this);
+            }
+            
             equippedWeapon = weapon;
+            
+            // Apply new weapon effects
+            weapon.applyEquipEffect(this);
+            
             return true;
         }
         return false;
@@ -108,6 +127,12 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     public Weapon unequipWeapon() {
         Weapon weapon = equippedWeapon;
+        
+        // Remove weapon effects if any
+        if (weapon != null) {
+            weapon.removeEquipEffect(this);
+        }
+        
         equippedWeapon = null;
         return weapon;
     }
@@ -122,6 +147,22 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         int oldMp = mp;
         mp = Math.min(maxMp, mp + amount);
         return mp - oldMp;
+    }
+    
+    public void addMaxHp(int amount) {
+        maxHp += amount;
+        // Ensure current HP doesn't exceed new max
+        if (hp > maxHp) {
+            hp = maxHp;
+        }
+    }
+    
+    public void addMaxMp(int amount) {
+        maxMp += amount;
+        // Ensure current MP doesn't exceed new max
+        if (mp > maxMp) {
+            mp = maxMp;
+        }
     }
 
     public void triggerHealingEffect() { healingEffectEndTime = System.currentTimeMillis() + EFFECT_DURATION; }
@@ -168,7 +209,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     public boolean takeDamage(int dmg) {
         hp = Math.max(0, hp - dmg);
-        combatState.setState(CombatState.State.HURT, AnimationConfig.getPlayerAnimationDuration("hurt"));
+        combatState.setState(CombatState.State.HURT, AnimationUtil.getPlayerAnimationDuration("hurt", getPlayerClass()));
         return hp == 0;
     }
 
@@ -244,7 +285,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         PlayerConfig.AttackConfig atk = getAttackConfig(attackType);
 
         mp -= atk.mpCost;
-        combatState.startAttack(attackType, AnimationConfig.getPlayerAnimationDuration("attack"));
+        combatState.startAttack(attackType, AnimationUtil.getPlayerAnimationDuration("attack", getPlayerClass(), attackType));
         lastAttackTimes[attackType] = System.currentTimeMillis();
     }
 
