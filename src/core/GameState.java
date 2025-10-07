@@ -13,32 +13,23 @@ import player.AbstractPlayer;
 import ui.GameUIManager;
 
 /**
- * Manages the overall game state:
- * - Player, maps, enemies, fog of war
- * - Collision handling, music, and level progression
+ * Manages overall game state: player, maps, enemies, fog of war, collision, music, levels.
  */
 public final class GameState {
-    // ====== SINGLETON INSTANCE ======
     private static GameState instance;
 
-    // ====== CORE GAME STATE ======
-    private final List<GameMap> maps;
+    private final List<GameMap> maps = new ArrayList<>();
     private int currentLevel;
     private final AbstractPlayer player;
     private FogOfWar fogOfWar;                  
-    private final List<Enemy> currentEnemies;   
-    private boolean gameOver;
-    
-    // ====== DEBUG FLAGS ======
-    private boolean medusaDeathHandled = false; // Tracks if we handled Medusa's death
+    private final List<Enemy> currentEnemies = new ArrayList<>();
+    private boolean gameOver, medusaDeathHandled = false;
 
-    // ====== SYSTEM REFERENCES ======
     private GameUIManager uiManager;        
     private utils.CollisionManager collisionManager;
-    private final MusicManager musicManager;
-    private final ItemSpawner itemSpawner;
+    private final MusicManager musicManager = MusicManager.getInstance();
+    private final ItemSpawner itemSpawner = new ItemSpawner();
 
-    // ====== CONFIG CONSTANTS  ======
     private static final int MAP_WIDTH = Config.getIntSetting("mapWidth");
     private static final int MAP_HEIGHT = Config.getIntSetting("mapHeight");
     private static final double MAP_FILL_PERCENTAGE = Config.getDoubleSetting("mapFillPercentage");
@@ -46,276 +37,165 @@ public final class GameState {
     private static final int CAVE_MAX_LEVEL = Config.getIntSetting("caveLevelNumber");
     private static final int VISION_RADIUS = Config.getIntSetting("visionRadius");
 
-    /** Returns the singleton instance of GameState */
-    public static GameState getInstance() {
-        if (instance == null) {
-            throw new IllegalStateException("GameState has not been initialized!");
-        }
-        return instance;
+    public static GameState getInstance() { 
+        if (instance == null) throw new IllegalStateException("GameState not initialized!");
+        return instance; 
     }
 
-    // ====== CONSTRUCTOR ======
     public GameState(AbstractPlayer player, int startingLevel) {
-        if (instance != null) {
-            throw new IllegalStateException("GameState instance already exists!");
-        }
+        if (instance != null) throw new IllegalStateException("GameState already exists!");
         instance = this;
-        this.maps = new ArrayList<>();
-        this.currentEnemies = new ArrayList<>();
-        this.currentLevel = Math.max(0, Math.min(startingLevel, CAVE_MAX_LEVEL - 1));
-        this.gameOver = false;
-
-        this.musicManager = MusicManager.getInstance();
-        this.musicManager.startExplorationMusic();
-        this.itemSpawner = new ItemSpawner();
 
         this.player = player;
+        this.currentLevel = Math.max(0, Math.min(startingLevel, CAVE_MAX_LEVEL - 1));
         this.fogOfWar = new FogOfWar(MAP_WIDTH, MAP_HEIGHT);
-
+        musicManager.startExplorationMusic();
         initGame();
     }
 
-    /** Performs initial setup after construction */
     private void initGame() {
-        for (int level = 0; level <= currentLevel; level++) {
-            maps.add(createAndPopulateMap(level, true));
-        }
+        for (int i = 0; i <= currentLevel; i++) maps.add(createMap(i, true));
 
         GameMap startMap = getCurrentMap();
         player.setPosition(startMap.getEntranceX(), startMap.getEntranceY());
-
         fogOfWar.updateVisibility(startMap, player.getX(), player.getY(), VISION_RADIUS);
-        setupEnemyCollisionChecking();
+
+        setupCollision();
         loadEnemiesForCurrentLevel();
     }
 
-    /** Creates and fully populates a new map */
-    private GameMap createAndPopulateMap(int level, boolean allowEntrance) {
+    private GameMap createMap(int level, boolean allowEntrance) {
         GameMap map = new GameMap(MAP_WIDTH, MAP_HEIGHT);
-        boolean isFinalLevel = (level == CAVE_MAX_LEVEL - 1);
-
-        map.generateCaves(
-            MAP_FILL_PERCENTAGE,
-            MAP_ITERATIONS,
-            isFinalLevel,
-            allowEntrance
-        );
-
+        map.generateCaves(MAP_FILL_PERCENTAGE, MAP_ITERATIONS, level == CAVE_MAX_LEVEL - 1, allowEntrance);
         itemSpawner.spawnItemsForLevel(map, level + 1, player);
         return map;
     }
 
-    // ====== COLLISION MANAGEMENT ======
-    private void setupEnemyCollisionChecking() {
+    private void setupCollision() {
         collisionManager = new utils.CollisionManager(getCurrentMap());
         updateCollisionEntities();
-
         enemies.AbstractEnemy.setCollisionManager(collisionManager);
         AbstractPlayer.setCollisionManager(collisionManager);
-
         enemies.AbstractEnemy.setCombatLogger(this::logMessage);
     }
 
     private void updateCollisionEntities() {
-        if (collisionManager == null) return;
-
         List<utils.CollisionManager.Positionable> entities = new ArrayList<>();
         entities.add(player);
-        for (Enemy enemy : currentEnemies) {
-            if (enemy instanceof utils.CollisionManager.Positionable pos && !enemy.isDead()) {
-                entities.add(pos);
-            }
-        }
+        for (Enemy e : currentEnemies)
+            if (e instanceof utils.CollisionManager.Positionable p && !e.isDead()) entities.add(p);
         collisionManager.updateEntities(entities);
     }
 
-    // ====== LEVEL GENERATION ======
-    public void generateLevel(int mapWidth, int mapHeight, double fillPercentage, int iterations) {
-        int level = maps.size();
-        maps.add(createAndPopulateMap(level, false));
-    }
-
-    // ====== FOG OF WAR ======
-    public void updateFogOfWar() {
-        if (fogOfWar != null) {
-            fogOfWar.updateVisibility(
-                getCurrentMap(),
-                player.getX(),
-                player.getY(),
-                VISION_RADIUS
-            );
-        }
-    }
-
-    // ====== PLAYER MOVEMENT ======
     public boolean movePlayer(int dx, int dy) {
         if (player == null || gameOver) return false;
+        int nx = player.getX() + dx, ny = player.getY() + dy;
+        GameMap map = getCurrentMap();
+        if (!map.isInBounds(nx, ny) || map.isBlocked(nx, ny)) return false;
 
-        int newX = player.getX() + dx;
-        int newY = player.getY() + dy;
-        GameMap currentMap = getCurrentMap();
-
-        if (currentMap.isInBounds(newX, newY) && !currentMap.isBlocked(newX, newY)) {
-            Tile dest = currentMap.getTile(newX, newY);
-
-            return switch (dest.getType()) {
-                case Tile.STAIRS_DOWN -> { goToNextLevel(); yield true; }
-                case Tile.STAIRS_UP   -> { goToPreviousLevel(); yield true; }
-                default -> {
-                    if (player.tryMoveTo(newX, newY)) {
-                        updateFogOfWar();
-                        yield true;
-                    } else yield false;
-                }
-            };
-        }
-        return false;
+        Tile tile = map.getTile(nx, ny);
+        return switch (tile.getType()) {
+            case Tile.STAIRS_DOWN -> { goToNextLevel(); yield true; }
+            case Tile.STAIRS_UP   -> { goToPreviousLevel(); yield true; }
+            default -> { if (player.tryMoveTo(nx, ny)) { updateFogOfWar(); yield true; } else yield false; }
+        };
     }
 
-    // ====== LEVEL PROGRESSION ======
-    public void goToNextLevel() {
-        int nextLevel = currentLevel + 1;
-        if (nextLevel >= maps.size()) generateLevel(MAP_WIDTH, MAP_HEIGHT, MAP_FILL_PERCENTAGE, MAP_ITERATIONS);
-        currentLevel = nextLevel;
-        GameMap newMap = getCurrentMap();
-        loadLevel(newMap.getEntranceX(), newMap.getEntranceY());
-    }
+    public void goToNextLevel() { loadLevel(currentLevel + 1); }
+    public void goToPreviousLevel() { if (currentLevel > 0) loadLevel(currentLevel - 1); }
 
-    public void goToPreviousLevel() {
-        if (currentLevel > 0) {
-            currentLevel--;
-            GameMap newMap = getCurrentMap();
-            loadLevel(newMap.getExitX(), newMap.getExitY());
-        }
-    }
+    private void loadLevel(int targetLevel) {
+        currentLevel = targetLevel >= maps.size() ? maps.size() : targetLevel;
+        if (currentLevel >= maps.size()) maps.add(createMap(currentLevel, false));
 
-    private void loadLevel(int playerX, int playerY) {
-        GameMap newMap = getCurrentMap();
-        fogOfWar = new FogOfWar(newMap.getWidth(), newMap.getHeight());
-        setupEnemyCollisionChecking();
+        GameMap map = getCurrentMap();
+        fogOfWar = new FogOfWar(map.getWidth(), map.getHeight());
+        setupCollision();
         loadEnemiesForCurrentLevel();
-        itemSpawner.spawnItemsForLevel(newMap, currentLevel + 1, player);
+        itemSpawner.spawnItemsForLevel(map, currentLevel + 1, player);
 
-        if (!player.tryMoveTo(playerX, playerY)) {
-            player.setPosition(playerX, playerY);
-        }
+        if (!player.tryMoveTo(map.getEntranceX(), map.getEntranceY())) 
+            player.setPosition(map.getEntranceX(), map.getEntranceY());
         updateFogOfWar();
     }
 
-    // ====== ENEMY MANAGEMENT ======
+    public void updateFogOfWar() {
+        fogOfWar.updateVisibility(getCurrentMap(), player.getX(), player.getY(), VISION_RADIUS);
+        if (uiManager != null) uiManager.centerCameraOnPlayer();
+    }
+
     public void loadEnemiesForCurrentLevel() {
         currentEnemies.clear();
-        currentEnemies.addAll(
-            EnemySpawner.spawnEnemiesForLevel(getCurrentMap(), currentLevel + 1)
-        );
+        currentEnemies.addAll(EnemySpawner.spawnEnemiesForLevel(getCurrentMap(), currentLevel + 1));
         updateCollisionEntities();
     }
 
     public void updateEnemies() {
-        if (player == null || gameOver) return; // Stop all enemy updates if game is over
+        if (player == null || gameOver) return;
         player.updateCombat();
 
-        for (Enemy enemy : currentEnemies) {
-            enemy.update(player.getX(), player.getY());
+        for (Enemy e : currentEnemies) {
+            e.update(player.getX(), player.getY());
+            if (e.isDead() || !(e instanceof enemies.AbstractEnemy ae)) continue;
 
-            if (!enemy.isDead() && enemy instanceof enemies.AbstractEnemy abstractEnemy) {
-                if (abstractEnemy.hasPendingPlayerDamage()) {
-                    int dmg = abstractEnemy.getPendingPlayerDamage();
-                    logMessage(player.getName() + " takes " + dmg + " damage!", 
-                        StyleConfig.getColor("danger")); // Red for player taking damage
-
-                    if (player.takeDamage(dmg)) {
-                        if (!gameOver) {
-                            gameOver = true;
-                            logMessage(player.getName() + " has been defeated!", 
-                                StyleConfig.getColor("deathRed")); // Bright red for death
-                            handlePlayerDeath();
-                            return; // CRITICAL: Stop processing immediately after player death
-                        }
-                    }
+            if (ae.hasPendingPlayerDamage()) {
+                int dmg = ae.getPendingPlayerDamage();
+                logMessage(player.getName() + " takes " + dmg + " damage!", StyleConfig.getColor("danger"));
+                if (player.takeDamage(dmg) && !gameOver) {
+                    gameOver = true;
+                    logMessage(player.getName() + " has been defeated!", StyleConfig.getColor("deathRed"));
+                    handlePlayerDeath();
+                    return;
                 }
             }
         }
-
-        // Ensure collision entities are updated so dead enemies are no longer blocking
         updateCollisionEntities();
         musicManager.updateForCombatState(currentEnemies);
     }
-    
-    /**
-     * Checks if Medusa died this game tick and handles the death event.
-     * MUST be called AFTER combat resolution (melee, projectiles) but BEFORE next frame.
-     * This is separate from updateEnemies() to handle death detection across multiple damage sources.
-     * Only runs on the final level where Medusa spawns.
-     */
+
     public void checkMedusaDeath() {
-        // Skip if not on final level (Medusa only spawns on final level)
-        if (currentLevel != CAVE_MAX_LEVEL - 1) return;
-        
-        // Skip if game is over or no enemies
-        if (gameOver || currentEnemies.isEmpty()) return;
-        
-        // Find Medusa and check if she just died
-        for (Enemy enemy : currentEnemies) {
-            if (enemy instanceof enemies.MedusaOfChaos medusa) {
-                // Check if Medusa is dead
-                if (medusa.isDead()) {
-                    // Handle death only once
-                    if (!medusaDeathHandled) {
-                        updateCollisionEntities();
-                        handleMedusaDeath(medusa.getX(), medusa.getY());
-                        medusaDeathHandled = true;
-                    }
-                    return;
-                }
+        if (currentLevel != CAVE_MAX_LEVEL - 1 || gameOver || currentEnemies.isEmpty()) return;
+        for (Enemy e : currentEnemies)
+            if (e instanceof enemies.MedusaOfChaos m && m.isDead() && !medusaDeathHandled) {
+                updateCollisionEntities();
+                handleMedusaDeath(m.getX(), m.getY());
+                medusaDeathHandled = true;
                 return;
             }
-        }
     }
 
-    // ====== PLAYER DEATH & BOSS ======
     private void handlePlayerDeath() {
         javax.swing.SwingUtilities.invokeLater(() -> {
             ui.GameOverWindow win = new ui.GameOverWindow(null, player.getName(), currentLevel);
-            if (win.showGameOverDialog()) {
-                logMessage("Game restart requested - not yet implemented");
-            } else {
-                System.exit(0);
-            }
+            if (win.showGameOverDialog()) logMessage("Game restart requested - not yet implemented");
+            else System.exit(0);
         });
     }
 
-    /**
-     * Handles Medusa defeat and spawns the Shard of Judgement.
-     * Called from checkMedusaDeath() when Medusa is killed by any damage source.
-     */
     public void handleMedusaDeath(int x, int y) {
-        logMessage("The Medusa of Chaos has been defeated! The evil presence lifts...", 
-            StyleConfig.getColor("victoryGold")); // Victory gold for boss defeat
-        logMessage("A brilliant shard of light materializes where the beast fell!", 
-            StyleConfig.getColor("shardCyan")); // Cyan for the magical shard
+        logMessage("The Medusa of Chaos has been defeated! The evil presence lifts...", StyleConfig.getColor("victoryGold"));
+        logMessage("A brilliant shard of light materializes where the beast fell!", StyleConfig.getColor("shardCyan"));
         boolean spawned = itemSpawner.spawnShardOfJudgement(getCurrentMap(), x, y);
-        if (spawned) {
-            logMessage("The legendary Shard of Judgement awaits your claim!", 
-                StyleConfig.getColor("shardCyan")); // Cyan for the legendary item
-        } else {
-            logMessage("The Shard of Judgement failed to spawn, but you have still won!", 
-                StyleConfig.getColor("victoryGold")); // Gold - still a victory!
-        }
+        logMessage(spawned ? 
+            "The legendary Shard of Judgement awaits your claim!" : 
+            "The Shard of Judgement failed to spawn, but you have still won!",
+            StyleConfig.getColor(spawned ? "shardCyan" : "victoryGold"));
     }
 
-    // ====== CONVINIENCE ======
+    // ====== LOGGING ======
+    public void logMessage(String msg) { if (uiManager != null) uiManager.addMessage(msg); }
+    public void logMessage(String msg, java.awt.Color color) { if (uiManager != null) uiManager.addMessage(msg, color); }
+
+    // ====== GETTERS & CONVENIENCE ======
     public void setUIManager(GameUIManager ui) { this.uiManager = ui; }
     public GameMap getCurrentMap() { return maps.get(currentLevel); }
     public AbstractPlayer getPlayer() { return player; }
     public FogOfWar getFogOfWar() { return fogOfWar; }
     public List<Enemy> getCurrentEnemies() { return currentEnemies; }
-    public int getAliveEnemyCount() { return (int) currentEnemies.stream().filter(enemy -> !enemy.isDead()).count(); }
+    public int getAliveEnemyCount() { return (int) currentEnemies.stream().filter(e -> !e.isDead()).count(); }
     public int getCurrentLevel() { return currentLevel; }
     public boolean isGameOver() { return gameOver; }
-    public void setGameOver(boolean val) { this.gameOver = val; }
+    public void setGameOver(boolean val) { gameOver = val; }
     public boolean canGoToNextLevel() { return currentLevel < (CAVE_MAX_LEVEL - 1); }
     public String getLevelDisplayString() { return "Cave Floor: " + (currentLevel + 1) + " of " + CAVE_MAX_LEVEL; }
-    public void logMessage(String msg) { uiManager.addMessage(msg); }
-    public void logMessage(String msg, java.awt.Color color) { uiManager.addMessage(msg, color); }
 }
