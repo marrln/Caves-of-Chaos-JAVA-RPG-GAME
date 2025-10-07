@@ -16,7 +16,7 @@ import ui.GameUIManager;
 import utils.LineUtils;
 
 public class GameController {
-    private static final int ITEM_PICKUP_XP = 50; // XP awarded for picking up items
+    private static final int ITEM_PICKUP_XP = 20; // XP awarded for picking up items (reduced from 50)
     
     private final GameState gameState;
     private GameUIManager uiManager;
@@ -138,8 +138,6 @@ public class GameController {
             // Silently ignore cooldown - no log spam
             return;
         }
-        
-        player.updateCombat();
 
         int mpBefore = player.getMp();
         player.attack(attackType);
@@ -178,6 +176,12 @@ public class GameController {
             gameState.logMessage(player.getName() + " attacks " + target.getName() + " for " + dmg + " damage!");
 
             boolean dead = target.takeDamage(dmg);
+            
+            // Apply weapon on-hit effects (like lifesteal)
+            if (player.getEquippedWeapon() != null) {
+                player.getEquippedWeapon().applyOnHitEffect(player, dmg);
+            }
+            
             if (dead) {
                 int exp = target.getExpReward();
                 int levelsGained = player.addExperience(exp);
