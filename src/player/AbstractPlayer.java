@@ -5,6 +5,8 @@ import config.Config;
 import core.CombatState;
 import items.Inventory;
 import items.Weapon;
+import player.AbstractPlayer.AttackConfig;
+import player.AbstractPlayer.PlayerLevelStats;
 import utils.CollisionManager;
 
 /**
@@ -247,10 +249,16 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     // ====== COMBAT ======
     public CombatState getCombatState() { return combatState; }
 
-    public boolean takeDamage(int dmg) {
-        hp = Math.max(0, hp - dmg);
+    public boolean takeDamage(int damage) {
+        if (isDead()) return false;
+        hp = Math.max(0, hp - damage);
+
+        if (hp == 0) {
+            combatState.setState(CombatState.State.DYING, AnimationUtil.getPlayerAnimationDuration("death", getPlayerClass()));
+            return true;
+        } 
         combatState.setState(CombatState.State.HURT, AnimationUtil.getPlayerAnimationDuration("hurt", getPlayerClass()));
-        return hp == 0;
+        return false;
     }
 
     public boolean canAttack(int attackType) {
@@ -385,4 +393,6 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
         }
         return 0; // Max level reached
     }
+
+    public boolean isDead() { return hp <= 0; }
 }
