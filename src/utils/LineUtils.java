@@ -1,9 +1,12 @@
 package utils;
 
+import enemies.Enemy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiPredicate;
+import map.FogOfWar;
+import utils.LineUtils.Point;
 
 public class LineUtils {
 
@@ -33,8 +36,7 @@ public class LineUtils {
         }
     }
 
-    public static boolean traverseLine(int x1, int y1, int x2, int y2,
-                                       BiPredicate<Integer, Integer> stepFunction) {
+    public static boolean traverseLine(int x1, int y1, int x2, int y2, BiPredicate<Integer, Integer> stepFunction) {
         int dx = Math.abs(x2 - x1);
         int dy = Math.abs(y2 - y1);
         int sx = x1 < x2 ? 1 : -1;
@@ -59,8 +61,7 @@ public class LineUtils {
         return points;
     }
 
-    public static boolean hasLineOfSight(int x1, int y1, int x2, int y2,
-                                         BiPredicate<Integer, Integer> isBlocked) {
+    public static boolean hasLineOfSight(int x1, int y1, int x2, int y2, BiPredicate<Integer, Integer> isBlocked) {
         return traverseLine(x1, y1, x2, y2, (x, y) -> {
             if ((x == x1 && y == y1) || (x == x2 && y == y2)) return true;
             return !isBlocked.test(x, y);
@@ -94,4 +95,32 @@ public class LineUtils {
         int dx = Math.abs(x1 - x2), dy = Math.abs(y1 - y2);
         return (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
     }
+
+    public static boolean withinRange(double x1, double y1, double x2, double y2, double range) {
+        double dx = x1 - x2, dy = y1 - y2;
+        return dx*dx + dy*dy <= range*range;
+    }
+
+    public static double[] moveTowards(double x, double y, double targetX, double targetY, double distance) {
+        double dx = targetX - x, dy = targetY - y;
+        double dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist == 0) return new double[]{x,y};
+        double scale = Math.min(1, distance / dist);
+        return new double[]{ x + dx*scale, y + dy*scale };
+    }
+
+    public static Enemy getClosestVisibleEnemy(double x, double y, List<Enemy> enemies, FogOfWar fog) {
+        Enemy closest = null;
+        double closestDist = Double.MAX_VALUE;
+        for (Enemy e : enemies) {
+            if (!e.isDead() && (fog==null || fog.isVisible(e.getX(), e.getY()))) {
+                double dist = (e.getX()-x)*(e.getX()-x) + (e.getY()-y)*(e.getY()-y);
+                if (dist < closestDist) { closestDist = dist; closest = e; }
+            }
+        }
+        return closest;
+    }
+
+    public static boolean isVisible(FogOfWar fog, Enemy e) { return fog == null || fog.isVisible(e.getX(), e.getY()); }
+
 }

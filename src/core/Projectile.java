@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 import map.GameMap;
 import map.Tile;
+import map.FogOfWar;
 import utils.LineUtils;
 
 /**
  * Represents a magical projectile that travels across the map to hit targets.
- * Used by wizards for ranged spell attacks.
  */
 public class Projectile {
 
@@ -19,8 +19,8 @@ public class Projectile {
 
         private final String spriteId;
         private final int baseDamage;
-        private final double speed; // tiles per second
-        private final int range;    // max travel distance in tiles
+        private final double speed;
+        private final int range;
 
         ProjectileType(String spriteId, int baseDamage, double speed, int range) {
             this.spriteId = spriteId;
@@ -42,134 +42,106 @@ public class Projectile {
     private double directionX, directionY;
     private boolean active;
     private Enemy lockedTarget;
-    private List<LineUtils.Point> path; 
+    private List<LineUtils.Point> path;
     private int pathIndex;
 
     public Projectile(ProjectileType type, double startX, double startY, double targetX, double targetY) {
         this.type = type;
-        this.x = this.startX = startX;
-        this.y = this.startY = startY;
-        this.targetX = targetX;
-        this.targetY = targetY;
-        this.active = true;
-        this.pathIndex = 0;
-        precomputePath(null);
+        this.x = startX; this.y = startY;
+        this.startX = startX; this.startY = startY;
+        this.targetX = targetX; this.targetY = targetY;
+        this.active = true; this.pathIndex = 0;
         updateDirection();
     }
 
     public Projectile(ProjectileType type, double startX, double startY, Enemy target) {
         this(type, startX, startY, target.getX(), target.getY());
         this.lockedTarget = target;
-        this.path = null; // homing
     }
 
     private void updateDirection() {
         double dx = targetX - x, dy = targetY - y;
-        double dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 0) { directionX = dx / dist; directionY = dy / dist; } 
-        else { directionX = directionY = 0; }
+        double dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > 0) { directionX = dx / dist; directionY = dy / dist; }
+        else { directionX = 0; directionY = 0; }
     }
 
-    private void precomputePath(GameMap map) {
-        if (map == null) return;
-        path = LineUtils.getProjectilePath(
-            (int)Math.round(startX), (int)Math.round(startY),
-            (int)Math.round(targetX), (int)Math.round(targetY),
-            (tileX, tileY) -> tileX < 0 || tileY < 0 || tileX >= map.getWidth() || tileY >= map.getHeight() || map.getTile(tileX, tileY).getType() == Tile.WALL
-        );
-        pathIndex = 0;
-    }
-
-    public void update(double dt, GameMap map, List<Enemy> enemies, map.FogOfWar fogOfWar) {
-        if (!active) return;
-
-        // collision before movement
-        for (Enemy e : enemies) if (!e.isDead() && isHitting(e)) { hitTarget(e); active = false; return; }
-
-        // homing
-        if (lockedTarget != null) {
-            if (!lockedTarget.isDead() && isEnemyVisible(lockedTarget, fogOfWar)) {
-                targetX = lockedTarget.getX(); targetY = lockedTarget.getY();
-                updateDirection();
-            } else lockedTarget = null;
-        }
-
-        // movement
-        double moveDist = type.getSpeed() * dt;
-        if (path != null) {
-            while (moveDist > 0 && pathIndex < path.size()) {
-                LineUtils.Point next = path.get(pathIndex);
-                double dx = next.x - x, dy = next.y - y, dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist <= moveDist) { x = next.x; y = next.y; pathIndex++; moveDist -= dist; }
-                else { x += dx / dist * moveDist; y += dy / dist * moveDist; moveDist = 0; }
+    private boolean checkCollision(List<Enemy> enemies) {
+        for (Enemy e : enemies) {
+            if (!e.isDead() && LineUtils.isCardinallyAdjacent((int)Math.round(x),(int)Math.round(y), e.getX(), e.getY())) {
+                hitTarget(e);
+                active = false;
+                return true;
             }
-            if (pathIndex >= path.size()) { active = false; return; }
-        } else { x += directionX * moveDist; y += directionY * moveDist; }
-
-        // range
-        double dx = x - startX, dy = y - startY;
-        if (dx*dx + dy*dy > type.getRange()*type.getRange()) { active = false; return; }
-
-        // tile collision
-        int tileX = (int)Math.round(x), tileY = (int)Math.round(y);
-        if (tileX < 0 || tileY < 0 || tileX >= map.getWidth() || tileY >= map.getHeight() || map.getTile(tileX, tileY).getType() == Tile.WALL) {
-            active = false; return;
         }
-
-        // collision after movement
-        for (Enemy e : enemies) if (!e.isDead() && isHitting(e)) { hitTarget(e); active = false; return; }
+        return false;
     }
 
-    private boolean isEnemyVisible(Enemy e, map.FogOfWar fogOfWar) { return fogOfWar == null || fogOfWar.isVisible(e.getX(), e.getY()); }
-    private boolean isHitting(Enemy e) { return LineUtils.isCardinallyAdjacent((int)Math.round(x), (int)Math.round(y), e.getX(), e.getY()); }
+    private boolean checkRangeAndTile(GameMap map) {
+        if (!LineUtils.withinRange(x, y, startX, startY, type.getRange())) { active = false; return true; }
+        int tileX = (int)Math.round(x), tileY = (int)Math.round(y);
+        if (tileX < 0 || tileY < 0 || tileX >= map.getWidth() || tileY >= map.getHeight()) { active = false; return true; }
+        Tile tile = map.getTile(tileX, tileY);
+        if (tile.getType() == Tile.WALL) { active = false; return true; }
+        return false;
+    }
 
-    private void hitTarget(Enemy e) {
+    public void update(double deltaTime, GameMap map, List<Enemy> enemies, FogOfWar fog) {
+        if (!active) return;
+        if (checkCollision(enemies)) return;
+
+        // Homing logic
+        if (lockedTarget != null) {
+            if (lockedTarget.isDead()) lockedTarget = LineUtils.getClosestVisibleEnemy(x, y, enemies, fog);
+            else if (!LineUtils.isVisible(fog, lockedTarget)) lockedTarget = null;
+            else { targetX = lockedTarget.getX(); targetY = lockedTarget.getY(); updateDirection(); }
+        }
+
+        // Movement
+        double moveDistance = type.getSpeed() * deltaTime;
+        if (path != null) moveAlongPath(moveDistance);
+        else { double[] pos = LineUtils.moveTowards(x, y, targetX, targetY, moveDistance); x = pos[0]; y = pos[1]; }
+
+        if (checkRangeAndTile(map)) return;
+        checkCollision(enemies);
+    }
+
+    private void moveAlongPath(double moveDistance) {
+        while (moveDistance > 0 && pathIndex < path.size()) {
+            LineUtils.Point next = path.get(pathIndex);
+            double dx = next.x - x, dy = next.y - y, dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist <= moveDistance) { x = next.x; y = next.y; pathIndex++; moveDistance -= dist; }
+            else { x += dx / dist * moveDistance; y += dy / dist * moveDistance; moveDistance = 0; }
+        }
+        if (pathIndex >= path.size()) active = false;
+    }
+
+    private void hitTarget(Enemy enemy) {
         player.AbstractPlayer player = core.GameState.getInstance().getPlayer();
         int dmg = player.getTotalAttackDamage(type == ProjectileType.FIRE_SPELL ? 1 : 2);
-        boolean dead = e.takeDamage(dmg);
-
-        log(player.getName() + " attacks " + e.getName() + " for " + dmg + " damage!");
-
-        if (dead) {
-            int exp = e.getExpReward();
-            int levelsGained = player.addExperience(exp);
-            log(e.getName() + " has been defeated! You gained " + exp + " exp!", config.StyleConfig.getColor("accent"));
-
-            if (levelsGained > 0) {
-                if (levelsGained == 1)
-                    log(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")", config.StyleConfig.getColor("victoryGold"));
-                else
-                    log(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!", config.StyleConfig.getColor("victoryGold"));
-            }
-        }
+        enemy.takeDamage(dmg);
+        log(player.getName() + " attacks " + enemy.getName() + " for " + dmg + " damage!");
     }
 
-    // ====== LOG HELPERS ======
     private void log(String msg) { core.GameState.getInstance().logMessage(msg); }
-    private void log(String msg, java.awt.Color color) { core.GameState.getInstance().logMessage(msg, color); }
 
-    // ====== GETTERS ======
     public double getX() { return x; }
     public double getY() { return y; }
     public boolean isActive() { return active; }
-    public ProjectileType getType() { return type; }
     public void deactivate() { active = false; }
+    public ProjectileType getType() { return type; }
 }
 
 /**
- * Manager for all projectiles in the game.
+ * Manager for projectiles
  */
 class ProjectileManager {
     private final List<Projectile> activeProjectiles = new ArrayList<>();
-
     public void addProjectile(Projectile p) { activeProjectiles.add(p); }
 
-    public void updateAll(double dt, GameMap map, List<Enemy> enemies, map.FogOfWar fogOfWar) {
+    public void updateAll(double deltaTime, GameMap map, List<Enemy> enemies, FogOfWar fog) {
         List<Projectile> toRemove = new ArrayList<>();
-        for (Projectile p : activeProjectiles) {
-            p.update(dt, map, enemies, fogOfWar);
-            if (!p.isActive()) toRemove.add(p);
-        }
+        for (Projectile p : activeProjectiles) { p.update(deltaTime,map,enemies,fog); if (!p.isActive()) toRemove.add(p); }
         activeProjectiles.removeAll(toRemove);
     }
 
