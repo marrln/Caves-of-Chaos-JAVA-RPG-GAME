@@ -79,7 +79,7 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     public EnemyType getType() { return type; }
     public CombatState getCombatState() { return combatState; }
-    public boolean hasNoticedPlayer() { return hasNoticedPlayer; }
+    @Override public boolean hasNoticedPlayer() { return hasNoticedPlayer; }
     public int getAttackType() { return combatState.getAttackType(); }
 
     // ====== COMBAT ======
