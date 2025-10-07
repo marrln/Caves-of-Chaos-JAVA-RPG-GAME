@@ -11,7 +11,7 @@ public class Potion extends ConsumableItem {
     private final int mpRestore;
     
     public Potion(String name, String description, int hpRestore, int mpRestore) {
-        super(name, description, 1, 5); // Potions stack up to 5
+        super(name, description, 1, 10); // Potions stack up to 10 (increased from 5)
         this.hpRestore = hpRestore;
         this.mpRestore = mpRestore;
     }
