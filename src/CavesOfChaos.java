@@ -48,7 +48,8 @@ public class CavesOfChaos {
             Config.loadConfigs(CONFIG_PATH, ASSETS_PATH);
             StyleConfig.loadStyling(STYLING_PATH);
         } catch (Exception e) {
-            GameDebugger.logError("Failed to load configuration files", e, true);
+            System.err.println("ERROR during resource loading: " + e.getMessage());
+            e.printStackTrace();
             System.exit(1);
         }
     }
