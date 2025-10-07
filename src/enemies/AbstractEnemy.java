@@ -1,6 +1,6 @@
 package enemies;
 
-import config.AnimationConfig;
+import config.AnimationUtil;
 import config.EnemyConfig;
 import core.CombatState;
 import java.util.Random;
@@ -85,10 +85,10 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
         hp = Math.max(0, hp - damage);
 
         if (hp == 0) {
-            combatState.setState(CombatState.State.DYING, AnimationConfig.getEnemyAnimationDuration("death"));
+            combatState.setState(CombatState.State.DYING, AnimationUtil.getEnemyAnimationDuration("death", type.getSpritePrefix()));
             return true;
         } 
-        combatState.setState(CombatState.State.HURT, AnimationConfig.getEnemyAnimationDuration("hurt"));
+        combatState.setState(CombatState.State.HURT, AnimationUtil.getEnemyAnimationDuration("hurt", type.getSpritePrefix()));
         return false;
     }
 
@@ -121,7 +121,7 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
     private void attemptAttack() {
         if (!canAttack()) return;
         int atkType = selectAttackType();
-        combatState.startAttack(atkType, AnimationConfig.getEnemyAnimationDuration("attack"));
+        combatState.startAttack(atkType, AnimationUtil.getEnemyAnimationDuration("attack", type.getSpritePrefix(), atkType));
         lastAttackTime = System.currentTimeMillis();
     }
 
@@ -140,7 +140,7 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
         setPosition(pos.x, pos.y);
         // MOVING state persists until tile reached
         if (combatState.getCurrentState() != CombatState.State.MOVING)
-            combatState.setState(CombatState.State.MOVING, AnimationConfig.getEnemyAnimationDuration("walk"));
+            combatState.setState(CombatState.State.MOVING, AnimationUtil.getEnemyAnimationDuration("walk", type.getSpritePrefix()));
         return true;
     }
 
@@ -175,7 +175,7 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
         
         // Handle attack
         if (combatState.getCurrentState() == CombatState.State.ATTACKING) {
-            if (combatState.shouldDealDamage(AnimationConfig.getDamageTimingPercent())) dealDamageToPlayer(px, py);
+            if (combatState.shouldDealDamage(AnimationUtil.getDamageTimingPercent())) dealDamageToPlayer(px, py);
             return;
         }
 
