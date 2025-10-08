@@ -1,5 +1,8 @@
 package player;
 
+import player.AbstractPlayer.AttackConfig;
+import player.AbstractPlayer.PlayerLevelStats;
+
 public class Duelist extends AbstractPlayer {
     
     // ===== HP/MP Progression =====
@@ -34,9 +37,9 @@ public class Duelist extends AbstractPlayer {
     protected PlayerLevelStats getLevelStats(int level) {
         int idx = Math.max(0, Math.min(level - 1, BASE_STATS.length - 1));
 
-        int maxHp = BASE_STATS[idx][0];
-        int maxMp = BASE_STATS[idx][1];
-        int expToNext = getExpToNextLevel(level);
+        int baseMaxHp = BASE_STATS[idx][0];
+        int baseMaxMp = BASE_STATS[idx][1];
+        int expToNextLevel = getExpToNextLevel(level);
 
         int[][] atkData = ATTACK_TABLE[idx];
         AttackConfig[] attacks = new AttackConfig[] {
@@ -44,7 +47,7 @@ public class Duelist extends AbstractPlayer {
             new AttackConfig("Attack02", ATTACK_NAMES[1], atkData[1][0], atkData[1][1], atkData[1][2], atkData[1][3], atkData[1][4])
         };
 
-        return new PlayerLevelStats(maxHp, maxMp, expToNext, attacks);
+        return new PlayerLevelStats(baseMaxHp, baseMaxMp, expToNextLevel, attacks);
     }
 
     public static String getAttackName(int attackType) {
