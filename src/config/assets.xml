@@ -155,16 +155,35 @@
             <track id="regular_music" path="assets/music/Goblins_Den_(Regular).wav"/>
             <track id="battle_music" path="assets/music/Goblins_Dance_(Battle).wav"/>
         </music>
-        <!-- <sounds>
-            <sound id="player_attack" path="src/assets/sounds/Player_Attack.wav"/>
-            <sound id="player_hurt" path="src/assets/sounds/Player_Hurt.wav"/>
-            <sound id="player_death" path="src/assets/sounds/Player_Death.wav"/>
-            <sound id="enemy_attack" path="src/assets/sounds/Enemy_Attack.wav"/>
-            <sound id="enemy_hurt" path="src/assets/sounds/Enemy_Hurt.wav"/>
-            <sound id="enemy_death" path="src/assets/sounds/Enemy_Death.wav"/>
-            <sound id="item_pickup" path="src/assets/sounds/Item_Pickup.wav"/>
-            <sound id="item_use" path="src/assets/sounds/Item_Use.wav"/>
-            <sound id="level_up" path="src/assets/sounds/Level_Up.wav"/>
-        </sounds> -->
+        
+        <sounds>
+            <!-- Player sounds -->
+            <sound id="duelist_hit" path="src/assets/sfx/duelist_hit.wav"/>
+            <sound id="duelist_miss" path="src/assets/sfx/duelist_miss.wav"/>
+            <sound id="player_hurt" path="src/assets/sfx/player_hurt.wav"/>
+            <sound id="player_death" path="src/assets/sfx/player_death.wav"/>
+            <sound id="player_walk_1" path="src/assets/sfx/player_walk_1.wav"/>
+            <sound id="player_walk_2" path="src/assets/sfx/player_walk_2.wav"/>
+            <sound id="player_walk_3" path="src/assets/sfx/player_walk_3.wav"/>
+            
+            <!-- Spell sounds -->
+            <sound id="spell_sound" path="src/assets/sfx/spell_sound.wav"/>
+            
+            <!-- Enemy sounds -->
+            <sound id="enemy_attack_generic" path="src/assets/sfx/enemy_attack_generic.wav"/>
+            <sound id="enemy_attack_sword_1" path="src/assets/sfx/enemy_attack_sword_1.wav"/>
+            <sound id="enemy_attack_sword_2" path="src/assets/sfx/enemy_attack_sword_2.wav"/>
+            <sound id="enemy_hurt_1" path="src/assets/sfx/enemy_hurt_1.wav"/>
+            <sound id="enemy_hurt_2" path="src/assets/sfx/enemy_hurt_2.wav"/>
+            <sound id="enemy_hurt_3" path="src/assets/sfx/enemy_hurt_3.wav"/>
+            <sound id="enemy_death" path="src/assets/sfx/enemy_death.wav"/>
+            <sound id="enemy_walk_1" path="src/assets/sfx/enemy_walk_1.wav"/>
+            <sound id="enemy_walk_2" path="src/assets/sfx/enemy_walk_2.wav"/>
+            <sound id="enemy_walk_3" path="src/assets/sfx/enemy_walk_3.wav"/>
+            
+            <!-- Item sounds -->
+            <sound id="item_pickup_1" path="src/assets/sfx/item_pickup_1.wav"/>
+            <sound id="item_pickup_2" path="src/assets/sfx/item_pickup_2.wav"/>
+        </sounds>
     </sprites>
 </assets>
