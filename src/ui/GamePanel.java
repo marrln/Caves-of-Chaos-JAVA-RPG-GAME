@@ -20,7 +20,7 @@ public class GamePanel extends JPanel {
     private TileRenderer tileRenderer;
     private final Camera camera;
 
-    private int visibleMapWidth = 20;
+    private int visibleMapWidth = 25;
     private int visibleMapHeight = 15;
 
     private GameUIManager uiManager;
@@ -36,6 +36,10 @@ public class GamePanel extends JPanel {
         this.gameState = gameState;
         this.controller = controller;
         setBackground(StyleConfig.getColor("gameBackground", Color.BLACK));
+        setPreferredSize(new Dimension(
+            config.Config.getIntSetting("gamePanelWidth"),
+            config.Config.getIntSetting("gamePanelHeight")
+        ));
         setFocusable(true);
         setRequestFocusEnabled(true); // Ensure panel can request focus
 
