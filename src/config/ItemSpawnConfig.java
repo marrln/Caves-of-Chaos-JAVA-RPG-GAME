@@ -8,7 +8,7 @@ import config.ItemConfig.WeaponType;
 public class ItemSpawnConfig {
 
     private static final double CONSUMABLE_CHANCE = 0.60, WEAPON_CHANCE = 0.25; // Trap chance = 0.15
-    private static final int BASE_ITEMS_PER_LEVEL = 4, ITEMS_PER_LEVEL_DIVISOR = 3, RANDOM_ITEMS_VARIANCE = 2;
+    private static final int BASE_ITEMS_PER_LEVEL = 6, ITEMS_PER_LEVEL_DIVISOR = 3, RANDOM_ITEMS_VARIANCE = 2;
     private static final int WEAPON_DISABLED_LEVELS = 2, BASE_WEAPON_DAMAGE = 5, WEAPON_DAMAGE_PER_LEVEL = 3;
     private static final int BASE_HP_HEAL = 15, HP_PER_LEVEL = 5, BASE_MP_RESTORE = 15, MP_PER_LEVEL = 5;
 
