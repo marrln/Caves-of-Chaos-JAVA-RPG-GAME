@@ -28,19 +28,12 @@ public class ShardOfJudgement extends Item {
     public boolean use(player.AbstractPlayer player) {
         // This is a victory item - when picked up, the player wins
         SwingUtilities.invokeLater(() -> {
-            // Show victory window
+            // Show victory window - it will handle game exit
             CongratulationWindow congratsWindow = new CongratulationWindow(null, player.getName());
-            boolean playAgain = congratsWindow.showVictoryDialog();
+            congratsWindow.showVictoryDialog();
             
-            if (playAgain) {
-                // Signal to restart the game (will be handled by main game loop)
-                victoryTriggered = false;
-                // TODO: For now, just exit - a proper restart would require main game loop changes
-                System.exit(0);
-            } else {
-                // Exit the game
-                System.exit(0);
-            }
+            // Exit the game after dialog is closed
+            System.exit(0);
         });
         
         victoryTriggered = true;

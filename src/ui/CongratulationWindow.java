@@ -6,11 +6,9 @@ import javax.swing.*;
 
 /**
  * Congratulation window displayed when the player wins the game.
- * Shows victory message and options to play again or exit.
+ * Shows victory message and exit option.
  */
 public class CongratulationWindow extends JDialog {
-    
-    private boolean shouldPlayAgain = false;
     
     public CongratulationWindow(JFrame parent, String playerName) {
         super(parent, "Victory!", true);
@@ -103,18 +101,6 @@ public class CongratulationWindow extends JDialog {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         panel.setBackground(StyleConfig.getColor("windowBackground", Color.BLACK));
         
-        // Play Again button
-        JButton playAgainButton = new JButton("Play Again");
-        playAgainButton.setFont(StyleConfig.getFont("buttonText", new Font("SansSerif", Font.BOLD, 16)));
-        playAgainButton.setBackground(StyleConfig.getColor("buttonBackground", Color.DARK_GRAY));
-        playAgainButton.setForeground(StyleConfig.getColor("victoryGold", new Color(255, 215, 0)));
-        playAgainButton.setFocusPainted(false);
-        playAgainButton.setBorderPainted(false);
-        playAgainButton.addActionListener(unused -> {
-            shouldPlayAgain = true;
-            dispose();
-        });
-        
         // Exit button
         JButton exitButton = new JButton("Exit Game");
         exitButton.setFont(StyleConfig.getFont("buttonText", new Font("SansSerif", Font.BOLD, 16)));
@@ -123,24 +109,21 @@ public class CongratulationWindow extends JDialog {
         exitButton.setFocusPainted(false);
         exitButton.setBorderPainted(false);
         exitButton.addActionListener(unused -> {
-            shouldPlayAgain = false;
             dispose();
             System.exit(0);
         });
         
-        panel.add(playAgainButton);
         panel.add(exitButton);
         
         return panel;
     }
     
-    public boolean showVictoryDialog() {
+    public void showVictoryDialog() {
         // Make the dialog modal and wait for user input
         setModalityType(ModalityType.APPLICATION_MODAL);
         setVisible(true);
         
-        // The dialog will block here until user clicks a button
-        // (buttons call dispose() which closes the dialog)
-        return shouldPlayAgain;
+        // The dialog will block here until user clicks the exit button
+        // (button calls dispose() which closes the dialog)
     }
 }
