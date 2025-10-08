@@ -2,13 +2,11 @@ package core;
 
 import audio.MusicManager;
 import config.Config;
-import config.StyleConfig;
 import enemies.Enemy;
 import java.util.ArrayList;
 import java.util.List;
 import map.FogOfWar;
 import map.GameMap;
-import map.Tile;
 import player.AbstractPlayer;
 import ui.GameUIManager;
 import utils.CollisionSystem;
@@ -27,6 +25,7 @@ public final class GameState {
     private final List<Enemy> currentEnemies = new ArrayList<>();
     private boolean gameOver, medusaDeathHandled = false;
 
+    private EventLogger logger;        
     private GameUIManager uiManager;        
     private CollisionSystem collisionManager;
     private final MusicManager musicManager = MusicManager.getInstance();
@@ -78,7 +77,9 @@ public final class GameState {
         updateCollisionEntities();
         enemies.AbstractEnemy.setCollisionManager(collisionManager);
         AbstractPlayer.setCollisionManager(collisionManager);
-        enemies.AbstractEnemy.setCombatLogger(this::logMessage);
+        enemies.AbstractEnemy.setCombatLogger((msg) -> {
+            if (logger != null) logger.log(msg);
+        });
     }
 
     private void updateCollisionEntities() {
@@ -89,35 +90,24 @@ public final class GameState {
         collisionManager.updateEntities(entities);
     }
 
-    public boolean movePlayer(int dx, int dy) {
-        if (player == null || gameOver) return false;
-        int nx = player.getX() + dx, ny = player.getY() + dy;
-        GameMap map = getCurrentMap();
-        if (!map.isInBounds(nx, ny) || map.isBlocked(nx, ny)) return false;
+    public void goToNextLevel() { loadLevel(currentLevel + 1, true); }
+    public void goToPreviousLevel() { if (currentLevel > 0) loadLevel(currentLevel - 1, false); }
 
-        Tile tile = map.getTile(nx, ny);
-        return switch (tile.getType()) {
-            case Tile.STAIRS_DOWN -> { goToNextLevel(); yield true; }
-            case Tile.STAIRS_UP   -> { goToPreviousLevel(); yield true; }
-            default -> { if (player.tryMoveTo(nx, ny)) { updateFogOfWar(); yield true; } else yield false; }
-        };
-    }
-
-    public void goToNextLevel() { loadLevel(currentLevel + 1); }
-    public void goToPreviousLevel() { if (currentLevel > 0) loadLevel(currentLevel - 1); }
-
-    private void loadLevel(int targetLevel) {
-        currentLevel = targetLevel >= maps.size() ? maps.size() : targetLevel;
-        if (currentLevel >= maps.size()) maps.add(createMap(currentLevel, false));
+    private void loadLevel(int targetLevel, boolean descendingDown) {
+        currentLevel = targetLevel;
+        
+        if (currentLevel >= maps.size()) {
+            maps.add(createMap(currentLevel, false));
+        }
 
         GameMap map = getCurrentMap();
         fogOfWar = new FogOfWar(map.getWidth(), map.getHeight());
         setupCollision();
         loadEnemiesForCurrentLevel();
-        itemSpawner.spawnItemsForLevel(map, currentLevel + 1, player);
-
-        if (!player.tryMoveTo(map.getEntranceX(), map.getEntranceY())) 
-            player.setPosition(map.getEntranceX(), map.getEntranceY());
+        int spawnX = descendingDown ? map.getEntranceX() : map.getExitX();
+        int spawnY = descendingDown ? map.getEntranceY() : map.getExitY();
+        
+        if (!player.tryMoveTo(spawnX, spawnY)) player.setPosition(spawnX, spawnY);
         updateFogOfWar();
     }
 
@@ -142,10 +132,10 @@ public final class GameState {
 
             if (ae.hasPendingPlayerDamage()) {
                 int dmg = ae.getPendingPlayerDamage();
-                logMessage(player.getName() + " takes " + dmg + " damage!", StyleConfig.getColor("danger"));
+                if (logger != null) logger.logPlayerTakesDamage(player.getName(), dmg);
                 if (player.takeDamage(dmg) && !gameOver) {
                     gameOver = true;
-                    logMessage(player.getName() + " has been defeated!", StyleConfig.getColor("deathRed"));
+                    if (logger != null) logger.logPlayerDefeated(player.getName());
                     handlePlayerDeath();
                     return;
                 }
@@ -169,26 +159,32 @@ public final class GameState {
     private void handlePlayerDeath() {
         javax.swing.SwingUtilities.invokeLater(() -> {
             ui.GameOverWindow win = new ui.GameOverWindow(null, player.getName(), currentLevel);
-            if (win.showGameOverDialog()) logMessage("Game restart requested - not yet implemented");
-            else System.exit(0);
+            if (win.showGameOverDialog()) {
+                if (logger != null) logger.logGameRestartRequested();
+            } else {
+                System.exit(0);
+            }
         });
     }
 
     public void handleMedusaDeath(int x, int y) {
-        logMessage("The Medusa of Chaos has been defeated! The evil presence lifts...", StyleConfig.getColor("victoryGold"));
-        logMessage("A brilliant shard of light materializes where the beast fell!", StyleConfig.getColor("shardCyan"));
+        if (logger != null) {
+            logger.logMedusaDefeated();
+            logger.logShardAppears();
+        }
         boolean spawned = itemSpawner.spawnShardOfJudgement(getCurrentMap(), x, y);
-        logMessage(spawned ? 
-            "The legendary Shard of Judgement awaits your claim!" : 
-            "The Shard of Judgement failed to spawn, but you have still won!",
-            StyleConfig.getColor(spawned ? "shardCyan" : "victoryGold"));
+        if (logger != null) {
+            if (spawned) {
+                logger.logShardAwaits();
+            } else {
+                logger.logShardSpawnFailed();
+            }
+        }
     }
 
-    // ====== LOGGING ======
-    public void logMessage(String msg) { if (uiManager != null) uiManager.addMessage(msg); }
-    public void logMessage(String msg, java.awt.Color color) { if (uiManager != null) uiManager.addMessage(msg, color); }
-
     // ====== GETTERS & CONVENIENCE ======
+    public EventLogger getLogger() { return logger; }
+    public void setLogger(EventLogger logger) { this.logger = logger; }
     public void setUIManager(GameUIManager ui) { this.uiManager = ui; }
     public GameMap getCurrentMap() { return maps.get(currentLevel); }
     public AbstractPlayer getPlayer() { return player; }
