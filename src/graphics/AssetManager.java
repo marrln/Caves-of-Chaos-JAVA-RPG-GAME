@@ -60,6 +60,7 @@ public class AssetManager {
             loadSprites(doc, "items", "consumables");
             loadSprites(doc, "items", "projectiles");
             loadMusic(doc);
+            loadSounds(doc);
         } catch (Exception e) {
             System.err.println("Error loading assets.xml: " + e.getMessage());
             e.printStackTrace();
@@ -180,11 +181,38 @@ public class AssetManager {
         return null;
     }
 
+    private void loadSounds(Document doc) {
+        NodeList nodes = doc.getElementsByTagName("sounds");
+        if (nodes.getLength() == 0) return;
+
+        Element soundsElement = (Element) nodes.item(0);
+        NodeList soundNodes = soundsElement.getElementsByTagName("sound");
+
+        for (int i = 0; i < soundNodes.getLength(); i++) {
+            Element sound = (Element) soundNodes.item(i);
+            String id = sound.getAttribute("id");
+            String path = sound.getAttribute("path");
+
+            if (!path.startsWith("src/") && !path.startsWith("bin/")) {
+                path = new File("bin/config/assets.xml").exists() ? "bin/" + path : "src/" + path;
+            }
+            assetInfos.put(id, new AssetInfo(path, null));
+        }
+    }
+
     // For compatibility with MusicManager
     public String getMusicAssetPath(String trackId) {
         AssetInfo info = assetInfos.get(trackId);
         if (info != null) return info.path;
         System.err.println("Music asset not found: " + trackId);
+        return null;
+    }
+
+    // For SFXManager
+    public String getSoundAssetPath(String soundId) {
+        AssetInfo info = assetInfos.get(soundId);
+        if (info != null) return info.path;
+        System.err.println("Sound asset not found: " + soundId);
         return null;
     }
 
