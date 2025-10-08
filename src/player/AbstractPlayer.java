@@ -19,14 +19,10 @@ import utils.Positionable;
 public abstract class AbstractPlayer implements Positionable {
     
     // ===== XP & LEVELING CONFIGURATION =====
-    private static final int[] LEVEL_XP_THRESHOLDS = {0, 700, 1500, 2700, 6500, 14000};
+    private static final int[] LEVEL_XP_THRESHOLDS = {0, 1000, 2500, 5000, 10000, 20000};
     private static final int MAX_LEVEL = LEVEL_XP_THRESHOLDS.length;
 
     // ===== STATS DATA STRUCTURES =====
-    
-    /**
-     * Contains all stat information for a player at a specific level.
-     */
     public static class PlayerLevelStats {
         public final int maxHp, maxMp, expToNextLevel;
         public final AttackConfig[] attacks;
@@ -350,19 +346,24 @@ public abstract class AbstractPlayer implements Positionable {
             this.hp = maxHp;
             this.mp = maxMp;
             this.expToNext = stats.expToNextLevel;
-        } else {
+        } 
+        else {
             // Level up: calculate stat increases
             int hpIncrease = stats.maxHp - maxHp;
             int mpIncrease = stats.maxMp - maxMp;
-            
+
+            // Store current HP/MP ratios before changing max stats
+            double hpRatio = (double) hp / maxHp;
+            double mpRatio = (double) mp / maxMp;
+
             // Update max stats
             this.maxHp = stats.maxHp;
             this.maxMp = stats.maxMp;
             this.expToNext = stats.expToNextLevel;
-            
-            // Reward player with half of the gained stats (prevents full heal exploit)
-            this.hp = Math.min(maxHp, hp + (hpIncrease / 2));
-            this.mp = Math.min(maxMp, mp + (mpIncrease / 2));
+
+            // Preserve current percentage and add half of the stat increase (capped)
+            this.hp = Math.min(maxHp, (int) Math.round(maxHp * hpRatio + (hpIncrease / 2.0)));
+            this.mp = Math.min(maxMp, (int) Math.round(maxMp * mpRatio + (mpIncrease / 2.0)));
         }
     }
 
