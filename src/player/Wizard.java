@@ -51,6 +51,14 @@ public class Wizard extends AbstractPlayer {
         return new PlayerLevelStats(maxHp, maxMp, expToNext, attacks);
     }
 
+    public static String getAttackName(int attackType) {
+        return switch (attackType) {
+            case 1 -> ATTACK_NAMES[0];
+            case 2 -> ATTACK_NAMES[1];
+            default -> "Unknown Spell";
+        };
+    }
+
     public Projectile createProjectile(int attackType, List<Enemy> enemies, map.FogOfWar fogOfWar) {
         Enemy closest = findClosestVisibleEnemy(enemies, fogOfWar);
         if (closest == null) return null;

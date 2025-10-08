@@ -46,4 +46,12 @@ public class Duelist extends AbstractPlayer {
 
         return new PlayerLevelStats(maxHp, maxMp, expToNext, attacks);
     }
+
+    public static String getAttackName(int attackType) {
+        return switch (attackType) {
+            case 1 -> ATTACK_NAMES[0];
+            case 2 -> ATTACK_NAMES[1];
+            default -> "Unknown Attack";
+        };
+    }
 }
