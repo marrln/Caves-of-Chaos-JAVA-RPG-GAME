@@ -179,11 +179,28 @@ public class StatusPanel extends JPanel {
     private void addColoredText(String text, Color color) { addLabel(text, color, false, 14, ITEM_SPACING); }
 
     private void addWeaponDisplay(Weapon weapon) {
-        if (weapon == null) { addText("Weapon: None"); return; }
+        if (weapon == null) { 
+            addText("Weapon: None"); 
+            return; 
+        }
+        
         String name = "Weapon: " + weapon.getName();
         String damage = "  +" + weapon.getDamageBonus() + " damage";
-        if ((name + damage).length() <= 35) addText(name + damage);
-        else { addText(name); addText(damage); }
+        
+        if ((name + damage).length() <= 35) {
+            addText(name + damage);
+        } else { 
+            addText(name); 
+            addText(damage); 
+        }
+        
+        // Add weapon effect description if present
+        if (weapon.getEffect() != config.ItemConfig.WeaponEffect.NONE) {
+            String effectText = weapon.getEffectDescription();
+            if (!effectText.isEmpty()) {
+                addColoredText("  " + effectText, StyleConfig.getColor("statHigh"));
+            }
+        }
     }
 
     private void addLabel(String text, Color color, boolean bold, int size, int topSpacing) {
