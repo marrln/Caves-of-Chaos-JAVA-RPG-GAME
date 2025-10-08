@@ -1,9 +1,9 @@
 package core;
 
 import config.StyleConfig;
+import java.awt.Color;
 import player.AbstractPlayer;
 import ui.GameUIManager;
-import java.awt.Color;
 
 public class EventLogger {
     private GameUIManager uiManager;
@@ -27,7 +27,7 @@ public class EventLogger {
             log("Rested: No effect, already at full stats.");
     }
 
-    public void logCannotRestWhileChased() { log("You cannot rest while enemies are chasing you!"); }
+    public void logCannotRestWhileChased() { log("You cannot rest while enemies are chasing you!", "danger"); }
 
     public void logPotionUsed(String potion, AbstractPlayer p, int hpRestored, int mpRestored) {
         if (hpRestored > 0)
@@ -35,11 +35,11 @@ public class EventLogger {
         if (mpRestored > 0)
             log("Used " + potion + ": Restored " + mpRestored + " MP (" + p.getMp() + "/" + p.getMaxMp() + " MP)", "success");
         if (hpRestored == 0 && mpRestored == 0)
-            log("Used " + potion + ": No effect, already at full stats.");
+            log("Used " + potion + ": No effect, already at full stats.", "danger");
     }
 
     // Combat
-    public void logNotEnoughMp(String attack) { log("Not enough MP for " + attack + "!"); }
+    public void logNotEnoughMp(String attack) { log("Not enough MP for " + attack + "!", "statLow"); }
     public void logSpellCast(String caster, String spell) { log(caster + " casts " + spell + "!"); }
     public void logSpellFizzle() { log("No targets in sight. The spell fizzles."); }
     public void logMeleeAttack(String attacker, String target, int dmg) { log(attacker + " attacks " + target + " for " + dmg + " damage!"); }
@@ -66,7 +66,7 @@ public class EventLogger {
     public void logItemPickup(String item, int exp) { log("Picked up: " + item + " (+" + exp + " exp)", "accent"); }
     public void logWeaponUpgrade(String weapon, int dmgBonus, int exp) { log("Upgraded " + weapon + " (+" + dmgBonus + " dmg)! +" + exp + " exp", "accent"); }
     public void logWeaponDowngrade(String weapon, int exp) { log("You already have a better " + weapon + ". +" + exp + " exp", "accent"); }
-    public void logInventoryFull() { log("Inventory is full!"); }
+    public void logInventoryFull() { log("Inventory is full!", "accent"); }
     public void logNothingHere() { log("You find nothing here..."); }
     public void logLegendaryItemFound(String item) { log("You found the legendary " + item + "!", "shardCyan"); }
 
