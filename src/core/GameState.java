@@ -11,6 +11,8 @@ import map.GameMap;
 import map.Tile;
 import player.AbstractPlayer;
 import ui.GameUIManager;
+import utils.CollisionSystem;
+import utils.Positionable;
 
 /**
  * Manages overall game state: player, maps, enemies, fog of war, collision, music, levels.
@@ -26,7 +28,7 @@ public final class GameState {
     private boolean gameOver, medusaDeathHandled = false;
 
     private GameUIManager uiManager;        
-    private utils.CollisionManager collisionManager;
+    private CollisionSystem collisionManager;
     private final MusicManager musicManager = MusicManager.getInstance();
     private final ItemSpawner itemSpawner = new ItemSpawner();
 
@@ -72,7 +74,7 @@ public final class GameState {
     }
 
     private void setupCollision() {
-        collisionManager = new utils.CollisionManager(getCurrentMap());
+        collisionManager = new CollisionSystem(getCurrentMap());
         updateCollisionEntities();
         enemies.AbstractEnemy.setCollisionManager(collisionManager);
         AbstractPlayer.setCollisionManager(collisionManager);
@@ -80,10 +82,10 @@ public final class GameState {
     }
 
     private void updateCollisionEntities() {
-        List<utils.CollisionManager.Positionable> entities = new ArrayList<>();
+        List<Positionable> entities = new ArrayList<>();
         entities.add(player);
         for (Enemy e : currentEnemies)
-            if (e instanceof utils.CollisionManager.Positionable p && !e.isDead()) entities.add(p);
+            if (e instanceof Positionable p && !e.isDead()) entities.add(p);
         collisionManager.updateEntities(entities);
     }
 

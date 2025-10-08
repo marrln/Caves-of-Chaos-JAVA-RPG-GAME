@@ -13,7 +13,7 @@ import map.Tile;
 import player.AbstractPlayer;
 import player.Wizard;
 import ui.GameUIManager;
-import utils.LineUtils;
+import utils.GeometryHelpers;
 
 public class GameController {
 
@@ -100,15 +100,6 @@ public class GameController {
         logRestoration("Rested", player, hpRestored, mpRestored);
     }
 
-    private void logRestoration(String source, AbstractPlayer player, int hp, int mp) {
-        if (hp > 0) logMessage(source + ": Restored " + hp + " HP (" + player.getHp() + "/" + player.getMaxHp() + " HP)", "success");
-        if (mp > 0) logMessage(source + ": Restored " + mp + " MP (" + player.getMp() + "/" + player.getMaxMp() + " MP)", "success");
-        if (hp == 0 && mp == 0) logMessage(source + ": No effect, already at full stats.");
-    }
-
-    private void logMessage(String msg) { gameState.logMessage(msg); }
-    private void logMessage(String msg, String colorKey) { gameState.logMessage(msg, StyleConfig.getColor(colorKey)); }
-
     // ====== ATTACKING ======
     public void attack(int attackType) {
         AbstractPlayer player = gameState.getPlayer();
@@ -134,7 +125,7 @@ public class GameController {
         Projectile proj = wizard.createProjectile(attackType, gameState.getCurrentEnemies(), gameState.getFogOfWar());
         if (proj != null) {
             addProjectile(proj);
-            String spell = attackType == 1 ? "Fire Spell" : "Ice Spell";
+            String spell = Wizard.getAttackName(attackType);
             logMessage(wizard.getName() + " casts " + spell + "!");
         } else logMessage("No targets in sight. The spell fizzles.");
     }
@@ -142,7 +133,7 @@ public class GameController {
     private void handleMeleeAttack(AbstractPlayer player, int attackType) {
         for (Enemy target : gameState.getCurrentEnemies()) {
             if (target.isDead()) continue;
-            if (!LineUtils.isCardinallyAdjacent(player.getX(), player.getY(), target.getX(), target.getY())) continue;
+            if (!GeometryHelpers.isCardinallyAdjacent(player.getX(), player.getY(), target.getX(), target.getY())) continue;
 
             int dmg = player.getAttackDamage(attackType);
             logMessage(player.getName() + " attacks " + target.getName() + " for " + dmg + " damage!");
@@ -159,13 +150,6 @@ public class GameController {
         int levels = player.addExperience(exp);
         logMessage(target.getName() + " has been defeated! You gained " + exp + " exp!", "accent");
         if (levels > 0) logLevelUp(player, levels);
-    }
-
-    private void logLevelUp(AbstractPlayer player, int levelsGained) {
-        if (levelsGained == 1)
-            logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")", "victoryGold");
-        else
-            logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!", "victoryGold");
     }
 
     // ====== ITEMS ======
@@ -247,15 +231,11 @@ public class GameController {
         logMessage(trap.getTriggerMessage() + " " + trap.getDamageMessage());
         logDamage(player.getName(), dmg, player.getHp(), player.getMaxHp());
 
-        if (dead && !gameState.isGameOver()) handlePlayerDeath(player, trap);
+        if (dead && !gameState.isGameOver()) handlePlayerTrapDeath(player, trap);
         tile.removeItem();
     }
 
-    private void logDamage(String source, int damage, int hp, int maxHp) {
-        logMessage(source + " took " + damage + " damage! (" + hp + "/" + maxHp + " HP)", "danger");
-    }
-
-    private void handlePlayerDeath(AbstractPlayer player, AbstractTrap trap) {
+    private void handlePlayerTrapDeath(AbstractPlayer player, AbstractTrap trap) {
         gameState.setGameOver(true);
         logMessage("The " + trap.getName() + " was LETHAL! " + player.getName() + " has been defeated!", "deathRed");
 
@@ -265,4 +245,26 @@ public class GameController {
             else System.exit(0);
         });
     }
+
+    // ====== LOGGING ======
+    private void logDamage(String source, int damage, int hp, int maxHp) {
+        logMessage(source + " took " + damage + " damage! (" + hp + "/" + maxHp + " HP)", "danger");
+    }
+
+    private void logLevelUp(AbstractPlayer player, int levelsGained) {
+        if (levelsGained == 1)
+            logMessage(player.getName() + " reached level " + player.getLevel() + "! (HP: " + player.getMaxHp() + ", MP: " + player.getMaxMp() + ")", "victoryGold");
+        else
+            logMessage(player.getName() + " gained " + levelsGained + " levels! Now level " + player.getLevel() + "!", "victoryGold");
+    }
+    
+    private void logRestoration(String source, AbstractPlayer player, int hp, int mp) {
+        if (hp > 0) logMessage(source + ": Restored " + hp + " HP (" + player.getHp() + "/" + player.getMaxHp() + " HP)", "success");
+        if (mp > 0) logMessage(source + ": Restored " + mp + " MP (" + player.getMp() + "/" + player.getMaxMp() + " MP)", "success");
+        if (hp == 0 && mp == 0) logMessage(source + ": No effect, already at full stats.");
+    }
+
+    private void logMessage(String msg) { gameState.logMessage(msg); }
+    private void logMessage(String msg, String colorKey) { gameState.logMessage(msg, StyleConfig.getColor(colorKey)); }
+
 }

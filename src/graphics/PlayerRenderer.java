@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import map.FogOfWar;
 import player.AbstractPlayer;
+import utils.GeometryHelpers;
 
 public class PlayerRenderer {
 
@@ -93,7 +94,7 @@ public class PlayerRenderer {
         int drawY = screenY + (tileSize - scaledTile) / 2;
 
         // Flip horizontally if player is facing left (via Positionable)
-        if (player.isFacingLeft()) {
+        if (GeometryHelpers.isLeftDirection(player.getFacingDirection())) {
             g2d.drawImage(frame, drawX + scaledTile, drawY, -scaledTile, scaledTile, null);
         } else {
             g2d.drawImage(frame, drawX, drawY, scaledTile, scaledTile, null);

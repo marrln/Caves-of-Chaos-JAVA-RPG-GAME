@@ -3,10 +3,10 @@ package core;
 import enemies.Enemy;
 import java.util.ArrayList;
 import java.util.List;
+import map.FogOfWar;
 import map.GameMap;
 import map.Tile;
-import map.FogOfWar;
-import utils.LineUtils;
+import utils.GeometryHelpers;
 
 /**
  * Represents a magical projectile that travels across the map to hit targets.
@@ -39,10 +39,9 @@ public class Projectile {
     private double x, y;
     private final double startX, startY;
     private double targetX, targetY;
-    private double directionX, directionY;
     private boolean active;
     private Enemy lockedTarget;
-    private List<LineUtils.Point> path;
+    private List<GeometryHelpers.Position> path;
     private int pathIndex;
 
     public Projectile(ProjectileType type, double startX, double startY, double targetX, double targetY) {
@@ -51,7 +50,6 @@ public class Projectile {
         this.startX = startX; this.startY = startY;
         this.targetX = targetX; this.targetY = targetY;
         this.active = true; this.pathIndex = 0;
-        updateDirection();
     }
 
     public Projectile(ProjectileType type, double startX, double startY, Enemy target) {
@@ -59,16 +57,9 @@ public class Projectile {
         this.lockedTarget = target;
     }
 
-    private void updateDirection() {
-        double dx = targetX - x, dy = targetY - y;
-        double dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist > 0) { directionX = dx / dist; directionY = dy / dist; }
-        else { directionX = 0; directionY = 0; }
-    }
-
     private boolean checkCollision(List<Enemy> enemies) {
         for (Enemy e : enemies) {
-            if (!e.isDead() && LineUtils.isCardinallyAdjacent((int)Math.round(x),(int)Math.round(y), e.getX(), e.getY())) {
+            if (!e.isDead() && GeometryHelpers.isCardinallyAdjacent((int)Math.round(x),(int)Math.round(y), e.getX(), e.getY())) {
                 hitTarget(e);
                 active = false;
                 return true;
@@ -78,7 +69,10 @@ public class Projectile {
     }
 
     private boolean checkRangeAndTile(GameMap map) {
-        if (!LineUtils.withinRange(x, y, startX, startY, type.getRange())) { active = false; return true; }
+        if (GeometryHelpers.getEuclideanDistance(x, y, startX, startY) > type.getRange()) { 
+            active = false; 
+            return true; 
+        }
         int tileX = (int)Math.round(x), tileY = (int)Math.round(y);
         if (tileX < 0 || tileY < 0 || tileX >= map.getWidth() || tileY >= map.getHeight()) { active = false; return true; }
         Tile tile = map.getTile(tileX, tileY);
@@ -92,15 +86,15 @@ public class Projectile {
 
         // Homing logic
         if (lockedTarget != null) {
-            if (lockedTarget.isDead()) lockedTarget = LineUtils.getClosestVisibleEnemy(x, y, enemies, fog);
-            else if (!LineUtils.isVisible(fog, lockedTarget)) lockedTarget = null;
-            else { targetX = lockedTarget.getX(); targetY = lockedTarget.getY(); updateDirection(); }
+            if (lockedTarget.isDead()) lockedTarget = getClosestVisibleEnemy(x, y, enemies, fog);
+            else if (!fog.isVisible((int)lockedTarget.getX(), (int)lockedTarget.getY())) lockedTarget = null;
+            else { targetX = lockedTarget.getX(); targetY = lockedTarget.getY(); }
         }
 
         // Movement
         double moveDistance = type.getSpeed() * deltaTime;
         if (path != null) moveAlongPath(moveDistance);
-        else { double[] pos = LineUtils.moveTowards(x, y, targetX, targetY, moveDistance); x = pos[0]; y = pos[1]; }
+        else moveTowards(moveDistance);
 
         if (checkRangeAndTile(map)) return;
         checkCollision(enemies);
@@ -108,12 +102,34 @@ public class Projectile {
 
     private void moveAlongPath(double moveDistance) {
         while (moveDistance > 0 && pathIndex < path.size()) {
-            LineUtils.Point next = path.get(pathIndex);
-            double dx = next.x - x, dy = next.y - y, dist = Math.sqrt(dx*dx + dy*dy);
+            GeometryHelpers.Position next = path.get(pathIndex);
+            double dist = GeometryHelpers.getEuclideanDistance(x, y, next.x, next.y);
             if (dist <= moveDistance) { x = next.x; y = next.y; pathIndex++; moveDistance -= dist; }
-            else { x += dx / dist * moveDistance; y += dy / dist * moveDistance; moveDistance = 0; }
+            else { 
+                double[] pos = GeometryHelpers.moveTowards(x, y, next.x, next.y, moveDistance); 
+                x = pos[0]; 
+                y = pos[1]; 
+                moveDistance = 0; 
+            }
         }
         if (pathIndex >= path.size()) active = false;
+    }
+
+    private void moveTowards(double moveDistance) {
+        double[] pos = GeometryHelpers.moveTowards(x, y, targetX, targetY, moveDistance);
+        x = pos[0];
+        y = pos[1];
+    }
+
+    private Enemy getClosestVisibleEnemy(double fromX, double fromY, List<Enemy> enemies, FogOfWar fog) {
+        Enemy closest = null;
+        double minDist = Double.MAX_VALUE;
+        for (Enemy e : enemies) {
+            if (e.isDead() || !fog.isVisible(e.getX(), e.getY())) continue;
+            double dist = GeometryHelpers.getEuclideanDistance(fromX, fromY, e.getX(), e.getY());
+            if (dist < minDist) { minDist = dist; closest = e; }
+        }
+        return closest;
     }
 
     private void hitTarget(Enemy enemy) {

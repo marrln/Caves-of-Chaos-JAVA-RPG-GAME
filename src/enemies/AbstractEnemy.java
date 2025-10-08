@@ -5,43 +5,40 @@ import config.EnemyConfig;
 import core.CombatState;
 import java.util.Random;
 import java.util.function.Consumer;
-import utils.CollisionManager;
-import utils.Dice;
-import utils.LineUtils;
+import utils.CollisionSystem;
+import utils.GeometryHelpers;
+import utils.PathfindingAlgorithms;
+import utils.Positionable;
 
-public abstract class AbstractEnemy implements Enemy, CollisionManager.Positionable {
+/**
+ * Base class for all enemies.
+ * Handles stats, combat, AI, and movement logic.
+ */
+public abstract class AbstractEnemy implements Enemy, Positionable {
 
     // ====== CORE STATS ======
-    protected int x, y;                     // Position
-    protected EnemyType type;               // Enemy classification
-    protected String name;                  // Display name
-    protected int hp, maxHp;                // Health
-    protected int expReward;                // Experience reward
-    protected EnemyConfig.EnemyStats stats; // Config stats
-    
+    protected int x, y;
+    protected EnemyType type;
+    protected String name;
+    protected int hp, maxHp;
+    protected int expReward;
+    protected EnemyConfig.EnemyStats stats;
+
     // ====== COMBAT ======
     protected CombatState combatState = new CombatState();
 
     // ====== MOVEMENT ======
-    /** Base movement cooldown in milliseconds (divided by movementSpeed stat) */
-    private static final int BASE_MOVEMENT_COOLDOWN = 800;
-
-    // ====== DIRECTION ======
-    protected int facingDirection = 1; // Default facing right
-
-    // ====== TIMING & AI ======
+    private static final int BASE_MOVE_COOLDOWN = 800; // ms
+    protected int facingDirection = 1; // Default facing east
     protected long lastMoveTime = 0, lastAttackTime = 0;
     protected boolean hasNoticedPlayer = false;
     protected Random random = new Random();
-
-    @Override public int getFacingDirection() { return facingDirection; }
-    @Override public void setFacingDirection(int dir) { this.facingDirection = ((dir % 4) + 4) % 4; }
 
     // ====== DAMAGE TRACKING ======
     private int pendingPlayerDamage = 0;
 
     // ====== GLOBAL SYSTEM HOOKS ======
-    private static CollisionManager collisionManager;
+    private static CollisionSystem collisionManager;
     private static Consumer<String> combatLogger;
 
     // ====== CONSTRUCTOR ======
@@ -49,7 +46,6 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
         this.x = x;
         this.y = y;
         this.type = type;
-
         stats = EnemyConfig.getStats(type);
         name = type.getDisplayName();
         maxHp = stats.baseHp;
@@ -57,26 +53,21 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
         expReward = stats.expReward;
     }
 
-    // ====== BASIC GETTERS/SETTERS ======
+    // ====== GETTERS/SETTERS ======
     @Override public int getX() { return x; }
     @Override public int getY() { return y; }
-    @Override
-    public void setPosition(int x, int y) {
-        int dx = x - this.x;
-        if (dx != 0) {
-            setFacingDirection(dx > 0 ? 1 : 3); // 1=E, 3=W
-        }
-        this.x = x;
-        this.y = y;
+    @Override public void setPosition(int newX, int newY) {
+        updateFacing(newX - x, newY - y);
+        x = newX;
+        y = newY;
         lastMoveTime = System.currentTimeMillis();
     }
     @Override public int getHp() { return hp; }
     @Override public int getMaxHp() { return maxHp; }
-    @Override public void setHp(int hp) { this.hp = Math.max(0, Math.min(hp, maxHp)); }
+    @Override public void setHp(int value) { hp = Math.max(0, Math.min(value, maxHp)); }
     @Override public String getName() { return name; }
     @Override public boolean isDead() { return hp <= 0; }
     @Override public int getExpReward() { return expReward; }
-
     public EnemyType getType() { return type; }
     public CombatState getCombatState() { return combatState; }
     @Override public boolean hasNoticedPlayer() { return hasNoticedPlayer; }
@@ -88,39 +79,33 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
         if (isDead()) return false;
         hp = Math.max(0, hp - damage);
 
-        if (hp == 0) {
-            combatState.setState(CombatState.State.DYING, AnimationUtil.getEnemyAnimationDuration("death", type.getSpritePrefix()));
-            return true;
-        } 
-        combatState.setState(CombatState.State.HURT, AnimationUtil.getEnemyAnimationDuration("hurt", type.getSpritePrefix()));
-        return false;
+        CombatState.State newState = (hp == 0) ? CombatState.State.DYING : CombatState.State.HURT;
+        int duration = AnimationUtil.getEnemyAnimationDuration((hp==0?"death":"hurt"), type.getSpritePrefix());
+        combatState.setState(newState, duration);
+        return hp == 0;
     }
 
     @Override
     public int getAttackDamage() {
-        int attackType = combatState.getAttackType(); 
-        int index = attackType - 1;
-
-        return Dice.calculateDamage(
-            stats.attackDice[index],      // number of dice
-            stats.attackDiceSides[index], // sides per die
-            stats.attackModifiers[index]  // modifier
-        );
+        int idx = combatState.getAttackType() - 1;
+        return utils.Dice.calculateDamage(stats.attackDice[idx], stats.attackDiceSides[idx], stats.attackModifiers[idx]);
     }
 
-    private boolean isAdjacent(int px, int py) {
-        return LineUtils.isCardinallyAdjacent(x, y, px, py);
+    private boolean isAdjacent(int px, int py) { return GeometryHelpers.isCardinallyAdjacent(x, y, px, py); }
+
+    // ====== MOVEMENT ======
+    private void updateFacing(int dx, int dy) {
+        if (dx > 0) facingDirection = 1; // E
+        else if (dx < 0) facingDirection = 3; // W
+        else if (dy < 0) facingDirection = 0; // N
+        else if (dy > 0) facingDirection = 2; // S
     }
 
-    private boolean canMove() {
-        long now = System.currentTimeMillis();
-        return combatState.canPerformAction(CombatState.ActionType.MOVE) && now - lastMoveTime >= (BASE_MOVEMENT_COOLDOWN / stats.movementSpeed);
-    }
+    private boolean canMove() { return combatState.canPerformAction(CombatState.ActionType.MOVE) &&
+            System.currentTimeMillis() - lastMoveTime >= BASE_MOVE_COOLDOWN / stats.movementSpeed; }
 
-    private boolean canAttack() {
-        long now = System.currentTimeMillis();
-        return combatState.canPerformAction(CombatState.ActionType.ATTACK) && now - lastAttackTime >= stats.attackCooldown;
-    }
+    private boolean canAttack() { return combatState.canPerformAction(CombatState.ActionType.ATTACK) &&
+            System.currentTimeMillis() - lastAttackTime >= stats.attackCooldown; }
 
     private void attemptAttack() {
         if (!canAttack()) return;
@@ -131,106 +116,94 @@ public abstract class AbstractEnemy implements Enemy, CollisionManager.Positiona
 
     private int selectAttackType() {
         int roll = random.nextInt(100), cumulative = 0;
-        for (int i = 0; i < stats.attackChances.length; i++) { // use 0-based index
+        for (int i = 0; i < stats.attackChances.length; i++) {
             cumulative += stats.attackChances[i];
-            if (roll < cumulative) return i + 1; // return 1-based for getAttackDamage()
+            if (roll < cumulative) return i + 1;
         }
-        return 1; // fallback
+        return 1;
     }
 
-    // ====== MOVEMENT ======
-    private boolean executeMovement(CollisionManager.Position pos) {
-        if (!canMove() || collisionManager == null || pos == null) return false;
+    protected void moveToward(int px, int py) {
+        if (collisionManager == null) return;
+        GeometryHelpers.Position next = PathfindingAlgorithms.findSmartMoveToward(x, y, px, py, 
+            (nx, ny) -> collisionManager.canMoveTo(this, nx, ny));
+        if (next != null) executeMovement(next);
+    }
+
+    private void performBrownianMovement() { 
+        if (collisionManager == null) return;
+        GeometryHelpers.Position next = PathfindingAlgorithms.findRandomMove(x, y, 4, random, 
+            (nx, ny) -> collisionManager.canMoveTo(this, nx, ny));
+        executeMovement(next);
+    }
+
+    private boolean executeMovement(GeometryHelpers.Position pos) {
+        if (!canMove() || pos == null) return false;
         setPosition(pos.x, pos.y);
-        // MOVING state persists until tile reached
         if (combatState.getCurrentState() != CombatState.State.MOVING)
             combatState.setState(CombatState.State.MOVING, AnimationUtil.getEnemyAnimationDuration("walk", type.getSpritePrefix()));
         return true;
     }
 
-    private void performBrownianMovement() {
-        executeMovement(collisionManager != null ? collisionManager.findRandomMove(this, 4, random) : null);
-    }
-
-    protected void moveToward(int px, int py) {
-        CollisionManager.Position next = collisionManager != null ? collisionManager.findSmartMoveToward(this, px, py) : null;
-        if (next == null) return;
-
-        int dx = next.x - x;
-        int dy = next.y - y;
-        if (dx > 0) setFacingDirection(1);          // East
-        else if (dx < 0) setFacingDirection(3);     // West
-        else if (dy < 0) setFacingDirection(0);     // North
-        else if (dy > 0) setFacingDirection(2);     // South
-
-        executeMovement(next);
-    }
-
-    private boolean isCurrentlyMoving() {
-        long now = System.currentTimeMillis();
-        return now - lastMoveTime < (BASE_MOVEMENT_COOLDOWN / stats.movementSpeed);
-    }
+    private boolean isCurrentlyMoving() { return System.currentTimeMillis() - lastMoveTime < BASE_MOVE_COOLDOWN / stats.movementSpeed; }
 
     // ====== AI LOOP ======
     @Override
     public void update(int px, int py) {
         combatState.update();
         if (isDead()) return;
-        
-        // Handle attack
+
+        // Attacking
         if (combatState.getCurrentState() == CombatState.State.ATTACKING) {
             if (combatState.shouldDealDamage(AnimationUtil.getDamageTimingPercent())) dealDamageToPlayer(px, py);
             return;
         }
 
-        // Handle movement
-        if (combatState.canPerformAction(CombatState.ActionType.MOVE)) {
-            double dist = Math.hypot(px - x, py - y);
-            
-            // Notice player if within notice radius
-            if (dist <= stats.noticeRadius && !hasNoticedPlayer) {
-                hasNoticedPlayer = true;
-                if (combatLogger != null) combatLogger.accept(getNoticeMessage());
-            }
-            
-            // Lose track of player if they get too far away
-            if (hasNoticedPlayer && dist > stats.noticeRadius * 1.5) {
-                hasNoticedPlayer = false;
-                if (combatLogger != null) combatLogger.accept(name + " seems to have lost your tracks!");
-            }
+        // Movement & noticing player
+        double dist = GeometryHelpers.getEuclideanDistance(x, y, px, py);
+        handlePlayerAwareness(dist);
 
-            if (hasNoticedPlayer) {
-                if (isAdjacent(px, py)) attemptAttack();
-                else moveToward(px, py);
-            } else performBrownianMovement();
+        if (hasNoticedPlayer) {
+            if (isAdjacent(px, py)) attemptAttack();
+            else moveToward(px, py);
+        } else performBrownianMovement();
 
-            // Finish MOVING when tile reached
-            if (combatState.getCurrentState() == CombatState.State.MOVING && !isCurrentlyMoving()) {
-                combatState.finishState();
-            }
+        if (combatState.getCurrentState() == CombatState.State.MOVING && !isCurrentlyMoving())
+            combatState.finishState();
+    }
+
+    private void handlePlayerAwareness(double dist) {
+        if (dist <= stats.noticeRadius && !hasNoticedPlayer) {
+            hasNoticedPlayer = true;
+            logNotice(getNoticeMessage());
+        } else if (hasNoticedPlayer && dist > stats.noticeRadius * 1.5) {
+            hasNoticedPlayer = false;
+            logNotice(name + " seems to have lost your tracks!");
         }
     }
 
     // ====== DAMAGE TO PLAYER ======
     private void dealDamageToPlayer(int px, int py) {
         if (!isAdjacent(px, py)) return;
-        int dmg = getAttackDamage();
-        if (combatLogger != null) combatLogger.accept(getName() + " attacks for " + dmg + " damage!");
-        pendingPlayerDamage = dmg;
+        pendingPlayerDamage = getAttackDamage();
+        logNotice(getName() + " attacks for " + pendingPlayerDamage + " damage!");
     }
 
-    public int getPendingPlayerDamage() {
-        int dmg = pendingPlayerDamage;
-        pendingPlayerDamage = 0;
-        return dmg;
-    }
-
+    public int getPendingPlayerDamage() { int dmg = pendingPlayerDamage; pendingPlayerDamage = 0; return dmg; }
     public boolean hasPendingPlayerDamage() { return pendingPlayerDamage > 0; }
 
-    // ====== STATIC SETTERS ======
-    public static void setCollisionManager(CollisionManager manager) { collisionManager = manager; }
-    public static void setCombatLogger(Consumer<String> logger) { combatLogger = logger; }
+    // ====== POSITIONABLE INTERFACE ======
+    @Override
+    public int getFacingDirection() { return facingDirection; }
+    
+    @Override
+    public void setFacingDirection(int dir) { this.facingDirection = dir; }
 
-    // ====== ABSTRACT METHODS ======
-    protected abstract String getNoticeMessage(); // Each enemy provides its own notice message that is logged when it first notices the player
+    // ====== STATIC SYSTEM HOOKS ======
+    public static void setCollisionManager(CollisionSystem manager) { collisionManager = manager; }
+    public static void setCombatLogger(Consumer<String> logger) { combatLogger = logger; }
+    private void logNotice(String msg) { if (combatLogger != null) combatLogger.accept(msg); }
+
+    // ====== ABSTRACT ======
+    protected abstract String getNoticeMessage();
 }

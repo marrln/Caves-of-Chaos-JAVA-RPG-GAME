@@ -135,7 +135,7 @@ public class EnemyRenderer {
         }
 
         drawWithAlpha(g2d, visibility, () -> {
-            if (enemy.isFacingLeft()) {
+            if (utils.GeometryHelpers.isLeftDirection(enemy.getFacingDirection())) {
                 g2d.drawImage(frame, drawX + width, drawY, -width, height, null);
             } else {
                 g2d.drawImage(frame, drawX, drawY, width, height, null);

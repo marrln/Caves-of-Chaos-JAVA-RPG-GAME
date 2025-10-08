@@ -1,5 +1,7 @@
 package map;
 
+import utils.PathfindingAlgorithms;
+
 /**
  * Manages fog of war for the game map with smooth gradient visibility effects.
  */
@@ -96,7 +98,7 @@ public class FogOfWar {
     private boolean hasLineOfSight(GameMap map, int x1, int y1, int x2, int y2) {
         if (x1 == x2 && y1 == y2) return true;
 
-        return utils.LineUtils.hasLineOfSight(x1, y1, x2, y2, (x, y) -> {
+        return PathfindingAlgorithms.hasLineOfSight(x1, y1, x2, y2, (x, y) -> {
             Tile tile = map.getTile(x, y);
             return tile != null && tile.getType() == Tile.WALL;
         });

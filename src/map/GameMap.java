@@ -3,6 +3,8 @@ package map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import utils.GeometryHelpers;
+import utils.PathfindingAlgorithms;
 
 /**
  * Represents the game map with tiles and navigation.
@@ -163,8 +165,8 @@ public class GameMap {
     }
 
     private void createPath(int x1, int y1, int x2, int y2) {
-        List<utils.LineUtils.Point> points = utils.LineUtils.getLinePoints(x1, y1, x2, y2);
-        for (utils.LineUtils.Point p : points) {
+        List<GeometryHelpers.Position> points = PathfindingAlgorithms.getProjectilePath(x1, y1, x2, y2, (x, y) -> false);
+        for (GeometryHelpers.Position p : points) {
             if (isInBounds(p.x, p.y) && !isEdgeTile(p.x, p.y)) {
                 tiles[p.x][p.y] = new Tile(Tile.FLOOR);
                 createCorridorWidth(p.x, p.y);

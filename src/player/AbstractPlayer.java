@@ -7,13 +7,15 @@ import items.Inventory;
 import items.Weapon;
 import player.AbstractPlayer.AttackConfig;
 import player.AbstractPlayer.PlayerLevelStats;
-import utils.CollisionManager;
+import utils.CollisionSystem;
+import utils.GeometryHelpers;
+import utils.Positionable;
 
 /**
  * Base player class containing shared logic for all player types (Duelist, Wizard, etc.).
  * Handles movement, stats progression, combat state, equipment, and basic attacks.
  */
-public abstract class AbstractPlayer implements CollisionManager.Positionable {
+public abstract class AbstractPlayer implements Positionable {
     
     // ===== XP & LEVELING CONFIGURATION =====
     private static final int[] LEVEL_XP_THRESHOLDS = {0, 700, 1500, 2700, 6500, 14000};
@@ -84,8 +86,8 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     protected int facingDirection = 1; // 0=N,1=E,2=S,3=W
 
     // ====== COLLISION ======
-    private static CollisionManager collisionManager;
-    public static void setCollisionManager(CollisionManager manager) { collisionManager = manager; }
+    private static CollisionSystem collisionManager;
+    public static void setCollisionManager(CollisionSystem manager) { collisionManager = manager; }
 
     // ====== CONSTRUCTOR ======
     public AbstractPlayer(int x, int y) {
@@ -115,7 +117,7 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
     }
 
     public boolean tryMoveDirection(int direction) {
-        CollisionManager.Position offset = CollisionManager.getDirectionOffset(direction);
+        GeometryHelpers.Position offset = GeometryHelpers.getDirectionOffset(direction);
         boolean moved = (offset.x != 0 || offset.y != 0) && tryMoveTo(x + offset.x, y + offset.y);
         if (moved) setFacingDirection(direction);
         return moved;
@@ -181,30 +183,24 @@ public abstract class AbstractPlayer implements CollisionManager.Positionable {
 
     public int restoreHp(int amount) {
         int oldHp = hp;
-        hp = Math.min(maxHp, hp + amount);
+        hp = GeometryHelpers.clamp(hp + amount, 0, maxHp);
         return hp - oldHp;
     }
 
     public int restoreMp(int amount) {
         int oldMp = mp;
-        mp = Math.min(maxMp, mp + amount);
+        mp = GeometryHelpers.clamp(mp + amount, 0, maxMp);
         return mp - oldMp;
     }
     
     public void addMaxHp(int amount) {
         maxHp += amount;
-        // Ensure current HP doesn't exceed new max
-        if (hp > maxHp) {
-            hp = maxHp;
-        }
+        hp = GeometryHelpers.clamp(hp, 0, maxHp);
     }
     
     public void addMaxMp(int amount) {
         maxMp += amount;
-        // Ensure current MP doesn't exceed new max
-        if (mp > maxMp) {
-            mp = maxMp;
-        }
+        mp = GeometryHelpers.clamp(mp, 0, maxMp);
     }
 
     public void triggerHealingEffect() { healingEffectEndTime = System.currentTimeMillis() + EFFECT_DURATION; }
