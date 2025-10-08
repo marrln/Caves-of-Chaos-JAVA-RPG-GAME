@@ -139,14 +139,16 @@ public class CavesOfChaos {
 
     // === Game Initialization ===
     private static void startGame(AbstractPlayer player, int startingLevel) {
+        EventLogger logger = new EventLogger();
         GameState gameState = new GameState(player, startingLevel);
-        GameController controller = new GameController(gameState);
+        gameState.setLogger(logger);
+        GameController controller = new GameController(gameState, logger);
 
-        SwingUtilities.invokeLater(() -> createAndShowUI(gameState, controller));
+        SwingUtilities.invokeLater(() -> createAndShowUI(gameState, controller, logger));
     }
 
     // === UI Setup ===
-    private static void createAndShowUI(GameState gameState, GameController controller) {
+    private static void createAndShowUI(GameState gameState, GameController controller, EventLogger logger) {
         JFrame frame = new JFrame(GAME_TITLE);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setIconImage(AssetManager.getAppIcon());
@@ -172,7 +174,7 @@ public class CavesOfChaos {
 
         GameUIManager uiManager = new GameUIManager(gamePanel, statusPanel, logPanel);
         gamePanel.setUIManager(uiManager);
-        controller.setUIManager(uiManager);
+        controller.setUIManager(uiManager);  // This will also set it on the logger
         gameState.setUIManager(uiManager);
 
         frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);

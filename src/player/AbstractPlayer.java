@@ -1,5 +1,6 @@
 package player;
 
+import audio.SFXManager;
 import config.AnimationUtil;
 import config.Config;
 import core.CombatState;
@@ -111,7 +112,9 @@ public abstract class AbstractPlayer implements Positionable {
         
         // Check collision and actually move if allowed
         if (collisionManager != null && !collisionManager.canMoveTo(this, newX, newY)) return false;
+        
         setPosition(newX, newY);
+        SFXManager.getInstance().playPlayerWalk();
         combatState.setState(CombatState.State.MOVING, AnimationUtil.getPlayerAnimationDuration("walk", getPlayerClass()));
         return true;
     }
@@ -137,16 +140,8 @@ public abstract class AbstractPlayer implements Positionable {
     public int getExpToNext() { return expToNext; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    
-    /**
-     * Gets the player class name for sprite lookups (e.g., "Duelist", "Wizard").
-     * <p>This is different from {@link #getName()} which returns the custom character name.</p>
-     * 
-     * @return simple class name (e.g., "Duelist" for player.Duelist)
-     */
-    public String getPlayerClass() {
-        return this.getClass().getSimpleName();
-    }
+    public boolean isDead() { return hp <= 0; }
+    public String getPlayerClass() { return this.getClass().getSimpleName(); }
 
     // ====== INVENTORY & EQUIPMENT ======
     public Inventory getInventory() { return inventory; }
@@ -250,9 +245,11 @@ public abstract class AbstractPlayer implements Positionable {
         hp = Math.max(0, hp - damage);
 
         if (hp == 0) {
+            SFXManager.getInstance().playPlayerDeath();
             combatState.setState(CombatState.State.DYING, AnimationUtil.getPlayerAnimationDuration("death", getPlayerClass()));
             return true;
         } 
+        SFXManager.getInstance().playPlayerHurt();
         combatState.setState(CombatState.State.HURT, AnimationUtil.getPlayerAnimationDuration("hurt", getPlayerClass()));
         return false;
     }
@@ -376,12 +373,7 @@ public abstract class AbstractPlayer implements Positionable {
     }
 
     // ====== XP HELPER METHODS ======
-    
-    /**
-     * Calculates XP needed to reach the next level from current level.
-     * @param currentLevel The current player level
-     * @return XP needed for next level, or 0 if at max level
-     */
+
     protected int getExpToNextLevel(int currentLevel) {
         int idx = Math.max(0, Math.min(currentLevel - 1, LEVEL_XP_THRESHOLDS.length - 1));
         if (idx + 1 < LEVEL_XP_THRESHOLDS.length) {
@@ -390,5 +382,4 @@ public abstract class AbstractPlayer implements Positionable {
         return 0; // Max level reached
     }
 
-    public boolean isDead() { return hp <= 0; }
 }

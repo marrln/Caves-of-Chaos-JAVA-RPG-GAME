@@ -1,5 +1,6 @@
 package enemies;
 
+import audio.SFXManager;
 import config.AnimationUtil;
 import config.EnemyConfig;
 import core.CombatState;
@@ -82,6 +83,14 @@ public abstract class AbstractEnemy implements Enemy, Positionable {
         CombatState.State newState = (hp == 0) ? CombatState.State.DYING : CombatState.State.HURT;
         int duration = AnimationUtil.getEnemyAnimationDuration((hp==0?"death":"hurt"), type.getSpritePrefix());
         combatState.setState(newState, duration);
+        
+        // Play appropriate sound effect
+        if (hp == 0) {
+            SFXManager.getInstance().playEnemyDeath();
+        } else {
+            SFXManager.getInstance().playEnemyHurt();
+        }
+        
         return hp == 0;
     }
 
@@ -112,6 +121,25 @@ public abstract class AbstractEnemy implements Enemy, Positionable {
         int atkType = selectAttackType();
         combatState.startAttack(atkType, AnimationUtil.getEnemyAnimationDuration("attack", type.getSpritePrefix(), atkType));
         lastAttackTime = System.currentTimeMillis();
+        
+        // Play appropriate attack sound (only if player has noticed - they're in combat)
+        if (hasNoticedPlayer) {
+            playAttackSound();
+        }
+    }
+    
+    /**
+     * Plays the appropriate attack sound for this enemy type.
+     * Can be overridden by specific enemy classes for unique sounds.
+     */
+    protected void playAttackSound() {
+        // Default: use sword sounds for armed enemies, generic for others
+        String typeName = type.name().toLowerCase();
+        if (typeName.contains("skeleton") || typeName.contains("orc")) {
+            SFXManager.getInstance().playEnemyAttackSword();
+        } else {
+            SFXManager.getInstance().playEnemyAttackGeneric();
+        }
     }
 
     private int selectAttackType() {
@@ -140,8 +168,13 @@ public abstract class AbstractEnemy implements Enemy, Positionable {
     private boolean executeMovement(GeometryHelpers.Position pos) {
         if (!canMove() || pos == null) return false;
         setPosition(pos.x, pos.y);
-        if (combatState.getCurrentState() != CombatState.State.MOVING)
+        if (combatState.getCurrentState() != CombatState.State.MOVING) {
+            // Only play walk sound if enemy has noticed player (is chasing/in combat)
+            if (hasNoticedPlayer) {
+                SFXManager.getInstance().playEnemyWalk();
+            }
             combatState.setState(CombatState.State.MOVING, AnimationUtil.getEnemyAnimationDuration("walk", type.getSpritePrefix()));
+        }
         return true;
     }
 
