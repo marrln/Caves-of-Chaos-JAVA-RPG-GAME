@@ -135,11 +135,23 @@ public class Projectile {
     private void hitTarget(Enemy enemy) {
         player.AbstractPlayer player = core.GameState.getInstance().getPlayer();
         int dmg = player.getTotalAttackDamage(type == ProjectileType.FIRE_SPELL ? 1 : 2);
-        enemy.takeDamage(dmg);
-        log(player.getName() + " attacks " + enemy.getName() + " for " + dmg + " damage!");
+        boolean dead = enemy.takeDamage(dmg);
+        
+        EventLogger logger = core.GameState.getInstance().getLogger();
+        if (logger != null) {
+            logger.logMeleeAttack(player.getName(), enemy.getName(), dmg);
+            
+            // Handle enemy defeat - grant XP and log
+            if (dead) {
+                int exp = enemy.getExpReward();
+                int levels = player.addExperience(exp);
+                logger.logEnemyDefeated(enemy.getName(), exp);
+                if (levels > 0) {
+                    logger.logLevels(player, levels);
+                }
+            }
+        }
     }
-
-    private void log(String msg) { core.GameState.getInstance().logMessage(msg); }
 
     public double getX() { return x; }
     public double getY() { return y; }
