@@ -81,10 +81,16 @@ public class PlayerRenderer {
             lastAssetId = assetId;
         }
 
-        // Advance animation frame
+        // Advance animation frame (but freeze on last frame if player is dead)
         long now = System.currentTimeMillis();
         if (now - lastFrameTime > FRAME_DURATION) {
-            frameIndex = (frameIndex + 1) % frames.length;
+            if (player.isDead()) {
+                // Freeze on last frame of death animation
+                frameIndex = frames.length - 1;
+            } else {
+                // Normal animation cycling
+                frameIndex = (frameIndex + 1) % frames.length;
+            }
             lastFrameTime = now;
         }
 
