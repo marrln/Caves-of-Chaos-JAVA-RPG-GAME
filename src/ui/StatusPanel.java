@@ -32,7 +32,7 @@ public class StatusPanel extends JPanel {
     public StatusPanel() {
         setLayout(new BorderLayout());
         setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
-        setPreferredSize(new Dimension(230, 600));
+        setPreferredSize(new Dimension(300, 800));
         setBorder(BorderFactory.createLineBorder(StyleConfig.getColor("panelBorder", Color.DARK_GRAY), 1));
         setFocusable(false);
 
@@ -110,13 +110,13 @@ public class StatusPanel extends JPanel {
         addSectionTitle("CAVE INFO");
         addText(gameState.getLevelDisplayString());
         int aliveEnemies = gameState.getAliveEnemyCount();
-
+        addAtmosphericText("Your senses deliver their verdict:");
         switch (aliveEnemies) {
             case 0 -> addText("You are alone… for now.");
             case 1 -> addText("A single presence lingers, watching.");
             default -> {
-                addText("There are " + aliveEnemies + " enemies lurking here,"); 
-                addText("each waiting for their moment.");
+                addText("There are " + aliveEnemies + " enemies lurking here, each waiting for"); 
+                addText("their moment.");
             }
         }
     }
@@ -177,6 +177,7 @@ public class StatusPanel extends JPanel {
     private void addText(String text) { addLabel(text, null, false, 14, ITEM_SPACING); }
     private void addBoldText(String text) { addLabel(text, null, true, 14, ITEM_SPACING); }
     private void addColoredText(String text, Color color) { addLabel(text, color, false, 14, ITEM_SPACING); }
+    private void addAtmosphericText(String text) { addAtmosphericLabel(text); }
 
     private void addWeaponDisplay(Weapon weapon) {
         if (weapon == null) { 
@@ -185,20 +186,21 @@ public class StatusPanel extends JPanel {
         }
         
         String name = "Weapon: " + weapon.getName();
-        String damage = "  +" + weapon.getDamageBonus() + " damage";
+        String damage = " (+" + weapon.getDamageBonus() + " damage)";
         
-        if ((name + damage).length() <= 35) {
+        if ((name + damage).length() <= 30) {
             addText(name + damage);
         } else { 
             addText(name); 
             addText(damage); 
         }
-        
-        // Add weapon effect description if present
         if (weapon.getEffect() != config.ItemConfig.WeaponEffect.NONE) {
             String effectText = weapon.getEffectDescription();
             if (!effectText.isEmpty()) {
-                addColoredText("  " + effectText, StyleConfig.getColor("statHigh"));
+                addColoredText(effectText, StyleConfig.getColor("statHigh"));
+            }
+            else {
+                addText("No special effect");
             }
         }
     }
@@ -211,6 +213,16 @@ public class StatusPanel extends JPanel {
         label.setForeground(color != null ? color : StyleConfig.getColor("panelText", Color.WHITE));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         label.setBorder(BorderFactory.createEmptyBorder(topSpacing, 0, ITEM_SPACING, 0));
+        contentPanel.add(label);
+    }
+    
+    private void addAtmosphericLabel(String text) {
+        JLabel label = new JLabel(text);
+        Font font = StyleConfig.getFont("statusAtmospheric", new Font("Serif", Font.ITALIC, 14));
+        label.setFont(font);
+        label.setForeground(StyleConfig.getColor("panelHighlight", Color.LIGHT_GRAY));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setBorder(BorderFactory.createEmptyBorder(ITEM_SPACING, 0, ITEM_SPACING, 0));
         contentPanel.add(label);
     }
 
@@ -255,10 +267,6 @@ public class StatusPanel extends JPanel {
 
     private String capitalize(String s) { return s.substring(0, 1).toUpperCase() + s.substring(1); }
 
-    /**
-     * Customizes scrollbar to match medieval scroll aesthetic.
-     * Uses slim 8px width and LogPanel-compatible color scheme.
-     */
     private void customizeScrollBar(JScrollBar bar) {
         bar.setPreferredSize(new Dimension(SCROLLBAR_WIDTH, 0));
         bar.setBackground(StyleConfig.getColor("panelBackground", Color.BLACK));
