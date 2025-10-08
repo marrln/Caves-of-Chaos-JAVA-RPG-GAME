@@ -124,7 +124,8 @@ public class GamePanel extends JPanel {
             tileSize,
             camera.getX() * tileSize,
             camera.getY() * tileSize,
-            2.0 
+            2.0,
+            fogOfWar
             );
 
         // Render player 
