@@ -7,6 +7,7 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import map.FogOfWar;
 
 public class ProjectileRenderer {
 	private static final boolean USE_GRAPHICS = Config.getBoolSetting("use_graphics");
@@ -16,14 +17,28 @@ public class ProjectileRenderer {
 	private static final Map<String, Integer> frameIndices = new HashMap<>();
 	private static final Map<String, Long> lastFrameTimes = new HashMap<>();
 
-	public static void renderProjectiles(Graphics2D g2d, List<Projectile> projectiles, int tileSize, int cameraOffsetX, int cameraOffsetY, double scale) {
+	public static void renderProjectiles(Graphics2D g2d, List<Projectile> projectiles, int tileSize, int cameraOffsetX, int cameraOffsetY, double scale, FogOfWar fogOfWar) {
 		for (Projectile projectile : projectiles) {
+			// Check visibility in fog of war - skip if not visible
+			float fogAlpha = 1.0f;
+			boolean visible = true;
+			if (fogOfWar != null) {
+				fogAlpha = fogOfWar.getVisibilityStrength((int) projectile.getX(), (int) projectile.getY());
+				visible = fogAlpha > 0.05f; // Only skip if fully hidden
+			}
+			if (!visible) {
+				continue;
+			}
+			
 			int screenX = (int) ((projectile.getX() * tileSize) - cameraOffsetX);
 			int screenY = (int) ((projectile.getY() * tileSize) - cameraOffsetY);
 			int scaledTile = (int)(tileSize * scale);
 
 			if (!USE_GRAPHICS) {
-				// Fallback: colored dot
+				// Fallback: colored dot with fog alpha
+				Composite original = g2d.getComposite();
+				g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fogAlpha));
+				
 				switch (projectile.getType()) {
 					case FIRE_SPELL -> g2d.setColor(Color.RED);
 					case ICE_SPELL -> g2d.setColor(Color.CYAN);
@@ -35,6 +50,8 @@ public class ProjectileRenderer {
 				g2d.fillOval(dotX, dotY, dotSize, dotSize);
 				g2d.setColor(Color.WHITE);
 				g2d.drawOval(dotX, dotY, dotSize, dotSize);
+				
+				g2d.setComposite(original);
 				continue;
 			}
 
@@ -67,7 +84,12 @@ public class ProjectileRenderer {
 
 			int drawX = screenX + (tileSize - scaledTile) / 2;
 			int drawY = screenY + (tileSize - scaledTile) / 2;
+			
+			// Apply fog alpha when drawing
+			Composite original = g2d.getComposite();
+			g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fogAlpha));
 			g2d.drawImage(frame, drawX, drawY, scaledTile, scaledTile, null);
+			g2d.setComposite(original);
 		}
 	}
 }
