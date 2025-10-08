@@ -59,7 +59,7 @@ public class EnemyRenderer {
                 visible = fogAlpha > 0.05f; // Only skip if fully hidden
             }
             if (visible) {
-                renderEnemy(g2d, enemy, tileSize, cameraX, cameraY, fogOfWar, scale, fogAlpha);
+                renderEnemy(g2d, enemy, tileSize, cameraX, cameraY, scale, fogAlpha);
             }
         }
     }
@@ -67,7 +67,7 @@ public class EnemyRenderer {
     // === Internal rendering per enemy ===
     private static void renderEnemy(Graphics2D g2d, Enemy enemy,
                                     int tileSize, int cameraX, int cameraY,
-                                    FogOfWar fogOfWar, double scale, float fogAlpha) {
+                                    double scale, float fogAlpha) {
 
         int scaledTile = (int) (tileSize * scale);
         int screenX = (enemy.getX() * tileSize) - cameraX + (tileSize / 2);
