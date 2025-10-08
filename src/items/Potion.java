@@ -42,10 +42,23 @@ public class Potion extends ConsumableItem {
     
     @Override
     public String getDisplayName() {
-        if (quantity > 1) {
-            return getName() + " (" + quantity + ")";
+        StringBuilder display = new StringBuilder(getName());
+        
+        // Add restoration values
+        if (hpRestore > 0 && mpRestore > 0) {
+            display.append(" (+").append(hpRestore).append("HP/+").append(mpRestore).append("MP)");
+        } else if (hpRestore > 0) {
+            display.append(" (+").append(hpRestore).append("HP)");
+        } else if (mpRestore > 0) {
+            display.append(" (+").append(mpRestore).append("MP)");
         }
-        return getName();
+        
+        // Add quantity if more than 1
+        if (quantity > 1) {
+            display.append(" (").append(quantity).append(")");
+        }
+        
+        return display.toString();
     }
     
     @Override
