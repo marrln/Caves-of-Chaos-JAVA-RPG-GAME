@@ -29,23 +29,53 @@ The game map is generated with each new level, ensuring replayability and dynami
 
 - Java 17 or higher
 
-### Running
+### Method 1: Quick Play (Windows - Recommended for Development)
 
-**Command Line:**
+The easiest way to compile and run the game on Windows:
+
 ```sh
-javac -d bin -sourcepath src src/CavesOfChaos.java
-java -cp bin CavesOfChaos <player-class> <player-name> [starting-level]
-```
-Example:
-```sh
-java -cp bin CavesOfChaos wizard Gandalf 1
+run.bat
 ```
 
-**Batch Script (Windows):**
-Run `run.bat` for the default wizard class and name, or pass arguments:
+This will:
+1. Compile all source files
+2. Copy assets and configuration files
+3. Run the game with default settings (Wizard class, Player1 name)
+
+**With custom arguments:**
 ```sh
+run.bat wizard Gandalf
 run.bat duelist Conan
 ```
+
+### Method 2: Build Distributable JAR 
+
+To create a standalone JAR file that can be shared and run on any system:
+
+```sh
+build-jar.bat
+```
+
+This will:
+1. Clean previous builds
+2. Compile all source files
+3. Package everything into `dist/CavesOfChaos.jar`
+
+**Run the JAR:**
+```sh
+java -jar dist/CavesOfChaos.jar wizard PlayerName
+```
+
+Example:
+```sh
+java -jar dist/CavesOfChaos.jar wizard Gandalf
+java -jar dist/CavesOfChaos.jar duelist Conan
+```
+
+### Available Player Classes
+
+- **wizard** - Ranged magic user with powerful spells
+- **duelist** - Melee fighter with balanced combat abilities
 
 ## Features
 
@@ -65,12 +95,26 @@ run.bat duelist Conan
 
 ```
 src/
- ├── core/          # Game logic and state
- ├── player/        # Player classes and abilities
- ├── enemies/       # Enemy types and AI
- ├── map/           # Map generation and navigation
- ├── ui/            # Swing-based user interface
- └── config/        # Game configuration files
+ ├── CavesOfChaos.java  # Main entry point
+ ├── audio/             # Music and sound effects management
+ ├── config/            # Game configuration and XML settings
+ ├── core/              # Game logic, state, and combat system
+ ├── enemies/           # Enemy types, factories, and AI
+ ├── graphics/          # Rendering, animations, and sprite management
+ ├── input/             # Keyboard and game input handling
+ ├── items/             # Items, weapons, potions, and inventory
+ ├── map/               # Procedural map generation and navigation
+ ├── player/            # Player classes and abilities (Wizard, Duelist)
+ ├── ui/                # Swing-based user interface components
+ ├── utils/             # Utility classes and helper functions
+ └── assets/            # Game resources (sprites, fonts, music, SFX)
+      ├── enemies/
+      ├── fonts/
+      ├── items/
+      ├── music/
+      ├── players/
+      ├── sfx/
+      └── tiles/
 ```
 
 ## License
