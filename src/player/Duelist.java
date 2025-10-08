@@ -15,18 +15,19 @@ public class Duelist extends AbstractPlayer {
         {140, 0}   // Level 6
     };
 
-    // ===== Attack Progression =====
+    // ===== Duelist Attack Progression =====
     // [levelIndex][attackIndex] = {diceCount, diceSides, diceBonus, mpCost, cooldown}
     private static final int[][][] ATTACK_TABLE = {
-        {{1, 8, 0, 0, 3000}, {1, 8, 5, 0, 6000}},  // Level 1
-        {{2, 6, 1, 0, 2800}, {2, 6, 6, 0, 5500}},  // Level 2
-        {{2, 6, 2, 0, 2600}, {2, 6, 7, 0, 5000}},  // Level 3
-        {{2, 8, 3, 0, 2400}, {2, 8, 8, 0, 4500}},  // Level 4
-        {{3, 6, 4, 0, 2200}, {3, 6, 9, 0, 4200}},  // Level 5
-        {{3, 8, 5, 0, 2000}, {3, 8, 10, 0, 4000}}  // Level 6
+        {{1, 8, 2, 0, 1700}, {1, 8, 5, 0, 3200}},  // Level 1
+        {{2, 6, 2, 0, 1600}, {2, 6, 6, 0, 3000}},  // Level 2
+        {{2, 6, 3, 0, 1500}, {2, 6, 7, 0, 2800}},  // Level 3
+        {{2, 8, 4, 0, 1400}, {2, 8, 8, 0, 2600}},  // Level 4
+        {{3, 6, 4, 0, 1300}, {3, 6, 9, 0, 2400}},  // Level 5
+        {{3, 8, 5, 0, 1200}, {3, 8, 10, 0, 2200}}  // Level 6
     };
 
-    private static final String[] ATTACK_NAMES = {"Quick Strike", "Power Attack"};
+
+    private static final String[] ATTACK_NAMES = {"Strike Down", "Power Slash"};
 
     public Duelist(int x, int y) {
         super(x, y);

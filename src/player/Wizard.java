@@ -3,6 +3,8 @@ package player;
 import core.Projectile;
 import enemies.Enemy;
 import java.util.List;
+import player.AbstractPlayer.AttackConfig;
+import player.AbstractPlayer.PlayerLevelStats;
 
 public class Wizard extends AbstractPlayer {
     
@@ -18,14 +20,15 @@ public class Wizard extends AbstractPlayer {
 
     // ===== Attack Progression =====
     // [levelIndex][attackIndex] = {diceCount, diceSides, diceBonus, mpCost, cooldown}
-    private static final int[][][] ATTACK_TABLE = {
-        {{1, 6, 0, 5, 3000}, {1, 6, 5, 7, 6000}},    // Level 1
-        {{2, 6, 1, 7, 2800}, {2, 6, 6, 8, 5500}},    // Level 2
-        {{2, 6, 2, 8, 2600}, {2, 6, 7, 10, 5000}},   // Level 3
-        {{3, 6, 3, 9, 2400}, {3, 6, 8, 12, 4500}},   // Level 4
-        {{4, 8, 4, 12, 2200}, {4, 8, 9, 15, 4200}},  // Level 5
-        {{4, 6, 5, 14, 2000}, {4, 6, 10, 18, 4000}}  // Level 6
+    private static final int[][][] ATTACK_TABLE = { 
+        {{2, 6, 2, 5, 3000}, {3, 6, 5, 10, 6000}},   // Level 1
+        {{2, 6, 4, 6, 2800}, {3, 8, 7, 12, 5800}},   // Level 2
+        {{3, 6, 5, 7, 2600}, {3, 8, 10, 14, 5500}},  // Level 3
+        {{3, 8, 6, 8, 2400}, {4, 8, 12, 16, 5200}},  // Level 4
+        {{4, 8, 7, 9, 2200}, {4, 10, 14, 18, 4900}}, // Level 5
+        {{4, 10, 8, 10, 2000}, {5, 10, 17, 20, 4500}}// Level 6
     };
+
 
     private static final String[] ATTACK_NAMES = {"Fire Spell", "Ice Spell"};
 
