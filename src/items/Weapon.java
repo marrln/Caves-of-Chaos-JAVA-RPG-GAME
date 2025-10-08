@@ -9,6 +9,10 @@ import player.AbstractPlayer;
  */
 public class Weapon extends Item {
     
+    // ====== CONSTANTS ======
+    private static final int MAX_STAT_BOOST = 10;  // HP/MP boost amount
+    private static final int LIFESTEAL_PERCENT = 10;  // Percentage of damage returned as HP
+    
     private final int damageBonus;
     private final String playerClass; // "duelist" or "wizard" only
     private final ItemConfig.WeaponEffect effect;
@@ -24,22 +28,25 @@ public class Weapon extends Item {
     public int getDamageBonus() { return damageBonus; }
     public String getPlayerClass() { return playerClass; }
     public ItemConfig.WeaponEffect getEffect() { return effect; }
+    public String getEffectDescription() { return getEffectDescriptionText(effect); }
     
-    /**
-     * Creates a description based on weapon stats and effects.
-     */
+
     private static String createDescription(int damageBonus, ItemConfig.WeaponEffect effect) {
         StringBuilder desc = new StringBuilder("Weapon (+" + damageBonus + " dmg)");
-        if (effect != ItemConfig.WeaponEffect.NONE) {
-            desc.append(" - ");
-            desc.append(switch (effect) {
-                case LIFESTEAL -> "Restores HP when dealing damage";
-                case MAX_HP_BOOST -> "Increases max HP by 5";
-                case MAX_MP_BOOST -> "Increases max MP by 5";
-                default -> "";
-            });
+        String effectText = getEffectDescriptionText(effect);
+        if (!effectText.isEmpty()) {
+            desc.append(" - ").append(effectText);
         }
         return desc.toString();
+    }
+
+    private static String getEffectDescriptionText(ItemConfig.WeaponEffect effect) {
+        return switch (effect) {
+            case LIFESTEAL -> LIFESTEAL_PERCENT + "% of damage dealt is offered to you as HP";
+            case MAX_HP_BOOST -> "Increases max HP by " + MAX_STAT_BOOST;
+            case MAX_MP_BOOST -> "Increases max MP by " + MAX_STAT_BOOST;
+            default -> "";
+        };
     }
 
     // ====== USAGE ======
@@ -55,8 +62,8 @@ public class Weapon extends Item {
      */
     public void applyEquipEffect(AbstractPlayer player) {
         switch (effect) {
-            case MAX_HP_BOOST -> player.addMaxHp(5);
-            case MAX_MP_BOOST -> player.addMaxMp(5);
+            case MAX_HP_BOOST -> player.addMaxHp(MAX_STAT_BOOST);
+            case MAX_MP_BOOST -> player.addMaxMp(MAX_STAT_BOOST);
             default -> {} // No effect on equip
         }
     }
@@ -66,21 +73,15 @@ public class Weapon extends Item {
      */
     public void removeEquipEffect(AbstractPlayer player) {
         switch (effect) {
-            case MAX_HP_BOOST -> player.addMaxHp(-5);
-            case MAX_MP_BOOST -> player.addMaxMp(-5);
+            case MAX_HP_BOOST -> player.addMaxHp(-MAX_STAT_BOOST);
+            case MAX_MP_BOOST -> player.addMaxMp(-MAX_STAT_BOOST);
             default -> {} // No effect to remove
         }
     }
     
-    /**
-     * Applies weapon effect when dealing damage (for lifesteal).
-     * 
-     * @param player The player wielding the weapon
-     * @param damageDealt The amount of damage dealt to enemy
-     */
     public void applyOnHitEffect(AbstractPlayer player, int damageDealt) {
         if (effect == ItemConfig.WeaponEffect.LIFESTEAL) {
-            int healAmount = Math.max(1, damageDealt / 10); // 10% lifesteal, minimum 1
+            int healAmount = Math.max(1, damageDealt * LIFESTEAL_PERCENT / 100);
             player.restoreHp(healAmount);
             player.triggerHealingEffect();
         }
