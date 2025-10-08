@@ -111,7 +111,7 @@ public class LogPanel extends JPanel {
             try {
                 styledDoc.remove(0, styledDoc.getLength());
             } catch (BadLocationException e) {
-                e.printStackTrace();
+                System.err.println("Error clearing log: " + e.getMessage());
             }
         });
     }
@@ -148,7 +148,7 @@ public class LogPanel extends JPanel {
                         createStyle(animator.getCurrentColor()));
             }
         } catch (BadLocationException e) {
-            e.printStackTrace();
+            System.err.println("Error updating log display: " + e.getMessage());
         }
     }
 
