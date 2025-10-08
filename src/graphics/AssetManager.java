@@ -63,7 +63,6 @@ public class AssetManager {
             loadSounds(doc);
         } catch (Exception e) {
             System.err.println("Error loading assets.xml: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
