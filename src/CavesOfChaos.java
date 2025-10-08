@@ -172,7 +172,7 @@ public class CavesOfChaos {
 
         GameUIManager uiManager = new GameUIManager(gamePanel, statusPanel, logPanel);
         gamePanel.setUIManager(uiManager);
-        controller.setUIManager(uiManager);  // This will also set it on the logger
+        controller.setUIManager(uiManager);  
         gameState.setUIManager(uiManager);
 
         frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
