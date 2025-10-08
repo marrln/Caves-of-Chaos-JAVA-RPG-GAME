@@ -20,10 +20,17 @@ public class ItemSpawner {
         int itemsToSpawn = ItemSpawnConfig.getItemCountForLevel(level, random.nextDouble());
         List<Tile> validTiles = findValidSpawnTiles(map);
 
+        // Level 1: limit traps to 0 or 1 for beginner-friendliness
+        int maxTraps = level == 1 ? (random.nextBoolean() ? 1 : 0) : Integer.MAX_VALUE;
+        int trapsSpawned = 0;
+
         for (int i = 0; i < itemsToSpawn && !validTiles.isEmpty(); i++) {
             Tile tile = validTiles.remove(random.nextInt(validTiles.size()));
-            Item item = createRandomItem(level, player);
-            if (item != null) tile.setItem(item);
+            Item item = createRandomItem(level, player, trapsSpawned < maxTraps);
+            if (item != null) {
+                tile.setItem(item);
+                if (item instanceof items.AbstractTrap) trapsSpawned++;
+            }
         }
     }
 
@@ -35,8 +42,15 @@ public class ItemSpawner {
         return true;
     }
 
-    private Item createRandomItem(int level, player.AbstractPlayer player) {
-        return switch (ItemSpawnConfig.getItemTypeFromRoll(random.nextDouble(), level)) {
+    private Item createRandomItem(int level, player.AbstractPlayer player, boolean allowTraps) {
+        String itemType = ItemSpawnConfig.getItemTypeFromRoll(random.nextDouble(), level);
+        
+        // If traps are disallowed, convert trap rolls to consumables
+        if ("trap".equals(itemType) && !allowTraps) {
+            itemType = "consumable";
+        }
+        
+        return switch (itemType) {
             case "consumable" -> createRandomConsumable(level, player);
             case "weapon" -> createRandomWeapon(level, player);
             default -> createRandomTrap();
