@@ -79,16 +79,16 @@ public class GameControlsWindow extends JDialog {
 
         // Movement
         addSectionHeader(panel, "MOVEMENT");
-        addBullet(panel, "WASD / Arrow Keys — Move cautiously through the twisting passages, listening to every echo and feeling every step.");
+        addBullet(panel, "WASD / Arrow Keys — Move your character through the caves.");
         addVerticalSpace(panel, 12);
 
         // Actions
         addSectionHeader(panel, "ACTIONS");
-        addBullet(panel, "SPACE — Investigate rocks or artifacts. Some conceal danger, others grant small rewards or a touch of experience.");
+        addBullet(panel, "SPACE — Investigate the rocks on the cave floor. Some conceal danger, others grant small rewards or a touch of experience.");
         addBullet(panel, "Q — Light attack. Quick, reliable, with a short cooldown.");
         addBullet(panel, "E — Heavy attack. Slower but stronger; longer cooldown.");
-        addBullet(panel, "R — Rest to recover your strength and magic. Only possible when unseen by enemies. Resting has a short cooldown.");
-        addBullet(panel, "1–9 — Use or equip items from your satchel.");
+        addBullet(panel, "R — Rest to recover. Only possible when unseen by enemies. Resting has a big cooldown.");
+        addBullet(panel, "1–9 — Use or equip items from your inventory.");
         addVerticalSpace(panel, 12);
 
         // Notes
@@ -96,17 +96,17 @@ public class GameControlsWindow extends JDialog {
         addVerticalSpace(panel, 5);
 
         addNote(panel, "→ Timing is everything. Watch the shadows and strike only when the moment feels right.");
-        addNote(panel, "→ Be cautious — some stones hide danger, while others conceal treasures waiting to be uncovered. Investigating them may even grant a touch of experience for your curiosity.");
-        addNote(panel, "→ Keep an eye on the CAVE INFO; knowing how many foes remain can mean the difference between survival and doom.");
-        addNote(panel, "→ Every enemy you defeat strengthens your resolve and grants experience toward your next level.");
+        addNote(panel, "→ Be cautious, some stones hide danger, while others conceal treasures waiting to be uncovered. Investigating them may even grant a touch of experience for your curiosity.");
+        addNote(panel, "→ Always trust your senses, knowing how many foes remain can mean the difference between survival and doom.");
+        addNote(panel, "→ Every enemy you defeat strengthens your resolve and grants EXP toward your next level.");
         addNote(panel, "→ Each level earned sharpens your skills and hardens your body, granting a small boost to your abilities.");
-        addNote(panel, "→ Weapons you find can be equipped to increase your might. Discovering another of the same kind refines and strengthens it further.");
-        addNote(panel, "→ Your ultimate quest is to hunt down the Medusa of Chaos — a being of stone and venom who lurks in the deepest chambers.");
-        addNote(panel, "→ Should you triumph, the Shard of Judgement shall be yours, and your name will echo through the halls of legend.");
+        addNote(panel, "→ Use the weapons you find, they may even grant you special abilities. Discovering another of the same kind refines and strengthens it further.");
+        addNote(panel, "→ Your ultimate quest is to hunt down the Medusa of Chaos who lurks deep within the Caves of Chaos.");
+        addNote(panel, "→ Should you slay the monster and triumph, the Shard of Judgement shall be yours.");
         addVerticalSpace(panel, 15);
 
         // Final message centered
-        addFinalMessage(panel, "Good luck, brave explorer. The caves whisper your name already — tread carefully, and may fortune guide your hand.");
+        addFinalMessage(panel, "Good luck, brave explorer. The caves watch in silence and punish those who falter, be sure to show your strength in front of the Chaos Powers.");
 
         return panel;
     }
@@ -218,7 +218,13 @@ public class GameControlsWindow extends JDialog {
     }
 
     private void addFinalMessage(JPanel panel, String text) {
-        JLabel label = createWrappedLabel("<i>" + text + "</i>", new Font("Serif", Font.BOLD | Font.ITALIC, 14), new Color(139, 90, 43));
+        // Create a centered, wrapped label for the final message
+        int availableWidth = WINDOW_WIDTH - (2 * BORDER_SIZE) - 200 - SCROLLBAR_WIDTH;
+        
+        JLabel label = new JLabel("<html><div style='width:" + availableWidth + "px; text-align:center;'><i>" + text + "</i></div></html>");
+        label.setFont(StyleConfig.getFont("controlsFinal", new Font("Garamond", Font.BOLD | Font.ITALIC, 14)));
+        label.setForeground(StyleConfig.getColor("scrollFinalText", new Color(139, 90, 43)));
+        label.setOpaque(false);
         label.setHorizontalAlignment(SwingConstants.CENTER);
         addToGridCenter(panel, label, new Insets(10, 0, 0, 0));
     }
