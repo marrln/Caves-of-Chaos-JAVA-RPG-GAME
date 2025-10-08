@@ -49,7 +49,6 @@ public class CavesOfChaos {
             StyleConfig.loadStyling(STYLING_PATH);
         } catch (Exception e) {
             System.err.println("ERROR during resource loading: " + e.getMessage());
-            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -132,7 +131,6 @@ public class CavesOfChaos {
             );
         } catch (Exception e) {
             System.err.println("ERROR during player level boost: " + e.getMessage());
-            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -144,11 +142,11 @@ public class CavesOfChaos {
         gameState.setLogger(logger);
         GameController controller = new GameController(gameState, logger);
 
-        SwingUtilities.invokeLater(() -> createAndShowUI(gameState, controller, logger));
+        SwingUtilities.invokeLater(() -> createAndShowUI(gameState, controller));
     }
 
     // === UI Setup ===
-    private static void createAndShowUI(GameState gameState, GameController controller, EventLogger logger) {
+    private static void createAndShowUI(GameState gameState, GameController controller) {
         JFrame frame = new JFrame(GAME_TITLE);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setIconImage(AssetManager.getAppIcon());
