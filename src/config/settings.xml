@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <settings>
-    <setting name="gamePanelWidth">800</setting>
-    <setting name="gamePanelHeight">600</setting>
+    <setting name="gamePanelWidth">1000</setting>
+    <setting name="gamePanelHeight">800</setting>
     <setting name="visionRadius">6</setting>
     <setting name="mapWidth">40</setting>
     <setting name="mapHeight">40</setting>
     <setting name="mapFillPercentage">0.43</setting>
     <setting name="mapIterations">3</setting>
     <setting name="caveLevelNumber">10</setting>
-    <setting name="restHpPercent">0.05</setting>
-    <setting name="restMpPercent">0.05</setting>
+    <setting name="restHpPercent">0.1</setting>
+    <setting name="restMpPercent">0.1</setting>
     <setting name="tile_size">32</setting>
     <setting name="use_graphics">true</setting>
 </settings>

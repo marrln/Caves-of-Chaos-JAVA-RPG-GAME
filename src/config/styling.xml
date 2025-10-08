@@ -15,6 +15,7 @@
         <!-- Status panel fonts -->
         <font name="statusTitle" family="Garamond, Serif" size="15" style="bold"/>
         <font name="statusNormal" family="Garamond, Serif" size="14" style="plain"/>
+        <font name="statusAtmospheric" family="EB Garamond, Garamond, Serif" size="14" style="italic"/>
 
         <!-- Button font (clear but slightly condensed) -->
         <font name="button" family="SansSerif" size="14" style="bold"/>
