@@ -28,8 +28,12 @@ public class ItemSpawnConfig {
     }
 
     public static String getItemTypeFromRoll(double roll, int level) {
-        double consumableChance = CONSUMABLE_CHANCE;
+        // On early levels, reallocate weapon chance to consumables
+        double consumableChance = level > WEAPON_DISABLED_LEVELS 
+            ? CONSUMABLE_CHANCE 
+            : CONSUMABLE_CHANCE + WEAPON_CHANCE;  // 0.85 for levels 1-2
         double weaponChance = level > WEAPON_DISABLED_LEVELS ? WEAPON_CHANCE : 0;
+        
         return roll < consumableChance ? "consumable"
             : roll < consumableChance + weaponChance ? "weapon"
             : "trap";
