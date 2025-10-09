@@ -14,13 +14,14 @@ public class ItemSpawnConfig {
 
     public static final PotionType[] MANA_USER_POTIONS = {
         PotionType.LESSER_MANA, PotionType.MANA, PotionType.GREATER_MANA,
+        PotionType.LESSER_MANA, PotionType.MANA, PotionType.GREATER_MANA,
         PotionType.ELIXIR, PotionType.ELIXIR,
-        PotionType.LESSER_HEAL, PotionType.HEAL, PotionType.GREATER_HEAL
+        PotionType.LESSER_HEAL, PotionType.HEAL, // PotionType.GREATER_HEAL
     };
 
     public static final PotionType[] NON_MANA_USER_POTIONS = {
-        PotionType.LESSER_HEAL, PotionType.HEAL, PotionType.GREATER_HEAL, PotionType.SUPREME_HEAL,
-        PotionType.LESSER_HEAL, PotionType.HEAL, PotionType.GREATER_HEAL, PotionType.SUPREME_HEAL
+        PotionType.LESSER_HEAL, PotionType.HEAL, PotionType.GREATER_HEAL, // PotionType.SUPREME_HEAL,
+        PotionType.LESSER_HEAL, PotionType.HEAL, PotionType.GREATER_HEAL, // PotionType.SUPREME_HEAL
     };
 
     public static int getItemCountForLevel(int level, double randomSeed) {

@@ -5,13 +5,13 @@ public class ItemConfig {
 
     // ===== POTIONS =====
     public enum PotionType {
-        LESSER_HEAL("Draught of Red Moss", 1.0, 0.0),
-        HEAL("Phial of Restored Flesh", 2.0, 0.0),
-        GREATER_HEAL("Tonic of the Deep Heart", 3.0, 0.0),
-        SUPREME_HEAL("Elixir of Primordial Blood", 4.0, 0.0),
-        LESSER_MANA("Philter of Echoing Thought", 0.0, 1.0),
+        LESSER_HEAL("Red Cave Moss Extract", 1.0, 0.0),
+        HEAL("Distilled Orc Blood", 2.0, 0.0),
+        GREATER_HEAL("Werewolf's Heart Potion", 3.0, 0.0),
+        SUPREME_HEAL("Essence of Primordial Blood", 4.0, 0.0),
+        LESSER_MANA("Serum of Echoing Thought", 0.0, 1.0),
         MANA("Essence of Luminous Fungi", 0.0, 2.0),
-        GREATER_MANA("Draught of Abyssal Insight", 0.0, 3.0),
+        GREATER_MANA("Liquefied Abyssal Insight", 0.0, 3.0),
         ELIXIR("Elixir of the Chaos Vein", 0.6, 0.6);
 
         public final String name;
@@ -36,9 +36,9 @@ public class ItemConfig {
         TITANS_GRIP("Titan's Grip", 1, "duelist", WeaponEffect.MAX_HP_BOOST),
 
         // Wizard
-        ELVEN_BLADE("Moonlight Edge", 1, "wizard", WeaponEffect.NONE),
+        ELVEN_BLADE("Moonlight Edge", 1, "wizard", WeaponEffect.MAX_MP_BOOST),
         MAGIC_STAFF("Stormcaller's Staff", 1, "wizard", WeaponEffect.NONE),
-        SOULBOUND_ORB("Soulbound Orb", 0, "wizard", WeaponEffect.MAX_MP_BOOST),
+        SOULBOUND_ORB("Soulbound Orb", 0, "wizard", WeaponEffect.LIFESTEAL),
         ARCHMAGE_STAFF("Archmage's Staff", 2, "wizard", WeaponEffect.MAX_MP_BOOST);
 
         public final String name, playerClass;
