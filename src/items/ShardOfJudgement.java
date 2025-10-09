@@ -50,19 +50,8 @@ public class ShardOfJudgement extends Item {
         return new ShardOfJudgement();
     }
     
-    /**
-     * Check if victory has been triggered by this item.
-     * 
-     * @return true if the Shard of Judgement has been used
-     */
+
     public static boolean isVictoryTriggered() {
         return victoryTriggered;
-    }
-    
-    /**
-     * Reset the victory state (for game restart).
-     */
-    public static void resetVictoryState() {
-        victoryTriggered = false;
     }
 }
