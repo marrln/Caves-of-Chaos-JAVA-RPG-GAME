@@ -11,7 +11,7 @@ public class Potion extends ConsumableItem {
     private final int mpRestore;
     
     public Potion(String name, String description, int hpRestore, int mpRestore) {
-        super(name, description, 1, 10); // Potions stack up to 10 (increased from 5)
+        super(name, description, 1, 16); // Potions stack up to 16
         this.hpRestore = hpRestore;
         this.mpRestore = mpRestore;
     }
@@ -68,7 +68,7 @@ public class Potion extends ConsumableItem {
         return copy;
     }
     
-    // Getters for external access (e.g., UI icon selection)
+    // Getters for external access (UI icon selection)
     public int getHpRestore() {
         return hpRestore;
     }
