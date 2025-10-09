@@ -109,8 +109,10 @@ public class GameController {
     public void attack(int attackType) {
         AbstractPlayer player = gameState.getPlayer();
         if (!player.canAttack(attackType)) {
-            if (player.getRemainingCooldown(attackType) == 0)
+            // Only show MP error if the attack actually costs MP and cooldown is ready
+            if (player.getRemainingCooldown(attackType) == 0 && player.getAttackMpCost(attackType) > 0) {
                 logger.logNotEnoughMp(player.getAttackDisplayName(attackType));
+            }
             return;
         }
 
