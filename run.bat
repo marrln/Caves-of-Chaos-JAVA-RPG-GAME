@@ -1,15 +1,15 @@
 @echo off
 REM ============================================
 REM  Caves of Chaos - UTF-8 Compile & Run Script
-REM  Updated for Java 25+
+REM  Supports Java 24+
 REM ============================================
 
 REM Set console to UTF-8 (for proper symbol display)
 chcp 65001 >nul
 
-REM Set Java 25 path (update if your JDK 25 is in a different folder)
-set "JAVA_HOME=C:\Program Files\Java\jdk-25"
-set "PATH=%JAVA_HOME%\bin;%PATH%"
+REM Set Java path if needed (optional)
+REM set "JAVA_HOME=C:\Program Files\Java\jdk-25"
+REM set "PATH=%JAVA_HOME%\bin;%PATH%"
 
 echo Using Java:
 java -version
@@ -18,10 +18,10 @@ echo.
 REM Create bin directory if it doesn't exist
 if not exist bin mkdir bin
 
-echo Compiling the game (UTF-8 encoding, Java 25)...
+echo Compiling the game (UTF-8 encoding)...
 
-REM Compile the game with UTF-8 encoding and Java 25 compatibility
-javac -encoding UTF-8 --release 25 -d bin -sourcepath src ^
+REM Compile the game with UTF-8 encoding and current Java version
+javac -encoding UTF-8 -d bin -sourcepath src ^
     src\CavesOfChaos.java src\core\*.java src\player\*.java src\ui\*.java
 
 REM Check if compilation was successful
