@@ -195,7 +195,7 @@ public class GamePanel extends JPanel {
     public int getVisibleMapHeight() { return visibleMapHeight; }
 
     private void setupGameLoop() {
-        gameTimer = new Timer(GAME_UPDATE_DELAY, _ -> updateGameLogic());
+        gameTimer = new Timer(GAME_UPDATE_DELAY, e -> updateGameLogic());
         gameTimer.start();
     }
 
