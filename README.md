@@ -27,7 +27,7 @@ The game map is generated with each new level, ensuring replayability and dynami
 
 ### Requirements
 
-- Java 17 or higher
+- Java 24 or higher
 
 ### Method 1: Quick Play (Windows - Recommended for Development)
 
