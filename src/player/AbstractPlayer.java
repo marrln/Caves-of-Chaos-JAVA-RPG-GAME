@@ -185,13 +185,23 @@ public abstract class AbstractPlayer implements Positionable {
     }
     
     public void addMaxHp(int amount) {
+        // Preserve HP ratio when changing max HP to avoid losing HP on weapon swaps
+        double hpRatio = maxHp > 0 ? (double) hp / maxHp : 1.0;
         maxHp += amount;
-        hp = GeometryHelpers.clamp(hp, 0, maxHp);
+        
+        // Restore the same ratio, but ensure we don't exceed the new max
+        hp = (int) Math.min(maxHp, Math.round(maxHp * hpRatio));
+        hp = Math.max(1, hp); // Ensure non-negative
     }
     
     public void addMaxMp(int amount) {
+        // Preserve MP ratio when changing max MP to avoid losing MP on weapon swaps
+        double mpRatio = maxMp > 0 ? (double) mp / maxMp : 1.0;
         maxMp += amount;
-        mp = GeometryHelpers.clamp(mp, 0, maxMp);
+        
+        // Restore the same ratio, but ensure we don't exceed the new max
+        mp = (int) Math.min(maxMp, Math.round(maxMp * mpRatio));
+        mp = Math.max(0, mp); // Ensure non-negative
     }
 
     public void triggerHealingEffect() { healingEffectEndTime = System.currentTimeMillis() + EFFECT_DURATION; }
@@ -271,6 +281,9 @@ public abstract class AbstractPlayer implements Positionable {
     
     public String getAttackDisplayName(int attackType) {
         AttackConfig atk = getAttackConfig(attackType);
+        if (maxMp > 0) {
+            return String.format("%s (MP: %d)", atk.displayName, atk.mpCost);
+        }
         return atk.displayName;
     }
     
