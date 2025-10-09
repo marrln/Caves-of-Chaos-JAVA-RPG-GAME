@@ -273,6 +273,11 @@ public abstract class AbstractPlayer implements Positionable {
         AttackConfig atk = getAttackConfig(attackType);
         return atk.displayName;
     }
+    
+    public int getAttackMpCost(int attackType) {
+        AttackConfig atk = getAttackConfig(attackType);
+        return atk.mpCost;
+    }
 
     public void updateCombat() { combatState.update(); }
 
