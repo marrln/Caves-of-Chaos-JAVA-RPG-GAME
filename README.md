@@ -80,10 +80,10 @@ java -jar dist/CavesOfChaos.jar duelist Conan
 ## Features
 
 - Procedurally generated cave levels for every run
-- Turn-based combat with class-specific abilities
+- Real-time combat with class-specific abilities and cooldowns
 - Item collection and inventory management
-- Boss level with persistent boss health
-- Save and load functionality
+- Class-specific weapons with special abilities
+- Boss level with persistent health
 - Modular and extensible codebase
 
 ## Technologies
@@ -108,21 +108,14 @@ src/
  ├── ui/                # Swing-based user interface components
  ├── utils/             # Utility classes and helper functions
  └── assets/            # Game resources (sprites, fonts, music, SFX)
-      ├── enemies/
-      ├── fonts/
-      ├── items/
-      ├── music/
-      ├── players/
-      ├── sfx/
-      └── tiles/
 ```
 
 ## License
 
 Look under License for more details.
 
-## Acknowledgments
+## Assets from itch.io
 
-Developed during an M.Sc. program, this project aims to demonstrate core Java programming concepts, game design, and procedural generation.
+[Will be updated with specific asset names]
 
 ---
