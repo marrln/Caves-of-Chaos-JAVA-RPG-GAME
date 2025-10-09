@@ -2,16 +2,24 @@
 REM =========================================
 REM  Caves of Chaos - UTF-8 JAR Build Script
 REM =========================================
-REM  Compiles and packages the game into a runnable JAR file.
+REM  Compiles and packages the game into a runnable JAR file using Java 25+
 
 setlocal enabledelayedexpansion
 
 REM Use UTF-8 in this console session
 chcp 65001 >nul
 
+REM Set Java 25 path (update if your JDK 25 is in a different folder)
+set "JAVA_HOME=C:\Program Files\Java\jdk-25"
+set "PATH=%JAVA_HOME%\bin;%PATH%"
+
+echo Using Java:
+java -version
+echo.
+
 echo.
 echo ========================================
-echo   Building Caves of Chaos JAR (UTF-8)
+echo   Building Caves of Chaos JAR (UTF-8, Java 25)
 echo ========================================
 echo.
 
@@ -22,9 +30,9 @@ if exist dist rmdir /S /Q dist
 mkdir bin
 mkdir dist
 
-REM Step 2: Compile all Java sources (UTF-8 + Java 8)
+REM Step 2: Compile all Java sources (UTF-8 + Java 25)
 echo [2/5] Compiling Java sources...
-javac -encoding UTF-8 -source 8 -target 8 -d bin -sourcepath src ^
+javac -encoding UTF-8 --release 25 -d bin -sourcepath src ^
     src\CavesOfChaos.java ^
     src\audio\*.java ^
     src\config\*.java ^
