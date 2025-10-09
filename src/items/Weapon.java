@@ -89,7 +89,6 @@ public class Weapon extends Item {
 
     @Override
     public boolean use(AbstractPlayer player) {
-        // Weapons are equipped/unequipped, not consumed
         if (canUse(player)) {
             if (player.getEquippedWeapon() == this) {
                 player.unequipWeapon();
