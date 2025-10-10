@@ -148,7 +148,6 @@ public class StatusPanel extends JPanel {
 
     /**
      * Creates a themed button with scroll aesthetic colors and fonts.
-     * Uses plain font to preserve emoji rendering without forced bold.
      */
     private JButton createButton(String text, java.awt.event.ActionListener action) {
         JButton btn = new JButton(text);
