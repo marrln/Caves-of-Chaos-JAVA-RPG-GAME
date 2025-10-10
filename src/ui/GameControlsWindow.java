@@ -7,8 +7,7 @@ import javax.swing.border.EmptyBorder;
 
 /**
  * A styled window displaying game controls and tips.
- * Designed to look like an ancient scroll with parchment aesthetics.
- *
+ * Designed to look like an ancient scroll 
  * Layout note:
  * - Uses GridBagLayout for the content area so each HTML JLabel receives the
  *   full available width and wraps naturally, preventing strange narrow columns
@@ -48,7 +47,7 @@ public class GameControlsWindow extends JDialog {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setOpaque(false);
         
-        // Create decorative scroll border with aged paper effect
+        // Create decorative scroll border
         mainPanel.setBorder(BorderFactory.createCompoundBorder(
                 // Outer dark border for the scroll edges
                 BorderFactory.createLineBorder(
@@ -150,7 +149,7 @@ public class GameControlsWindow extends JDialog {
         return scrollPane;
     }
 
-    // ====== TEXT HELPERS (GridBag-friendly) ======
+    // ====== TEXT HELPERS ======
     private void addToGrid(JPanel panel, Component comp, Insets insets) {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -235,8 +234,7 @@ public class GameControlsWindow extends JDialog {
 
     /**
      * Creates an HTML-wrapped JLabel that will fill the available horizontal space
-     * and wrap its text naturally. Do NOT force preferred height here — let the
-     * label compute its own preferred height based on the allocated width.
+     * and wrap its text naturally. Do NOT force preferred height here 
      */
     private JLabel createWrappedLabel(String text, Font font, Color color) {
         // Calculate available width: window width - borders - margins - scrollbar
