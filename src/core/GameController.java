@@ -146,11 +146,7 @@ public class GameController {
             if (!GeometryHelpers.isCardinallyAdjacent(player.getX(), player.getY(), target.getX(), target.getY())) continue;
 
             int dmg = player.getAttackDamage(attackType);
-            
-            // Play Duelist hit sound for successful melee attacks
-            if (player.getPlayerClass().equals("Duelist")) {
-                SFXManager.getInstance().playDuelistHit();
-            }
+            SFXManager.getInstance().playDuelistHit();
             
             logger.logMeleeAttack(player.getName(), target.getName(), dmg);
             boolean dead = target.takeDamage(dmg);
@@ -158,12 +154,9 @@ public class GameController {
             if (player.getEquippedWeapon() != null) player.getEquippedWeapon().applyOnHitEffect(player, dmg);
             if (dead) handleEnemyDefeat(player, target);
             return; // only one enemy per attack
-        }
-        
-        // If we get here, the attack missed (no adjacent enemies)
-        if (player.getPlayerClass().equals("Duelist")) {
-            SFXManager.getInstance().playDuelistMiss();
-        }
+        }        
+        // the attack missed (no adjacent enemies)
+        SFXManager.getInstance().playDuelistMiss();
     }
 
     private void handleEnemyDefeat(AbstractPlayer player, Enemy target) {
