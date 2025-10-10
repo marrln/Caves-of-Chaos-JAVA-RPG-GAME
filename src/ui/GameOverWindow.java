@@ -7,7 +7,7 @@ import javax.swing.*;
 
 /**
  * Game Over window displayed when the player dies.
- * Shows death message and options to restart or exit.
+ * Shows death message 
  */
 public class GameOverWindow extends JDialog {
     
