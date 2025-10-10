@@ -8,7 +8,7 @@
 
     <!-- Font settings -->
     <fonts>
-        <!-- Default font for general UI (warmer serif for atmosphere; fallbacks to Serif) -->
+        <!-- Default font for general UI (fallbacks to Serif) -->
         <font name="default" family="Garamond, Georgia, Serif" size="16" style="plain"/>
         <font name="displayTitle" family="Cinzel, Trajan Pro, Serif" size="28" style="bold"/>
 
@@ -17,10 +17,10 @@
         <font name="statusNormal" family="Garamond, Serif" size="14" style="plain"/>
         <font name="statusAtmospheric" family="EB Garamond, Garamond, Serif" size="14" style="italic"/>
 
-        <!-- Button font (clear but slightly condensed) -->
+        <!-- Button font  -->
         <font name="button" family="SansSerif" size="14" style="bold"/>
 
-        <!-- Log panel font (monospaced, slightly smaller) -->
+        <!-- Log panel font -->
         <font name="log" family="Monospaced" size="13" style="plain"/>
 
         <!-- Game UI fonts -->
