@@ -12,8 +12,7 @@ import utils.PathfindingAlgorithms;
 import utils.Positionable;
 
 /**
- * Base class for all enemies.
- * Handles stats, combat, AI, and movement logic.
+ * Base class for all enemies: handles stats, combat, AI, and movement.
  */
 public abstract class AbstractEnemy implements Enemy, Positionable {
 
@@ -79,18 +78,19 @@ public abstract class AbstractEnemy implements Enemy, Positionable {
     public boolean takeDamage(int damage) {
         if (isDead()) return false;
         hp = Math.max(0, hp - damage);
-
-        CombatState.State newState = (hp == 0) ? CombatState.State.DYING : CombatState.State.HURT;
-        int duration = AnimationUtil.getEnemyAnimationDuration((hp==0?"death":"hurt"), type.getSpritePrefix());
-        combatState.setState(newState, duration);
-        
-        // Play appropriate sound effect
         if (hp == 0) {
+            combatState.setState(
+                CombatState.State.DYING,
+                AnimationUtil.getEnemyAnimationDuration("death", type.getSpritePrefix())
+            );
             SFXManager.getInstance().playEnemyDeath();
         } else {
+            combatState.setState(
+                CombatState.State.HURT,
+                AnimationUtil.getEnemyAnimationDuration("hurt", type.getSpritePrefix())
+            );
             SFXManager.getInstance().playEnemyHurt();
         }
-        
         return hp == 0;
     }
 
@@ -128,14 +128,10 @@ public abstract class AbstractEnemy implements Enemy, Positionable {
         }
     }
     
-    /**
-     * Plays the appropriate attack sound for this enemy type.
-     * Can be overridden by specific enemy classes for unique sounds.
-     */
     protected void playAttackSound() {
         // Default: use sword sounds for armed enemies, generic for others
         String typeName = type.name().toLowerCase();
-        if (typeName.contains("skeleton") || typeName.contains("orc")) {
+        if (typeName.contains("armored") || typeName.contains("elite") || typeName.contains("orc") || typeName.contains("skeleton")) {
             SFXManager.getInstance().playEnemyAttackSword();
         } else {
             SFXManager.getInstance().playEnemyAttackGeneric();
