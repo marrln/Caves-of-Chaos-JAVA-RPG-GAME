@@ -1,17 +1,7 @@
 package enemies;
 
-/**
- * Werewolf enemy - a fast, aggressive lycanthrope.
- * High speed and dual claw/bite attacks.
- */
 public class Werewolf extends AbstractEnemy {
     
-    /**
-     * Creates a new Werewolf at the specified position.
-     * 
-     * @param x The initial x position
-     * @param y The initial y position
-     */
     public Werewolf(int x, int y) {
         super(x, y, EnemyType.WEREWOLF);
     }

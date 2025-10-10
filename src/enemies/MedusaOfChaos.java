@@ -2,7 +2,6 @@ package enemies;
 
 /**
  * Medusa of Chaos - The final boss of the caves.
- * Extremely powerful with multiple devastating attack types and high health.
  * This boss maintains its health across level entries/exits.
  */
 public class MedusaOfChaos extends AbstractEnemy {
@@ -39,21 +38,13 @@ public class MedusaOfChaos extends AbstractEnemy {
         return hasBeenCreated && persistentHp <= 0;
     }
     
-    /**
-     * Resets the boss state (for new game).
-     */
-    public static void resetBossState() {
-        persistentHp = -1;
-        hasBeenCreated = false;
-    }
-    
     public static int getPersistentHp() {
         return persistentHp;
     }
     
     /**
      * Boss AI turn logic - implements the required Enemy interface method.
-     * The Medusa of Chaos uses enhanced AI behavior from AbstractEnemy.
+     * The Medusa of Chaos uses behavior from AbstractEnemy.
      */
     @Override
     public void update(int playerX, int playerY) {
