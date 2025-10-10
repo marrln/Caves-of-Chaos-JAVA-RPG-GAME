@@ -10,14 +10,6 @@ import javax.sound.sampled.*;
 
 /**
  * Manages all sound effects in the game.
- * 
- * Design Philosophy:
- * - Singleton pattern for centralized SFX control
- * - Lazy loading: sounds are loaded on first use to reduce startup time
- * - Fail-safe: missing audio system doesn't crash the game
- * - Self-documenting API: each method clearly states what sound it plays
- * 
- * Usage: SFXManager.getInstance().playPlayerHurt();
  */
 public class SFXManager {
 
@@ -48,13 +40,7 @@ public class SFXManager {
     }
     
     // ====== CORE PLAYBACK ======
-    
-    /**
-     * Loads and plays a sound effect.
-     * Sounds are cached after first load for performance.
-     * 
-     * @param soundId The asset ID from assets.xml
-     */
+
     private void playSound(String soundId) {
         if (!isSfxEnabled) return;
         
@@ -79,11 +65,7 @@ public class SFXManager {
             System.err.println("Failed to play sound: " + soundId + " - " + e.getMessage());
         }
     }
-    
-    /**
-     * Retrieves a clip from cache or loads it if not already loaded.
-     * Uses lazy initialization to reduce memory footprint.
-     */
+
     private Clip getOrLoadClip(String soundId) {
         // Return cached clip if available
         if (soundCache.containsKey(soundId)) {
@@ -126,11 +108,7 @@ public class SFXManager {
             return null;
         }
     }
-    
-    /**
-     * Sets the volume of a clip using the MASTER_GAIN control.
-     * Volume range: 0.0 (silent) to 1.0 (full volume)
-     */
+
     private void setClipVolume(Clip clip, float volume) {
         if (clip == null) return;
         
@@ -160,131 +138,71 @@ public class SFXManager {
     }
     
     // ====== PLAYER SOUNDS ======
-    
-    /**
-     * Plays the Duelist's successful melee hit sound.
-     * Call this when a Duelist's melee attack connects with an enemy.
-     */
+
     public void playDuelistHit() {
         playSound("duelist_hit");
     }
     
-    /**
-     * Plays the Duelist's missed attack sound.
-     * Call this when a Duelist's attack misses or hits nothing.
-     */
     public void playDuelistMiss() {
         playSound("duelist_miss");
     }
     
-    /**
-     * Plays the player hurt sound.
-     * Call this when the player takes damage from any source.
-     */
     public void playPlayerHurt() {
         playSound("player_hurt");
     }
-    
-    /**
-     * Plays the player death sound.
-     * Call this when the player's HP reaches 0.
-     */
+
     public void playPlayerDeath() {
         playSound("player_death");
     }
-    
-    /**
-     * Plays a random player footstep sound.
-     * Call this during the player's walk animation for immersion.
-     */
+
     public void playPlayerWalk() {
         playRandomSound("player_walk_1", "player_walk_2", "player_walk_3");
     }
     
     // ====== SPELL SOUNDS ======
-    
-    /**
-     * Plays the spell casting sound.
-     * Call this when the Wizard casts fire or ice spells.
-     */
+
     public void playSpellCast() {
         playSound("spell_sound");
     }
     
     // ====== ENEMY SOUNDS ======
-    
-    /**
-     * Plays a generic enemy attack sound.
-     * Use this for basic enemies like slimes and basic orcs.
-     */
+
     public void playEnemyAttackGeneric() {
         playSound("enemy_attack_generic");
     }
     
-    /**
-     * Plays a sword-based enemy attack sound (variant 1).
-     * Use this for sword-wielding enemies like skeletons.
-     */
     public void playEnemyAttackSword1() {
         playSound("enemy_attack_sword_1");
     }
-    
-    /**
-     * Plays a sword-based enemy attack sound (variant 2).
-     * Use this for heavy sword enemies like elite orcs or greatsword skeletons.
-     */
+
     public void playEnemyAttackSword2() {
         playSound("enemy_attack_sword_2");
     }
-    
-    /**
-     * Plays a random sword attack sound for variety.
-     * Good default for most armed enemies.
-     */
+
     public void playEnemyAttackSword() {
         playRandomSound("enemy_attack_sword_1", "enemy_attack_sword_2");
     }
     
-    /**
-     * Plays a random enemy hurt sound.
-     * Call this when an enemy takes damage.
-     */
     public void playEnemyHurt() {
         playRandomSound("enemy_hurt_1", "enemy_hurt_2", "enemy_hurt_3");
     }
-    
-    /**
-     * Plays the enemy death sound.
-     * Call this when an enemy's HP reaches 0.
-     */
+
     public void playEnemyDeath() {
         playSound("enemy_death");
     }
-    
-    /**
-     * Plays a random enemy footstep sound.
-     * Call this during enemy walk animations.
-     */
+
     public void playEnemyWalk() {
         playRandomSound("enemy_walk_1", "enemy_walk_2", "enemy_walk_3");
     }
     
     // ====== ITEM SOUNDS ======
-    
-    /**
-     * Plays a random item pickup sound.
-     * Call this when the player picks up any item from the ground.
-     */
+
     public void playItemPickup() {
         playRandomSound("item_pickup_1", "item_pickup_2");
     }
     
     // ====== VOLUME & SETTINGS ======
     
-    /**
-     * Sets the master volume for all SFX.
-     * @param volume 0.0 (silent) to 1.0 (full volume)
-     */
     public void setVolume(float volume) {
         this.volumeLevel = Math.max(0.0f, Math.min(1.0f, volume));
     }
@@ -306,11 +224,7 @@ public class SFXManager {
     }
     
     // ====== CLEANUP ======
-    
-    /**
-     * Stops all playing sounds and releases audio resources.
-     * Call this when shutting down the game.
-     */
+
     public void cleanup() {
         for (Clip clip : soundCache.values()) {
             if (clip != null) {
