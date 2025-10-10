@@ -19,7 +19,7 @@ public enum EnemyType {
     ORC_RIDER("orc_rider"),
     WEREBEAR("werebear"),
     
-    // Boss (3 attacks)
+    // Boss
     MEDUSA_OF_CHAOS("medusa_of_chaos");
     
     private final String spritePrefix;
@@ -28,38 +28,18 @@ public enum EnemyType {
         this.spritePrefix = spritePrefix;
     }
     
-    /**
-     * Gets the sprite prefix used in assets.xml for this enemy type.
-     * 
-     * @return The sprite prefix string
-     */
     public String getSpritePrefix() {
         return spritePrefix;
     }
     
-    /**
-     * Gets the display name for this enemy type.
-     * 
-     * @return A formatted display name
-     */
     public String getDisplayName() {
         return name().toLowerCase().replace('_', ' ');
     }
     
-    /**
-     * Checks if this enemy type is a boss.
-     * 
-     * @return true if this is a boss enemy, false otherwise
-     */
     public boolean isBoss() {
         return this == MEDUSA_OF_CHAOS;
     }
     
-    /**
-     * Gets the number of attack types this enemy has based on assets.
-     * 
-     * @return The number of different attack animations (1-3)
-     */
     public int getAttackCount() {
         return switch (this) {
             case SLIME, ORC, SKELETON, WEREWOLF -> 2;
