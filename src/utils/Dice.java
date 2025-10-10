@@ -5,7 +5,7 @@ import java.util.Random;
 /**
  * Utility class for dice-based calculations in combat and game mechanics.
  * Provides methods for rolling dice, calculating damage ranges, and handling
- * probability-based events like critical hits.
+ * probability-based events 
  */
 public class Dice {
     private static final Random random = new Random();
