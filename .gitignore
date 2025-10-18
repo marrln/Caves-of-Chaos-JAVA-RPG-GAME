@@ -8,7 +8,9 @@ bin/
 # Build output and distribution files
 dist/
 
-
 # External library JARs (dependencies)
 lib/*.jar
 
+# Other files
+.zip
+.txt
