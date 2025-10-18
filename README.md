@@ -27,6 +27,7 @@ The game map is generated with each new level, ensuring replayability and dynami
 
 ### Requirements
 
+Before running the game, ensure you have the following installed:
 - Java 24 or higher
 
 ### Method 1: Quick Play (Windows - Recommended for Development)
@@ -112,10 +113,11 @@ src/
 
 ## License
 
+Caves of Chaos is not to be used commercially. You are free to modify and distribute the code for personal or educational purposes, provided that you give appropriate credit to the original author.
 Look under License for more details.
 
 ## Assets from itch.io
 
-[Will be updated with specific asset names]
+Some game assets were sourced from [itch.io](https://itch.io), a platform for indie game developers. Please refer to the `assets/` directory for specific asset credits and licenses, where you will find a README file listing all third-party assets used in this project.
 
 ---
