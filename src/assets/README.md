@@ -17,13 +17,13 @@ Includes all player character sprites and player-specific art.
 
 Includes all enemy sprites and enemy-specific art.
 
-    - All enemy sprites and enemy-specific art except boss enemies (which go in 'MedusaOfChaos/' folder)
-	- Author / Creator: CRAFTPIX.NET, Free Gorgon Pixel Character Sprites, https://free-game-assets.itch.io/
-	- Source / URL: https://zerie.itch.io/tiny-rpg-character-asset-pack 
-	- File path(s): 'src/assets/enemies/MedusaOfChaos/`
-
-    - Medusa of Chaos boss enemy sprites and art
+    - All enemy sprites and enemy-specific art except boss enemy
 	- Author / Creator: Zerie, Tiny RPG Character Asset Pack, https://itch.io/profile/zerie
+	- Source / URL: https://zerie.itch.io/tiny-rpg-character-asset-pack 
+	- File path(s): 'src/assets/enemies/` except `MedusaOfChaos/` folder
+
+    - Medusa of Chaos boss enemy sprite and art
+	- Author / Creator: CRAFTPIX.NET, Free Gorgon Pixel Character Sprites, https://free-game-assets.itch.io/
 	- Source / URL: https://free-game-assets.itch.io/free-gorgon-pixel-art-character-sprite-sheets
 	- File path(s): `src/assets/enemies/MedusaOfChaos/`
 
